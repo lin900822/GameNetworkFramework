@@ -55,10 +55,7 @@ public class TCPListener
                 var acceptEventArg = new SocketAsyncEventArgs(); // 所有Accept共用這個eventArgs
                 acceptEventArg.Completed += OnAccept;
 
-                if (!_listenFd.AcceptAsync(acceptEventArg))
-                {
-                    OnAccept(this, acceptEventArg);
-                }
+                AcceptAsync(acceptEventArg);
             }
             catch (Exception e)
             {
@@ -82,16 +79,41 @@ public class TCPListener
         e.Completed += OnReceive;
 
         e.AcceptSocket = clientFd;
-        if (!clientFd.ReceiveAsync(e))
-        {
-            OnReceive(this, e);
-        }
+        ReceiveAsync(e);
 
         // 重置acceptEventArg，並繼續監聽
         acceptEventArg.AcceptSocket = null;
-        if (!_listenFd.AcceptAsync(acceptEventArg))
+        AcceptAsync(acceptEventArg);
+    }
+
+    private void AcceptAsync(SocketAsyncEventArgs acceptEventArg)
+    {
+        try
         {
-            OnAccept(this, acceptEventArg);
+            if (!_listenFd.AcceptAsync(acceptEventArg))
+            {
+                OnAccept(this, acceptEventArg);
+            }
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e.ToString());
+        }
+    }
+
+    private void ReceiveAsync(SocketAsyncEventArgs args)
+    {
+        try
+        {
+            var clientFd = args.AcceptSocket;
+            if (!clientFd.ReceiveAsync(args))
+            {
+                OnReceive(this, args);
+            }
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e.ToString());
         }
     }
 
@@ -105,26 +127,54 @@ public class TCPListener
             return;
         }
 
-        var receivedMsg = Encoding.Unicode.GetString(args.Buffer, args.Offset, receiveCount);
-        Logger.LogInfo($"Receive {args.AcceptSocket.RemoteEndPoint} : {receivedMsg}");
+        var client     = _clients[args.AcceptSocket];
+        var readBuffer = client.ReadBuffer;
 
-        foreach (var client in _clients)
-        {
-            var sendMsg = $"{args.AcceptSocket.RemoteEndPoint} : {receivedMsg}";
-            Send(client.Key, sendMsg);
-        }
+        readBuffer.Write(args.Buffer, args.Offset, receiveCount);
 
-        if (!args.AcceptSocket.ReceiveAsync(args))
+        ParseReceivedData(client);
+
+        ReceiveAsync(args);
+    }
+
+    /// <summary>
+    /// | 總長度 2Byte | MessageId 2Byte | Data |
+    /// 
+    /// </summary>
+    /// <param name="client"></param>
+    private void ParseReceivedData(TCPClient client)
+    {
+        ByteBuffer readBuffer = client.ReadBuffer;
+        
+        // 連表示總長度的 2 Byte都沒收到
+        if (readBuffer.Length <= 2) return;
+        var totalLength = readBuffer.CheckUInt16();
+        
+        // 資料不完整
+        if (readBuffer.Length < totalLength) return;
+        
+        totalLength = readBuffer.ReadUInt16();
+        var messageId = readBuffer.ReadUInt16();
+
+        var bodyLength = totalLength - 2 - 2;
+        var body       = new byte[bodyLength];
+        readBuffer.Read(body, 0, bodyLength);
+        
+        // 分發收到的Message
+        
+        
+        // 繼續解析 readBuffer
+        if (readBuffer.Length > 2)
         {
-            OnReceive(this, args);
+            ParseReceivedData(client);
         }
     }
-    
+
     private void Close(SocketAsyncEventArgs args)
     {
         var socket            = args.AcceptSocket;
         var socketEndPointStr = socket.RemoteEndPoint.ToString();
-        
+
         if (_clients.ContainsKey(socket)) _clients.Remove(socket);
 
         try
@@ -142,7 +192,7 @@ public class TCPListener
 
         Logger.LogInfo($"{socketEndPointStr} Closed!");
     }
-    
+
     private void Send(Socket targetSocket, string message)
     {
         var e = _eventArgsPool.Get();
@@ -155,9 +205,23 @@ public class TCPListener
             e.Buffer[e.Offset + i] = sendData[i];
         }
 
-        if (!targetSocket.SendAsync(e))
+        e.AcceptSocket = targetSocket;
+        SendAsync(e);
+    }
+
+    private void SendAsync(SocketAsyncEventArgs args)
+    {
+        try
         {
-            OnSend(this, e);
+            var targetSocket = args.AcceptSocket;
+            if (!targetSocket.SendAsync(args))
+            {
+                OnSend(this, args);
+            }
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e.ToString());
         }
     }
 

@@ -49,6 +49,7 @@ public class TCPConnector
             
             var msg = Encoding.Unicode.GetString(_receiveBuffer, 0, count);
             Logger.LogInfo(msg);
+            Logger.LogInfo(count.ToString());
         }
     }
     
