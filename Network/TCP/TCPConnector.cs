@@ -7,56 +7,104 @@ namespace Network.TCP;
 
 public class TCPConnector
 {
-    private byte[] _receiveBuffer = new byte[1024];
+    private static readonly int _argsBufferSize = 1024 * 10;
     
     private Socket _connectFd;
-
-    private ILog _logger = new ConsoleLog();
+    private ByteBuffer _receiveBuffer = new ByteBuffer(1024);
+    private Queue<ByteBuffer> _sendQueue = new Queue<ByteBuffer>();
     
-    public void Connect(string ip, int port)
+    private SocketAsyncEventArgs _recieveArgs;
+    private SocketAsyncEventArgs _sendArgs;
+
+    public TCPConnector()
     {
-        IPAddress ipAddress = IPAddress.Parse(ip);
+        _recieveArgs = new SocketAsyncEventArgs();
+        _recieveArgs.SetBuffer(new byte[_argsBufferSize], 0, _argsBufferSize);
+        _recieveArgs.Completed += OnReceive;
+        
+        _sendArgs = new SocketAsyncEventArgs();
+        _sendArgs.SetBuffer(new byte[_argsBufferSize], 0, _argsBufferSize);
+    }
+    
+    public async void Connect(string ip, int port)
+    {
+        var ipAddress = IPAddress.Parse(ip);
+        var ipEndPoint = new IPEndPoint(ipAddress, port);
         try
         {
             _connectFd = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            _connectFd.Connect(ipAddress, port); 
+            Logger.Info($"Start Connecting to {ip}...");
             
-            _logger.LogInfo($"Start Connecting to {ip}...");
+            await _connectFd.ConnectAsync(ipEndPoint);
+
             if (_connectFd.Connected)
             {
-                _logger.LogInfo("Connected!");
+                Logger.Info("Connected!");
+
+                _recieveArgs.AcceptSocket = _connectFd;
+                _sendArgs.AcceptSocket = _connectFd;
                 
-                var receiveThread = new Thread(Receive);
-                receiveThread.Start();
+                ReceiveAsync(_recieveArgs);
             }
         }
         catch (Exception e)
         {
-            _logger.LogError(e.ToString());
+            Logger.Error(e.ToString());
         }
     }
 
-    private void Receive()
+    private void ReceiveAsync(SocketAsyncEventArgs args)
     {
-        while (true)
+        try
         {
-            var count = _connectFd.Receive(_receiveBuffer, 0, 1024, SocketFlags.None);
-
-            if (count == 0)
+            var socket = args.AcceptSocket;
+            if (!socket.ReceiveAsync(args))
             {
-                break;
+                OnReceive(this, args);
             }
-            
-            var msg = Encoding.Unicode.GetString(_receiveBuffer, 0, count);
-            Logger.LogInfo(msg);
-            Logger.LogInfo(count.ToString());
         }
+        catch (Exception e)
+        {
+            Logger.Error(e.ToString());
+        }
+    }
+
+    private void OnReceive(object sender, SocketAsyncEventArgs args)
+    {
+        var receiveCount = args.BytesTransferred;
+        _receiveBuffer.Write(args.Buffer, args.Offset, receiveCount);
+
+        ParseReceivedData();
+
+        ReceiveAsync(args);
     }
     
+    private void ParseReceivedData()
+    {
+        if (!MessageUtils.TryParse(_receiveBuffer, out var messageId, out var message))
+        {
+            return;
+        }
+        
+        // 分發收到的Message
+        string msg = Encoding.Unicode.GetString(message);
+        Logger.Info(msg);
+        
+        // 繼續解析 readBuffer
+        if (_receiveBuffer.Length > 2)
+        {
+            ParseReceivedData();
+        }
+    }
+
     public void Send(string message)
     {
-        byte[] sendBuff = Encoding.Unicode.GetBytes(message);
-        _connectFd.Send(sendBuff, sendBuff.Length, SocketFlags.None);
+        var data = Encoding.Unicode.GetBytes(message);
+        
+        var buffer = new ByteBuffer(1024);
+        MessageUtils.SetMessage(buffer, 0, data);
+        
+        _connectFd.Send(buffer.RawData, buffer.ReadIndex, buffer.Length, SocketFlags.None);
     }
 
     public void Close()

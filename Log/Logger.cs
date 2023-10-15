@@ -14,23 +14,23 @@ public class Logger
         }
     }
 
-    public static void LogDebug(string message)
+    public static void Debug(string message)
     {
-        _instance.LogDebug(message);
+        _instance.Debug(message);
     }
 
-    public static void LogInfo(string message)
+    public static void Info(string message)
     {
-        _instance.LogInfo(message);
+        _instance.Info(message);
     }
 
-    public static void LogWarning(string message)
+    public static void Warn(string message)
     {
-        _instance.LogWarning(message);
+        _instance.Warn(message);
     }
 
-    public static void LogError(string message)
+    public static void Error(string message)
     {
-        _instance.LogError(message);
+        _instance.Error(message);
     }
 }

@@ -50,7 +50,7 @@ public class TCPListener
             {
                 _listenFd.Bind(endPoint);
                 _listenFd.Listen();
-                Logger.LogInfo("Start Listening...");
+                Logger.Info("Start Listening...");
 
                 var acceptEventArg = new SocketAsyncEventArgs(); // 所有Accept共用這個eventArgs
                 acceptEventArg.Completed += OnAccept;
@@ -59,7 +59,7 @@ public class TCPListener
             }
             catch (Exception e)
             {
-                Logger.LogError(e.Message);
+                Logger.Error(e.Message);
             }
         }
     }
@@ -67,7 +67,7 @@ public class TCPListener
     private void OnAccept(object sender, SocketAsyncEventArgs acceptEventArg)
     {
         Socket clientFd = acceptEventArg.AcceptSocket;
-        Logger.LogInfo($"A Client {clientFd.RemoteEndPoint.ToString()} Connected!");
+        Logger.Info($"A Client {clientFd.RemoteEndPoint.ToString()} Connected!");
 
         // 加入Clients列表
         var client = new TCPClient();
@@ -97,7 +97,7 @@ public class TCPListener
         }
         catch (Exception e)
         {
-            Logger.LogError(e.ToString());
+            Logger.Error(e.ToString());
         }
     }
 
@@ -113,7 +113,7 @@ public class TCPListener
         }
         catch (Exception e)
         {
-            Logger.LogError(e.ToString());
+            Logger.Error(e.ToString());
         }
     }
 
@@ -137,31 +137,23 @@ public class TCPListener
         ReceiveAsync(args);
     }
 
-    /// <summary>
-    /// | 總長度 2Byte | MessageId 2Byte | Data |
-    /// 
-    /// </summary>
-    /// <param name="client"></param>
     private void ParseReceivedData(TCPClient client)
     {
-        ByteBuffer readBuffer = client.ReadBuffer;
+        var readBuffer = client.ReadBuffer;
         
-        // 連表示總長度的 2 Byte都沒收到
-        if (readBuffer.Length <= 2) return;
-        var totalLength = readBuffer.CheckUInt16();
-        
-        // 資料不完整
-        if (readBuffer.Length < totalLength) return;
-        
-        totalLength = readBuffer.ReadUInt16();
-        var messageId = readBuffer.ReadUInt16();
-
-        var bodyLength = totalLength - 2 - 2;
-        var body       = new byte[bodyLength];
-        readBuffer.Read(body, 0, bodyLength);
+        if (!MessageUtils.TryParse(readBuffer, out var messageId, out var message))
+        {
+            return;
+        }
         
         // 分發收到的Message
-        
+        string msg = Encoding.Unicode.GetString(message);
+        Logger.Info(msg);
+
+        foreach (var c in _clients)
+        {
+            Send(c.Value.Socket, msg);
+        }
         
         // 繼續解析 readBuffer
         if (readBuffer.Length > 2)
@@ -183,26 +175,29 @@ public class TCPListener
         }
         catch (Exception e)
         {
-            Logger.LogError(e.ToString());
+            Logger.Error(e.ToString());
         }
 
         socket.Close();
         args.Completed -= OnReceive;
         _eventArgsPool.Return(args);
 
-        Logger.LogInfo($"{socketEndPointStr} Closed!");
+        Logger.Info($"{socketEndPointStr} Closed!");
     }
 
     private void Send(Socket targetSocket, string message)
     {
         var e = _eventArgsPool.Get();
         e.Completed += OnSend;
+        
+        var data = Encoding.Unicode.GetBytes(message);
+        var buffer = new ByteBuffer(1024);
+        MessageUtils.SetMessage(buffer, 0, data);
 
-        var sendData = Encoding.Unicode.GetBytes(message);
-        e.SetBuffer(e.Offset, sendData.Length);
-        for (int i = 0; i < sendData.Length; i++)
+        e.SetBuffer(e.Offset, buffer.Length);
+        for (int i = buffer.ReadIndex; i < buffer.Length; i++)
         {
-            e.Buffer[e.Offset + i] = sendData[i];
+            e.Buffer[e.Offset + i] = buffer.RawData[i];
         }
 
         e.AcceptSocket = targetSocket;
@@ -221,7 +216,7 @@ public class TCPListener
         }
         catch (Exception e)
         {
-            Logger.LogError(e.ToString());
+            Logger.Error(e.ToString());
         }
     }
 
