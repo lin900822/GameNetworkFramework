@@ -152,7 +152,8 @@ public class TCPListener
 
         foreach (var c in _clients)
         {
-            Send(c.Value.Socket, msg);
+            var data = Encoding.Unicode.GetBytes(msg);
+            Send(c.Value, 0, data);
         }
         
         // 繼續解析 readBuffer
@@ -185,23 +186,39 @@ public class TCPListener
         Logger.Info($"{socketEndPointStr} Closed!");
     }
 
-    private void Send(Socket targetSocket, string message)
+    private void Send(TCPClient client, UInt16 messageId, byte[] message)
     {
-        var e = _eventArgsPool.Get();
-        e.Completed += OnSend;
-        
-        var data = Encoding.Unicode.GetBytes(message);
-        var buffer = new ByteBuffer(1024);
-        MessageUtils.SetMessage(buffer, 0, data);
-
-        e.SetBuffer(e.Offset, buffer.Length);
-        for (int i = buffer.ReadIndex; i < buffer.Length; i++)
+        if (client == null || client.Socket == null || !client.Socket.Connected)
         {
-            e.Buffer[e.Offset + i] = buffer.RawData[i];
+            Logger.Error("Send Failed, client is null or not connected");
+            return;
+        }
+        
+        // 打包資料
+        var byteBuffer = new ByteBuffer(2 + 2 + message.Length);
+        MessageUtils.SetMessage(byteBuffer, messageId, message);
+        
+        // 透過 SendQueue處理發送不完整問題
+        int count = 0;
+        lock (client.SendQueue)
+        {
+            client.SendQueue.Enqueue(byteBuffer);
+            count = client.SendQueue.Count;
         }
 
-        e.AcceptSocket = targetSocket;
-        SendAsync(e);
+        // 當 SendQueue只有 1個時發送
+        // SendQueue.Count > 1時, 在 OnSend()裡面會持續發送, 直到發送完
+        if (count == 1)
+        {
+            // 準備發送用的 SocketAsyncEventArgs
+            var args = _eventArgsPool.Get();
+            args.Completed += OnSend;
+            args.SetBuffer(args.Offset, byteBuffer.Length);
+            args.AcceptSocket = client.Socket;
+            
+            Array.Copy(byteBuffer.RawData, byteBuffer.ReadIndex, args.Buffer, args.Offset, byteBuffer.Length);
+            SendAsync(args);
+        }
     }
 
     private void SendAsync(SocketAsyncEventArgs args)
@@ -222,7 +239,51 @@ public class TCPListener
 
     private void OnSend(object sender, SocketAsyncEventArgs args)
     {
-        args.Completed -= OnSend;
-        _eventArgsPool.Return(args);
+        if (!_clients.TryGetValue(args.AcceptSocket, out var client))
+        {
+            Logger.Error("Send Failed, client is null");
+            return;
+        }
+        
+        var count = args.BytesTransferred;
+
+        ByteBuffer byteBuffer;
+        lock (client.SendQueue)
+        {
+            byteBuffer = client.SendQueue.First();
+        }
+        
+        byteBuffer.SetReadIndex(byteBuffer.ReadIndex + count);
+        
+        // 完整發送完一個ByteBuffer的資料
+        if (byteBuffer.Length == 0)
+        {
+            lock (client.SendQueue)
+            {
+                client.SendQueue.Dequeue();
+                if (client.SendQueue.Count >= 1)
+                {
+                    byteBuffer = client.SendQueue.First();
+                }
+                else
+                {
+                    byteBuffer = null;
+                }
+            }
+        }
+        
+        if (byteBuffer != null)
+        {
+            // SendQueue還有資料，繼續發送
+            args.SetBuffer(args.Offset, byteBuffer.Length);
+            Array.Copy(byteBuffer.RawData, byteBuffer.ReadIndex, args.Buffer, args.Offset, byteBuffer.Length);
+            SendAsync(args);
+        }
+        else
+        {
+            // 發送完，歸還args
+            args.Completed -= OnSend;
+            _eventArgsPool.Return(args);
+        }
     }
 }

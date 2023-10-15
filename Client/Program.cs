@@ -1,4 +1,5 @@
 ﻿
+using System.Text;
 using Network.TCP;
 
 TCPConnector connector = new TCPConnector();
@@ -11,5 +12,7 @@ while (true)
     {
         break;
     }
-    connector.Send(message);
+
+    var data = Encoding.Unicode.GetBytes(message);
+    connector.Send(0, data);
 }

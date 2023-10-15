@@ -9,12 +9,12 @@ public class ByteBuffer
     public int Remain => _capacity - _writeIndex;
     public int Length => _writeIndex - _readIndex;
 
-    public byte[] RawData    => _data;
-    public int    ReadIndex  => _readIndex;
-    public int    WriteIndex => _writeIndex;
+    public byte[] RawData => _rawData;
+    public int ReadIndex => _readIndex;
+    public int WriteIndex => _writeIndex;
 
     // Private Variables
-    private byte[] _data;
+    private byte[] _rawData;
 
     private int _readIndex;
     private int _writeIndex;
@@ -25,12 +25,15 @@ public class ByteBuffer
     // Methods
     public ByteBuffer(int size = DEFAULT_SIZE)
     {
-        _data       = new byte[size];
-        _capacity   = size;
-        _initSize   = size;
-        _readIndex  = 0;
+        _rawData = new byte[size];
+        _capacity = size;
+        _initSize = size;
+        _readIndex = 0;
         _writeIndex = 0;
     }
+
+    public void SetReadIndex(int value) => _readIndex = value;
+    public void SetWriteIndex(int value) => _writeIndex = value;
 
     // 擴充容量
     public void Resize(int size)
@@ -47,11 +50,11 @@ public class ByteBuffer
 
         _capacity = newSize;
         var newData = new byte[_capacity];
-        Array.Copy(_data, _readIndex, newData, 0, Length);
-        _data = newData;
+        Array.Copy(_rawData, _readIndex, newData, 0, Length);
+        _rawData = newData;
 
         _writeIndex = Length;
-        _readIndex  = 0;
+        _readIndex = 0;
     }
 
     // 檢查與複用byte空間
@@ -65,12 +68,12 @@ public class ByteBuffer
     {
         if (Length > 0)
         {
-            Array.Copy(_data, _readIndex, _data, 0, Length);
+            Array.Copy(_rawData, _readIndex, _rawData, 0, Length);
         }
 
         // 這裡順序要注意不能相反
         _writeIndex = Length;
-        _readIndex  = 0;
+        _readIndex = 0;
     }
 
     // 寫入資料
@@ -81,7 +84,7 @@ public class ByteBuffer
             Resize(Length + count);
         }
 
-        Array.Copy(bytes, offset, _data, _writeIndex, count);
+        Array.Copy(bytes, offset, _rawData, _writeIndex, count);
         _writeIndex += count;
         return count;
     }
@@ -94,8 +97,8 @@ public class ByteBuffer
             Resize(Length + 2);
         }
 
-        _data[_writeIndex]     = (byte)(value & 0xFF);
-        _data[_writeIndex + 1] = (byte)((value >> 8) & 0xFF);
+        _rawData[_writeIndex] = (byte)(value & 0xFF);
+        _rawData[_writeIndex + 1] = (byte)((value >> 8) & 0xFF);
 
         _writeIndex += 2;
     }
@@ -108,10 +111,10 @@ public class ByteBuffer
             Resize(Length + 4);
         }
 
-        _data[_writeIndex]     = (byte)(value & 0xFF);
-        _data[_writeIndex + 1] = (byte)((value >> 8) & 0xFF);
-        _data[_writeIndex + 2] = (byte)((value >> 16) & 0xFF);
-        _data[_writeIndex + 3] = (byte)((value >> 24) & 0xFF);
+        _rawData[_writeIndex] = (byte)(value & 0xFF);
+        _rawData[_writeIndex + 1] = (byte)((value >> 8) & 0xFF);
+        _rawData[_writeIndex + 2] = (byte)((value >> 16) & 0xFF);
+        _rawData[_writeIndex + 3] = (byte)((value >> 24) & 0xFF);
 
         _writeIndex += 4;
     }
@@ -120,7 +123,7 @@ public class ByteBuffer
     public int Read(byte[] bytes, int offset, int count)
     {
         count = Math.Min(count, Length);
-        Array.Copy(_data, _readIndex, bytes, offset, count);
+        Array.Copy(_rawData, _readIndex, bytes, offset, count);
         _readIndex += count;
         CheckAndReuseCapacity();
         return count;
@@ -131,7 +134,7 @@ public class ByteBuffer
     {
         if (Length < 2) return 0;
         // 以小端方式讀取Int16
-        UInt16 readUInt16 = (UInt16)((_data[_readIndex + 1] << 8) | _data[_readIndex]);
+        UInt16 readUInt16 = (UInt16)((_rawData[_readIndex + 1] << 8) | _rawData[_readIndex]);
         return readUInt16;
     }
 
@@ -140,7 +143,7 @@ public class ByteBuffer
     {
         if (Length < 2) return 0;
         // 以小端方式讀取Int16
-        UInt16 readUInt16 = (UInt16)((_data[_readIndex + 1] << 8) | _data[_readIndex]);
+        UInt16 readUInt16 = (UInt16)((_rawData[_readIndex + 1] << 8) | _rawData[_readIndex]);
         _readIndex += 2;
         CheckAndReuseCapacity();
         return readUInt16;
@@ -151,10 +154,10 @@ public class ByteBuffer
     {
         if (Length < 4) return 0;
         // 以小端方式讀取Int32
-        UInt32 readUInt32 = (UInt32)((_data[_readIndex + 3] << 24) |
-                                     (_data[_readIndex + 2] << 16) |
-                                     (_data[_readIndex + 1] << 8) |
-                                     _data[_readIndex]);
+        UInt32 readUInt32 = (UInt32)((_rawData[_readIndex + 3] << 24) |
+                                     (_rawData[_readIndex + 2] << 16) |
+                                     (_rawData[_readIndex + 1] << 8) |
+                                     _rawData[_readIndex]);
         _readIndex += 4;
         CheckAndReuseCapacity();
         return readUInt32;
@@ -163,7 +166,7 @@ public class ByteBuffer
     // 輸出緩衝區
     public override string ToString()
     {
-        return BitConverter.ToString(_data, _readIndex, Length);
+        return BitConverter.ToString(_rawData, _readIndex, Length);
     }
 
     // Debug
@@ -172,7 +175,7 @@ public class ByteBuffer
         return string.Format("_readIndex({0}) _writeIndex({1}) _data({2})",
             _readIndex,
             _writeIndex,
-            BitConverter.ToString(_data, 0, _capacity)
+            BitConverter.ToString(_rawData, 0, _capacity)
         );
     }
 }
