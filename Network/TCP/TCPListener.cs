@@ -5,87 +5,44 @@ using Log;
 
 namespace Network.TCP;
 
-/// <summary>
-/// TODO
-/// 1. 黏包拆包處理
-/// 2. 發送不完整處理
-/// 3. Message Router
-/// 4. SocketAsyncEventArgs, Buffer重複利用
-/// 5. 大小端處理
-/// </summary>
-public class TCPListener
+public class TCPListener : TCPBase
 {
-    // Define
-    private static readonly int EVENTARGS_BUFFER_SIZE = 1024;
-    private static readonly int DEFAULT_POOL_CAPACITY = 1;
-
     // Variables
     private Socket _listenFd;
 
     private Dictionary<Socket, TCPClient> _clients;
-
-    // Utils
+    
     private SocketAsyncEventArgsPool _eventArgsPool;
 
-    public void Start(string ip, int port)
+    public TCPListener()
     {
-        InitComponents();
-        InitListenFd();
+        _eventArgsPool = new SocketAsyncEventArgsPool(DefaultPoolCapacity, EventArgsBufferSize);
+        _clients       = new Dictionary<Socket, TCPClient>();
+    }
+    
+    public void Listen(string ip, int port)
+    {
+        var ipAddress = IPAddress.Parse(ip);
+        var endPoint  = new IPEndPoint(ipAddress, port);
 
-        // Local Methods
-
-        void InitComponents()
+        _listenFd = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        try
         {
-            _eventArgsPool = new SocketAsyncEventArgsPool(DEFAULT_POOL_CAPACITY, EVENTARGS_BUFFER_SIZE);
-            _clients       = new Dictionary<Socket, TCPClient>();
+            _listenFd.Bind(endPoint);
+            _listenFd.Listen();
+            Logger.Info("Start Listening...");
+
+            var acceptEventArg = new SocketAsyncEventArgs(); // 所有Accept共用這個eventArgs
+            acceptEventArg.Completed += OnAccept;
+
+            AcceptAsync(acceptEventArg);
         }
-
-        void InitListenFd()
+        catch (Exception e)
         {
-            var ipAddress = IPAddress.Parse(ip);
-            var endPoint  = new IPEndPoint(ipAddress, port);
-
-            _listenFd = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            try
-            {
-                _listenFd.Bind(endPoint);
-                _listenFd.Listen();
-                Logger.Info("Start Listening...");
-
-                var acceptEventArg = new SocketAsyncEventArgs(); // 所有Accept共用這個eventArgs
-                acceptEventArg.Completed += OnAccept;
-
-                AcceptAsync(acceptEventArg);
-            }
-            catch (Exception e)
-            {
-                Logger.Error(e.Message);
-            }
+            Logger.Error(e.Message);
         }
     }
-
-    private void OnAccept(object sender, SocketAsyncEventArgs acceptEventArg)
-    {
-        Socket clientFd = acceptEventArg.AcceptSocket;
-        Logger.Info($"A Client {clientFd.RemoteEndPoint.ToString()} Connected!");
-
-        // 加入Clients列表
-        var client = new TCPClient();
-        client.Socket = clientFd;
-        _clients.Add(clientFd, client);
-
-        // 開始接收clientFd傳來的訊息
-        var e = _eventArgsPool.Get();
-        e.Completed += OnReceive;
-
-        e.AcceptSocket = clientFd;
-        ReceiveAsync(e);
-
-        // 重置acceptEventArg，並繼續監聽
-        acceptEventArg.AcceptSocket = null;
-        AcceptAsync(acceptEventArg);
-    }
-
+    
     private void AcceptAsync(SocketAsyncEventArgs acceptEventArg)
     {
         try
@@ -101,20 +58,26 @@ public class TCPListener
         }
     }
 
-    private void ReceiveAsync(SocketAsyncEventArgs args)
+    private void OnAccept(object sender, SocketAsyncEventArgs acceptEventArg)
     {
-        try
-        {
-            var clientFd = args.AcceptSocket;
-            if (!clientFd.ReceiveAsync(args))
-            {
-                OnReceive(this, args);
-            }
-        }
-        catch (Exception e)
-        {
-            Logger.Error(e.ToString());
-        }
+        Socket clientFd = acceptEventArg.AcceptSocket;
+        Logger.Info($"A Client {clientFd.RemoteEndPoint.ToString()} Connected!");
+
+        // 加入Clients列表
+        var client = new TCPClient();
+        client.Socket = clientFd;
+        _clients.Add(clientFd, client);
+
+        // 開始接收clientFd傳來的訊息
+        var args = _eventArgsPool.Get();
+        args.Completed += OnReceive;
+
+        args.AcceptSocket = clientFd;
+        ReceiveAsync(args, OnReceive);
+
+        // 重置acceptEventArg，並繼續監聽
+        acceptEventArg.AcceptSocket = null;
+        AcceptAsync(acceptEventArg);
     }
 
     private void OnReceive(object sender, SocketAsyncEventArgs args)
@@ -134,14 +97,14 @@ public class TCPListener
 
         ParseReceivedData(client);
 
-        ReceiveAsync(args);
+        ReceiveAsync(args, OnReceive);
     }
 
     private void ParseReceivedData(TCPClient client)
     {
         var readBuffer = client.ReadBuffer;
         
-        if (!MessageUtils.TryParse(readBuffer, out var messageId, out var message))
+        if (!TryParseMessage(readBuffer, out var messageId, out var message))
         {
             return;
         }
@@ -194,46 +157,15 @@ public class TCPListener
             return;
         }
         
-        // 打包資料
-        var byteBuffer = new ByteBuffer(2 + 2 + message.Length);
-        MessageUtils.SetMessage(byteBuffer, messageId, message);
-        
-        // 透過 SendQueue處理發送不完整問題
-        int count = 0;
-        lock (client.SendQueue)
-        {
-            client.SendQueue.Enqueue(byteBuffer);
-            count = client.SendQueue.Count;
-        }
+        // 準備發送用的 SocketAsyncEventArgs
+        var args = _eventArgsPool.Get();
+        args.Completed += OnSend;
+        args.AcceptSocket = client.Socket;
 
-        // 當 SendQueue只有 1個時發送
-        // SendQueue.Count > 1時, 在 OnSend()裡面會持續發送, 直到發送完
-        if (count == 1)
+        if (!InnerSend(messageId, message, client.SendQueue, args, OnSend))
         {
-            // 準備發送用的 SocketAsyncEventArgs
-            var args = _eventArgsPool.Get();
-            args.Completed += OnSend;
-            args.SetBuffer(args.Offset, byteBuffer.Length);
-            args.AcceptSocket = client.Socket;
-            
-            Array.Copy(byteBuffer.RawData, byteBuffer.ReadIndex, args.Buffer, args.Offset, byteBuffer.Length);
-            SendAsync(args);
-        }
-    }
-
-    private void SendAsync(SocketAsyncEventArgs args)
-    {
-        try
-        {
-            var targetSocket = args.AcceptSocket;
-            if (!targetSocket.SendAsync(args))
-            {
-                OnSend(this, args);
-            }
-        }
-        catch (Exception e)
-        {
-            Logger.Error(e.ToString());
+            args.Completed -= OnSend;
+            _eventArgsPool.Return(args);
         }
     }
 
@@ -277,7 +209,7 @@ public class TCPListener
             // SendQueue還有資料，繼續發送
             args.SetBuffer(args.Offset, byteBuffer.Length);
             Array.Copy(byteBuffer.RawData, byteBuffer.ReadIndex, args.Buffer, args.Offset, byteBuffer.Length);
-            SendAsync(args);
+            SendAsync(args, OnSend);
         }
         else
         {
