@@ -5,7 +5,7 @@ using Log;
 
 namespace Network.TCP;
 
-public class TCPConnector : TCPBase
+public class TCPConnector : TCPService
 {
     private Socket _connectFd;
     private ByteBuffer _receiveBuffer = new ByteBuffer(1024);
@@ -57,6 +57,13 @@ public class TCPConnector : TCPBase
     private void OnReceive(object sender, SocketAsyncEventArgs args)
     {
         var receiveCount = args.BytesTransferred;
+        var isNotSuccess = args.SocketError != SocketError.Success;
+        if (receiveCount <= 0 || isNotSuccess)
+        {
+            Close();
+            return;
+        }
+        
         _receiveBuffer.Write(args.Buffer, args.Offset, receiveCount);
 
         ParseReceivedData();
@@ -71,9 +78,8 @@ public class TCPConnector : TCPBase
             return;
         }
 
-        // 分發收到的Message
-        string msg = Encoding.Unicode.GetString(message);
-        Logger.Info(msg);
+        // 分發收到的 Message
+        OnReceivedMessage?.Invoke(null, messageId, message);
 
         // 繼續解析 readBuffer
         if (_receiveBuffer.Length > 2)
@@ -137,5 +143,6 @@ public class TCPConnector : TCPBase
         }
         
         _connectFd.Close();
+        Logger.Info("Connection Closed!");
     }
 }

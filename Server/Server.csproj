@@ -8,11 +8,13 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\Common\Common.csproj" />
       <ProjectReference Include="..\Network\Network.csproj" />
+      <ProjectReference Include="..\Protocol\Protocol.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Google.Protobuf" Version="3.24.3" />
+      <PackageReference Include="Google.Protobuf" Version="3.25.0-rc1" />
     </ItemGroup>
 
 </Project>

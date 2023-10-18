@@ -1,4 +1,6 @@
-﻿namespace Network;
+﻿using System.Buffers;
+
+namespace Network;
 
 public class ByteBuffer
 {
@@ -25,10 +27,10 @@ public class ByteBuffer
     // Methods
     public ByteBuffer(int size = DEFAULT_SIZE)
     {
-        _rawData = new byte[size];
-        _capacity = size;
-        _initSize = size;
-        _readIndex = 0;
+        _rawData    = ArrayPool<byte>.Shared.Rent(size);
+        _capacity   = size;
+        _initSize   = size;
+        _readIndex  = 0;
         _writeIndex = 0;
     }
 

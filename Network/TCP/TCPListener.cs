@@ -5,11 +5,12 @@ using Log;
 
 namespace Network.TCP;
 
-public class TCPListener : TCPBase
+public class TCPListener : TCPService
 {
     // Variables
     private Socket _listenFd;
 
+    public Dictionary<Socket, TCPClient> Clients => _clients;
     private Dictionary<Socket, TCPClient> _clients;
     
     private SocketAsyncEventArgsPool _eventArgsPool;
@@ -109,16 +110,9 @@ public class TCPListener : TCPBase
             return;
         }
         
-        // 分發收到的Message
-        string msg = Encoding.Unicode.GetString(message);
-        Logger.Info(msg);
+        // 分發收到的 Message
+        OnReceivedMessage?.Invoke(client, messageId, message);
 
-        foreach (var c in _clients)
-        {
-            var data = Encoding.Unicode.GetBytes(msg);
-            Send(c.Value, 0, data);
-        }
-        
         // 繼續解析 readBuffer
         if (readBuffer.Length > 2)
         {
@@ -149,7 +143,7 @@ public class TCPListener : TCPBase
         Logger.Info($"{socketEndPointStr} Closed!");
     }
 
-    private void Send(TCPClient client, UInt16 messageId, byte[] message)
+    public void Send(TCPClient client, UInt16 messageId, byte[] message)
     {
         if (client == null || client.Socket == null || !client.Socket.Connected)
         {

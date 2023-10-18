@@ -1,14 +1,17 @@
 using System.Net.Sockets;
 using Log;
 
+
 namespace Network.TCP;
 
-public class TCPBase
+public class TCPService
 {
     // Define
     protected static readonly int EventArgsBufferSize = 1024 * 10;
     protected static readonly int DefaultPoolCapacity = 10;
-    
+
+    public Action<TCPClient, UInt16, byte[]> OnReceivedMessage;
+
     protected void ReceiveAsync(SocketAsyncEventArgs args, Action<object, SocketAsyncEventArgs> completeCallback)
     {
         try
