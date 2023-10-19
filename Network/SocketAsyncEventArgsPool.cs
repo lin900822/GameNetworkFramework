@@ -1,4 +1,5 @@
 ﻿using System.Net.Sockets;
+using Log;
 
 namespace Network;
 
@@ -50,5 +51,10 @@ public class SocketAsyncEventArgsPool
             
             return e;
         }
+    }
+
+    public void Debug()
+    {
+        Logger.Debug($"SocketAsyncEventArgsPool {Count}, BufferManager {_bufferManager.Size}");
     }
 }

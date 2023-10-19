@@ -16,8 +16,7 @@ public static class ProtoUtils
         {
             var value = new T();
 
-            using var input = new CodedInputStream(message);
-            value.MergeFrom(input);
+            value.MergeFrom(message);
             return value;
         }
         catch (Exception e)

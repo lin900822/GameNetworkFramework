@@ -7,19 +7,27 @@ namespace Network.TCP;
 public class TCPService
 {
     // Define
-    protected static readonly int EventArgsBufferSize = 1024 * 10;
-    protected static readonly int DefaultPoolCapacity = 10;
+    protected static readonly int EventArgsBufferSize = 1024 * 50;
+    protected static readonly int DefaultPoolCapacity = 10000;
 
     public Action<TCPClient, UInt16, byte[]> OnReceivedMessage;
 
-    protected void ReceiveAsync(SocketAsyncEventArgs args, Action<object, SocketAsyncEventArgs> completeCallback)
+    protected virtual void OnReceive(object sender, SocketAsyncEventArgs args)
+    {
+    }
+    
+    protected virtual void OnSend(object sender, SocketAsyncEventArgs args)
+    {
+    }
+
+    protected void ReceiveAsync(SocketAsyncEventArgs args)
     {
         try
         {
             var socket = args.AcceptSocket;
             if (!socket.ReceiveAsync(args))
             {
-                completeCallback?.Invoke(this, args);
+                OnReceive(this, args);
             }
         }
         catch (Exception e)
@@ -28,14 +36,14 @@ public class TCPService
         }
     }
     
-    protected void SendAsync(SocketAsyncEventArgs args, Action<object, SocketAsyncEventArgs> completeCallback)
+    protected void SendAsync(SocketAsyncEventArgs args)
     {
         try
         {
             var targetSocket = args.AcceptSocket;
             if (!targetSocket.SendAsync(args))
             {
-                completeCallback?.Invoke(this, args);
+                OnSend(this, args);
             }
         }
         catch (Exception e)
@@ -44,7 +52,7 @@ public class TCPService
         }
     }
     
-    protected bool InnerSend(UInt16 messageId, byte[] message, Queue<ByteBuffer> sendQueue, SocketAsyncEventArgs args, Action<object, SocketAsyncEventArgs> completeCallback)
+    protected void InnerSend(UInt16 messageId, byte[] message, Queue<ByteBuffer> sendQueue, SocketAsyncEventArgs args)
     {
         // 打包資料
         var byteBuffer = new ByteBuffer(2 + 2 + message.Length);
@@ -65,12 +73,7 @@ public class TCPService
             args.SetBuffer(args.Offset, byteBuffer.Length);
 
             Array.Copy(byteBuffer.RawData, byteBuffer.ReadIndex, args.Buffer, args.Offset, byteBuffer.Length);
-            SendAsync(args, completeCallback);
-            return true;
-        }
-        else
-        {
-            return false;
+            SendAsync(args);
         }
     }
     

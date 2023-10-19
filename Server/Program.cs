@@ -2,6 +2,14 @@
 using Log;
 using Network.TCP;
 
+AppDomain.CurrentDomain.UnhandledException += ExceptionHandler;
+
+void ExceptionHandler(object sender, UnhandledExceptionEventArgs args)
+{
+    var exception = (Exception)args.ExceptionObject;
+    Logger.Error("Global Exception Handler Caught: " + exception.ToString());
+}
+
 MessageRouter messageRouter = new MessageRouter();
 TCPListener   tcpListener   = new TCPListener();
 
@@ -15,17 +23,27 @@ void HandleHello(TCPClient client, byte[] message)
     
     hello.Content = $"{hello.Content} {handleCount}";
     var data = ProtoUtils.Encode(hello);
-
-    foreach (var pair in tcpListener.Clients)
-    {
-        tcpListener.Send(pair.Value, 1, data);
-    }
+    tcpListener.Send(client, 1, data);
 }
 
 tcpListener.OnReceivedMessage += messageRouter.ReceiveMessage;
 tcpListener.Listen("0.0.0.0", 10001);
 
+var timer = new System.Timers.Timer(1000);
+timer.Elapsed += (sender, eventArgs) =>
+{
+    Logger.Debug($"Handle Count {handleCount} Connection Count {tcpListener.ConnectionCount}");
+    handleCount = 0;
+    
+    tcpListener.Debug();
+    messageRouter.Debug();
+};
+
+timer.Start();
+
 int lastGCCount = 0;
+int lastGCCount1 = 0;
+int lastGCCount2 = 0;
 while (true)
 {
     messageRouter.OnUpdateLogic();
@@ -40,12 +58,21 @@ void PrintGC()
     gen1Count = GC.CollectionCount(1);
     gen2Count = GC.CollectionCount(2);
 
-    var gcCount = gen0Count + gen1Count + gen2Count;
-
-    if (gcCount != lastGCCount)
+    if (gen0Count != lastGCCount)
     {
-        lastGCCount = gcCount;
-        Logger.Debug($"GC!! Handle Count {handleCount}");
-        handleCount = 0;
+        lastGCCount = gen0Count;
+        Logger.Debug("GC 0!!");
+    }
+    if (gen1Count != lastGCCount1)
+    {
+        lastGCCount1 = gen1Count;
+        Logger.Debug("GC 1!!");
+    }
+    if (gen2Count != lastGCCount2)
+    {
+        lastGCCount2 = gen2Count;
+        Logger.Debug("GC 2!!");
     }
 }
+
+Console.ReadKey();

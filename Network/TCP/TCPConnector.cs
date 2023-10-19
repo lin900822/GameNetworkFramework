@@ -1,12 +1,13 @@
 ﻿using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using Log;
 
 namespace Network.TCP;
 
 public class TCPConnector : TCPService
 {
+    public bool IsConnected => _connectFd.Connected;
+    
     private Socket _connectFd;
     private ByteBuffer _receiveBuffer = new ByteBuffer(1024);
     private Queue<ByteBuffer> _sendQueue = new Queue<ByteBuffer>();
@@ -46,7 +47,7 @@ public class TCPConnector : TCPService
             _recieveArgs.AcceptSocket = _connectFd;
             _sendArgs.AcceptSocket = _connectFd;
 
-            ReceiveAsync(_recieveArgs, OnReceive);
+            ReceiveAsync(_recieveArgs);
         }
         catch (Exception e)
         {
@@ -54,7 +55,7 @@ public class TCPConnector : TCPService
         }
     }
 
-    private void OnReceive(object sender, SocketAsyncEventArgs args)
+    protected override void OnReceive(object sender, SocketAsyncEventArgs args)
     {
         var receiveCount = args.BytesTransferred;
         var isNotSuccess = args.SocketError != SocketError.Success;
@@ -68,7 +69,7 @@ public class TCPConnector : TCPService
 
         ParseReceivedData();
 
-        ReceiveAsync(args, OnReceive);
+        ReceiveAsync(args);
     }
 
     private void ParseReceivedData()
@@ -90,11 +91,23 @@ public class TCPConnector : TCPService
 
     public void Send(UInt16 messageId, byte[] message)
     {
-        InnerSend(messageId, message, _sendQueue, _sendArgs, OnSend);
+        if (_connectFd == null || !_connectFd.Connected)
+        {
+            Logger.Error("Send Failed, _connectFd is null or not connected");
+            return;
+        }
+        
+        InnerSend(messageId, message, _sendQueue, _sendArgs);
     }
 
-    private void OnSend(object sender, SocketAsyncEventArgs args)
+    protected override void OnSend(object sender, SocketAsyncEventArgs args)
     {
+        if (_connectFd == null || !_connectFd.Connected)
+        {
+            Logger.Error("Send Failed, _connectFd is null or not connected");
+            return;
+        }
+        
         var count = args.BytesTransferred;
 
         ByteBuffer byteBuffer;
@@ -127,7 +140,7 @@ public class TCPConnector : TCPService
             // SendQueue還有資料，繼續發送
             _sendArgs.SetBuffer(_sendArgs.Offset, byteBuffer.Length);
             Array.Copy(byteBuffer.RawData, byteBuffer.ReadIndex, args.Buffer, args.Offset, byteBuffer.Length);
-            SendAsync(args, OnSend);
+            SendAsync(args);
         }
     }
 

@@ -5,6 +5,8 @@ namespace Network;
 
 public class BufferManager
 {
+    public int Size => _bufferBlock.Length;
+    
     private int        _currentSize;
     private byte[]     _bufferBlock;
     private Stack<int> _indexPool;

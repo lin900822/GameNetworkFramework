@@ -2,8 +2,10 @@
 using Log;
 using Network.TCP;
 
-MessageRouter messageRouter = new MessageRouter();
-TCPConnector  connector     = new TCPConnector();
+int connectionCount = 5000;
+
+MessageRouter  messageRouter = new MessageRouter();
+TCPConnector[] connectors    = new TCPConnector[connectionCount];
 
 messageRouter.RegisterMessageHandler(1, (_, message) =>
 {
@@ -11,10 +13,15 @@ messageRouter.RegisterMessageHandler(1, (_, message) =>
     Logger.Info(hello.Content);
 });
 
-connector.OnReceivedMessage += messageRouter.ReceiveMessage;
-connector.Connect("127.0.0.1", 10001);
+for (int i = 0; i < connectionCount; i++)
+{
+    connectors[i] = new TCPConnector();
 
-Thread.Sleep(1000);
+    connectors[i].OnReceivedMessage += messageRouter.ReceiveMessage;
+    connectors[i].Connect("127.0.0.1", 10001);
+}
+
+Thread.Sleep(3000);
 
 Thread sendThread = new Thread(SendLoop);
 sendThread.Start();
@@ -31,11 +38,16 @@ void SendLoop()
 
     while (true)
     {
-        for (int i = 0; i < 100; i++)
+        for (int i = 0; i < connectionCount; i++)
         {
-            connector.Send(1, data);
+            if(!connectors[i].IsConnected) continue;
+
+            for (int j = 0; j < 1; j++)
+            {
+                connectors[i].Send(1, data);
+            }
         }
-        
-        Thread.Sleep(10);
+
+        Thread.Sleep(300);
     }
 }

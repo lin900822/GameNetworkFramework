@@ -2,8 +2,15 @@
 
 public class ConsoleLog : ILog
 {
+    private static bool IsLogDebug = true;
+    private static bool IsLogInfo = true;
+    private static bool IsLogWarn = true;
+    private static bool IsLogError = true;
+    
     public void Debug(string message)
     {
+        if (!IsLogDebug) return;
+        
         lock (this)
         {
             Console.ForegroundColor = ConsoleColor.Green;
@@ -13,6 +20,8 @@ public class ConsoleLog : ILog
 
     public void Info(string message)
     {
+        if (!IsLogInfo) return;
+        
         lock (this)
         {
             Console.ForegroundColor = ConsoleColor.Blue;
@@ -22,6 +31,8 @@ public class ConsoleLog : ILog
 
     public void Warn(string message)
     {
+        if (!IsLogWarn) return;
+        
         lock (this)
         {
             Console.ForegroundColor = ConsoleColor.Yellow;
@@ -31,6 +42,8 @@ public class ConsoleLog : ILog
 
     public void Error(string message)
     {
+        if (!IsLogError) return;
+        
         lock (this)
         {
             Console.ForegroundColor = ConsoleColor.Red;

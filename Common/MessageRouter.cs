@@ -81,4 +81,9 @@ public class MessageRouter
             Logger.Warn($"Message Router: Received Unregistered Message, messageId = {task.MessageId}");
         }
     }
+
+    public void Debug()
+    {
+        Logger.Debug($"MessageTaskQueue {_taskQueue.Count}");
+    }
 }
