@@ -21,7 +21,7 @@ for (int i = 0; i < connectionCount; i++)
     connectors[i].Connect("127.0.0.1", 10001);
 }
 
-Thread.Sleep(3000);
+Thread.Sleep(1000);
 
 Thread sendThread = new Thread(SendLoop);
 sendThread.Start();

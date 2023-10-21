@@ -111,9 +111,16 @@ public class NetworkListener : NetworkBase
 
     protected override void OnReceive(object sender, SocketAsyncEventArgs args)
     {
-        var client = _clients[args.AcceptSocket];
+        if (!_clients.TryGetValue(args.AcceptSocket, out var client))
+        {
+            Close(args.AcceptSocket);
+            Logger.Error("OnReceive Error: Cannot find client");
+            return;
+        }
+        
         if (!ReadDataToBuffer(args, client.ReceiveBuffer))
         {
+            // 收到 0個 Byte代表 Client已關閉
             Close(args.AcceptSocket);
             return;
         }
@@ -173,13 +180,13 @@ public class NetworkListener : NetworkBase
     {
         if (!_clients.TryGetValue(args.AcceptSocket, out var client))
         {
-            Logger.Error("Send Failed, client is null");
+            Logger.Error("OnSend Failed, client is null");
             return;
         }
 
         if (args.SocketError != SocketError.Success)
         {
-            Logger.Error($"Send Failed, Socket Error: {args.SocketError}");
+            Logger.Error($"OnSend Failed, Socket Error: {args.SocketError}");
             return;
         }
 
