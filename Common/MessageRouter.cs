@@ -1,5 +1,5 @@
 ﻿using Log;
-using Network.TCP;
+using Network;
 
 namespace Common;
 
@@ -7,22 +7,22 @@ public class MessageRouter
 {
     private struct MessageTask
     {
-        public TCPClient Client;
+        public NetworkClient Client;
         public UInt16    MessageId;
         public byte[]    Message;
     }
 
-    private Dictionary<UInt16, Action<TCPClient, byte[]>> _routeTable;
+    private Dictionary<UInt16, Action<NetworkClient, byte[]>> _routeTable;
 
     private Queue<MessageTask> _taskQueue;
 
     public MessageRouter()
     {
-        _routeTable = new Dictionary<UInt16, Action<TCPClient, byte[]>>();
+        _routeTable = new Dictionary<UInt16, Action<NetworkClient, byte[]>>();
         _taskQueue  = new Queue<MessageTask>();
     }
 
-    public void RegisterMessageHandler(UInt16 messageId, Action<TCPClient, byte[]> handler)
+    public void RegisterMessageHandler(UInt16 messageId, Action<NetworkClient, byte[]> handler)
     {
         if (_routeTable.TryGetValue(messageId, out var handlers))
         {
@@ -34,7 +34,7 @@ public class MessageRouter
         }
     }
 
-    public void UnregisterMessageHandler(UInt16 messageId, Action<TCPClient, byte[]> handler)
+    public void UnregisterMessageHandler(UInt16 messageId, Action<NetworkClient, byte[]> handler)
     {
         if (_routeTable.TryGetValue(messageId, out var handlers))
         {
@@ -42,7 +42,7 @@ public class MessageRouter
         }
     }
 
-    public void ReceiveMessage(TCPClient client, UInt16 messageId, byte[] message)
+    public void ReceiveMessage(NetworkClient client, UInt16 messageId, byte[] message)
     {
         var task = new MessageTask()
         {

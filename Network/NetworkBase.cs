@@ -1,25 +1,22 @@
 using System.Net.Sockets;
 using Log;
 
+namespace Network;
 
-namespace Network.TCP;
-
-public class TCPService
+/// <summary>
+/// 封裝 NetworkListener NetworkConnector 共用方法
+/// </summary>
+public abstract class NetworkBase
 {
     // Define
     protected static readonly int EventArgsBufferSize = 1024 * 50;
-    protected static readonly int DefaultPoolCapacity = 10000;
 
-    public Action<TCPClient, UInt16, byte[]> OnReceivedMessage;
+    public Action<NetworkClient, UInt16, byte[]> OnReceivedMessage;
 
-    protected virtual void OnReceive(object sender, SocketAsyncEventArgs args)
-    {
-    }
+    #region - Receive -
     
-    protected virtual void OnSend(object sender, SocketAsyncEventArgs args)
-    {
-    }
-
+    protected abstract void OnReceive(object sender, SocketAsyncEventArgs args);
+    
     protected void ReceiveAsync(SocketAsyncEventArgs args)
     {
         try
@@ -36,7 +33,28 @@ public class TCPService
         }
     }
     
-    protected void SendAsync(SocketAsyncEventArgs args)
+    protected bool ReadDataToBuffer(SocketAsyncEventArgs args, ByteBuffer readBuffer)
+    {
+        var receiveCount = args.BytesTransferred;
+        var isNotSuccess = args.SocketError != SocketError.Success;
+
+        if (receiveCount <= 0 || isNotSuccess)
+        {
+            return false;
+        }
+
+        readBuffer.Write(args.Buffer, args.Offset, receiveCount);
+
+        return true;
+    }
+    
+    #endregion
+
+    #region - Send -
+
+    protected abstract void OnSend(object sender, SocketAsyncEventArgs args);
+    
+    private void SendAsync(SocketAsyncEventArgs args)
     {
         try
         {
@@ -52,7 +70,7 @@ public class TCPService
         }
     }
     
-    protected void InnerSend(UInt16 messageId, byte[] message, Queue<ByteBuffer> sendQueue, SocketAsyncEventArgs args)
+    protected void AddMessageToSendQueue(UInt16 messageId, byte[] message, Queue<ByteBuffer> sendQueue, SocketAsyncEventArgs args)
     {
         // 打包資料
         var byteBuffer = new ByteBuffer(2 + 2 + message.Length);
@@ -77,10 +95,52 @@ public class TCPService
         }
     }
     
+    protected void CheckSendQueue(SocketAsyncEventArgs args, Queue<ByteBuffer> sendQueue)
+    {
+        var count = args.BytesTransferred;
+
+        ByteBuffer byteBuffer;
+        lock (sendQueue)
+        {
+            byteBuffer = sendQueue.First();
+        }
+
+        byteBuffer.SetReadIndex(byteBuffer.ReadIndex + count);
+
+        // 完整發送完一個ByteBuffer的資料
+        if (byteBuffer.Length <= 0)
+        {
+            lock (sendQueue)
+            {
+                sendQueue.Dequeue();
+                if (sendQueue.Count >= 1)
+                {
+                    byteBuffer = sendQueue.First();
+                }
+                else
+                {
+                    byteBuffer = null;
+                }
+            }
+        }
+
+        if (byteBuffer != null)
+        {
+            // SendQueue還有資料，繼續發送
+            args.SetBuffer(args.Offset, byteBuffer.Length);
+            Array.Copy(byteBuffer.RawData, byteBuffer.ReadIndex, args.Buffer, args.Offset, byteBuffer.Length);
+            SendAsync(args);
+        }
+    }
+
+    #endregion
+
+    #region - Message -
+
     /// <summary>
     /// | 總長度 2 Byte | MessageId 2 Byte | 資料內容 x Byte |
     /// </summary>
-    protected bool TryParseMessage(ByteBuffer byteBuffer, out UInt16 outMessageId, out byte[] outMessage)
+    protected static bool TryUnpackMessage(ByteBuffer byteBuffer, out UInt16 outMessageId, out byte[] outMessage)
     {
         outMessageId = 0;
         outMessage = null;
@@ -104,11 +164,13 @@ public class TCPService
         return true;
     }
 
-    protected void PackMessage(ByteBuffer byteBuffer, UInt16 messageId, byte[] message)
+    private static void PackMessage(ByteBuffer byteBuffer, UInt16 messageId, byte[] message)
     {
         var totalLength = message.Length + 2 + 2;
         byteBuffer.WriteUInt16((ushort)totalLength);
         byteBuffer.WriteUInt16(messageId);
         byteBuffer.Write(message, 0, message.Length);
     }
+
+    #endregion
 }

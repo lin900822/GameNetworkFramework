@@ -2,20 +2,20 @@
 using System.Net.Sockets;
 using Log;
 
-namespace Network.TCP;
+namespace Network;
 
-public class TCPConnector : TCPService
+public class NetworkConnector : NetworkBase
 {
     public bool IsConnected => _connectFd.Connected;
     
     private Socket _connectFd;
-    private ByteBuffer _receiveBuffer = new ByteBuffer(1024);
+    private ByteBuffer _receiveBuffer = new ByteBuffer(EventArgsBufferSize);
     private Queue<ByteBuffer> _sendQueue = new Queue<ByteBuffer>();
 
     private SocketAsyncEventArgs _recieveArgs;
     private SocketAsyncEventArgs _sendArgs;
 
-    public TCPConnector()
+    public NetworkConnector()
     {
         _recieveArgs = new SocketAsyncEventArgs();
         _recieveArgs.SetBuffer(new byte[EventArgsBufferSize], 0, EventArgsBufferSize);
@@ -55,26 +55,23 @@ public class TCPConnector : TCPService
         }
     }
 
+    #region - Receive -
+    
     protected override void OnReceive(object sender, SocketAsyncEventArgs args)
     {
-        var receiveCount = args.BytesTransferred;
-        var isNotSuccess = args.SocketError != SocketError.Success;
-        if (receiveCount <= 0 || isNotSuccess)
+        if (!ReadDataToBuffer(args, _receiveBuffer))
         {
             Close();
             return;
         }
-        
-        _receiveBuffer.Write(args.Buffer, args.Offset, receiveCount);
 
         ParseReceivedData();
-
         ReceiveAsync(args);
     }
 
     private void ParseReceivedData()
     {
-        if (!TryParseMessage(_receiveBuffer, out var messageId, out var message))
+        if (!TryUnpackMessage(_receiveBuffer, out var messageId, out var message))
         {
             return;
         }
@@ -88,7 +85,11 @@ public class TCPConnector : TCPService
             ParseReceivedData();
         }
     }
+    
+    #endregion
 
+    #region - Send -
+    
     public void Send(UInt16 messageId, byte[] message)
     {
         if (_connectFd == null || !_connectFd.Connected)
@@ -97,7 +98,7 @@ public class TCPConnector : TCPService
             return;
         }
         
-        InnerSend(messageId, message, _sendQueue, _sendArgs);
+        AddMessageToSendQueue(messageId, message, _sendQueue, _sendArgs);
     }
 
     protected override void OnSend(object sender, SocketAsyncEventArgs args)
@@ -108,41 +109,16 @@ public class TCPConnector : TCPService
             return;
         }
         
-        var count = args.BytesTransferred;
-
-        ByteBuffer byteBuffer;
-        lock (_sendQueue)
+        if (args.SocketError != SocketError.Success)
         {
-            byteBuffer = _sendQueue.First();
+            Logger.Error($"Send Failed, Socket Error: {args.SocketError}");
+            return;
         }
-
-        byteBuffer.SetReadIndex(byteBuffer.ReadIndex + count);
-
-        // 完整發送完一個ByteBuffer的資料
-        if (byteBuffer.Length == 0)
-        {
-            lock (_sendQueue)
-            {
-                _sendQueue.Dequeue();
-                if (_sendQueue.Count >= 1)
-                {
-                    byteBuffer = _sendQueue.First();
-                }
-                else
-                {
-                    byteBuffer = null;
-                }
-            }
-        }
-
-        if (byteBuffer != null)
-        {
-            // SendQueue還有資料，繼續發送
-            _sendArgs.SetBuffer(_sendArgs.Offset, byteBuffer.Length);
-            Array.Copy(byteBuffer.RawData, byteBuffer.ReadIndex, args.Buffer, args.Offset, byteBuffer.Length);
-            SendAsync(args);
-        }
+        
+        CheckSendQueue(args, _sendQueue);
     }
+    
+    #endregion
 
     public void Close()
     {

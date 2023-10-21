@@ -1,11 +1,11 @@
 ﻿using System.Net.Sockets;
 
-namespace Network.TCP;
+namespace Network;
 
-public class TCPClient
+public class NetworkClient
 {
     public Socket               Socket;
-    public ByteBuffer           ReadBuffer = new ByteBuffer();
+    public ByteBuffer           ReceiveBuffer = new ByteBuffer();
     public Queue<ByteBuffer>    SendQueue  = new Queue<ByteBuffer>();
     
     public SocketAsyncEventArgs ReceiveArgs;

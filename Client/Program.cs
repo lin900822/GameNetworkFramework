@@ -1,11 +1,11 @@
 ﻿using Common;
 using Log;
-using Network.TCP;
+using Network;
 
-int connectionCount = 1000;
+int connectionCount = 5000;
 
-MessageRouter  messageRouter = new MessageRouter();
-TCPConnector[] connectors    = new TCPConnector[connectionCount];
+MessageRouter messageRouter = new MessageRouter();
+NetworkConnector[] connectors = new NetworkConnector[connectionCount];
 
 messageRouter.RegisterMessageHandler(1, (_, message) =>
 {
@@ -13,13 +13,13 @@ messageRouter.RegisterMessageHandler(1, (_, message) =>
     Logger.Info(hello.Content);
 });
 
-// for (int i = 0; i < connectionCount; i++)
-// {
-//     connectors[i] = new TCPConnector();
-//
-//     connectors[i].OnReceivedMessage += messageRouter.ReceiveMessage;
-//     connectors[i].Connect("127.0.0.1", 10001);
-// }
+for (int i = 0; i < connectionCount; i++)
+{
+    connectors[i] = new NetworkConnector();
+
+    connectors[i].OnReceivedMessage += messageRouter.ReceiveMessage;
+    connectors[i].Connect("127.0.0.1", 10001);
+}
 
 Thread.Sleep(3000);
 
@@ -34,30 +34,20 @@ while (true)
 void SendLoop()
 {
     var hello = new Hello() { Content = "client message" };
-    var data  = ProtoUtils.Encode(hello);
+    var data = ProtoUtils.Encode(hello);
 
     while (true)
     {
-        // for (int i = 0; i < connectionCount; i++)
-        // {
-        //     if(!connectors[i].IsConnected) continue;
-        //
-        //     for (int j = 0; j < 1; j++)
-        //     {
-        //         connectors[i].Send(1, data);
-        //     }
-        // }
-        //
-        // Thread.Sleep(300);
-        
         for (int i = 0; i < connectionCount; i++)
         {
-            connectors[i] = new TCPConnector();
-        
-            connectors[i].OnReceivedMessage += messageRouter.ReceiveMessage;
-            connectors[i].Connect("127.0.0.1", 10001);
-            
-            connectors[i].Close();
+            if (!connectors[i].IsConnected) continue;
+
+            for (int j = 0; j < 1; j++)
+            {
+                connectors[i].Send(1, data);
+            }
         }
+
+        Thread.Sleep(300);
     }
 }

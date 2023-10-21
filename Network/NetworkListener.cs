@@ -1,26 +1,29 @@
 ﻿using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using Log;
 
-namespace Network.TCP;
+namespace Network;
 
-public class TCPListener : TCPService
+public class NetworkListener : NetworkBase
 {
     public int ConnectionCount => _clients.Count;
 
     // Variables
     private Socket _listenFd;
 
-    public  Dictionary<Socket, TCPClient> Clients => _clients;
-    private Dictionary<Socket, TCPClient> _clients;
+    private int _maxConnectionCount;
+
+    public  Dictionary<Socket, NetworkClient> Clients => _clients;
+    private Dictionary<Socket, NetworkClient> _clients;
 
     private SocketAsyncEventArgsPool _eventArgsPool;
 
-    public TCPListener()
+    public NetworkListener(int maxConnectionCount)
     {
-        _eventArgsPool = new SocketAsyncEventArgsPool(DefaultPoolCapacity, EventArgsBufferSize);
-        _clients       = new Dictionary<Socket, TCPClient>();
+        _maxConnectionCount = maxConnectionCount;
+        
+        _eventArgsPool = new SocketAsyncEventArgsPool(maxConnectionCount * 2, EventArgsBufferSize);
+        _clients       = new Dictionary<Socket, NetworkClient>();
     }
 
     public void Listen(string ip, int port)
@@ -32,7 +35,7 @@ public class TCPListener : TCPService
         try
         {
             _listenFd.Bind(endPoint);
-            _listenFd.Listen();
+            _listenFd.Listen(_maxConnectionCount);
             Logger.Info("Start Listening...");
 
             var acceptEventArg = new SocketAsyncEventArgs(); // 所有Accept共用這個eventArgs
@@ -45,6 +48,8 @@ public class TCPListener : TCPService
             Logger.Error(e.Message);
         }
     }
+    
+    #region - Accept -
 
     private void AcceptAsync(SocketAsyncEventArgs acceptEventArg)
     {
@@ -74,7 +79,7 @@ public class TCPListener : TCPService
         Logger.Info($"A Client {clientFd.RemoteEndPoint?.ToString()} Connected!");
 
         // 加入Clients列表
-        var client = new TCPClient();
+        var client = new NetworkClient();
         client.Socket = clientFd;
 
         var receiveArgs = _eventArgsPool.Get();
@@ -99,34 +104,29 @@ public class TCPListener : TCPService
         acceptEventArg.AcceptSocket = null;
         AcceptAsync(acceptEventArg);
     }
+    
+    #endregion
+    
+    #region - Receive -
 
     protected override void OnReceive(object sender, SocketAsyncEventArgs args)
     {
         var client = _clients[args.AcceptSocket];
-
-        var receiveCount = args.BytesTransferred;
-        var isNotSuccess = args.SocketError != SocketError.Success;
-
-        if (receiveCount <= 0 || isNotSuccess)
+        if (!ReadDataToBuffer(args, client.ReceiveBuffer))
         {
-            Close(client);
+            Close(args.AcceptSocket);
             return;
         }
 
-        var readBuffer = client.ReadBuffer;
-
-        readBuffer.Write(args.Buffer, args.Offset, receiveCount);
-
         ParseReceivedData(client);
-
         ReceiveAsync(args);
     }
 
-    private void ParseReceivedData(TCPClient client)
+    private void ParseReceivedData(NetworkClient client)
     {
-        var readBuffer = client.ReadBuffer;
+        var readBuffer = client.ReceiveBuffer;
 
-        if (!TryParseMessage(readBuffer, out var messageId, out var message))
+        if (!TryUnpackMessage(readBuffer, out var messageId, out var message))
         {
             return;
         }
@@ -140,39 +140,10 @@ public class TCPListener : TCPService
             ParseReceivedData(client);
         }
     }
-
-    private void Close(TCPClient client)
-    {
-        var socket            = client.Socket;
-        var socketEndPointStr = socket.RemoteEndPoint?.ToString();
-
-        var receiveArgs = client.ReceiveArgs;
-        var sendArgs    = client.SendArgs;
-
-        receiveArgs.Completed -= OnReceive;
-        sendArgs.Completed    -= OnSend;
-
-        _eventArgsPool.Return(receiveArgs);
-        _eventArgsPool.Return(sendArgs);
-
-        lock (_clients)
-        {
-            if (_clients.ContainsKey(socket)) _clients.Remove(socket);
-        }
-
-        try
-        {
-            socket.Shutdown(SocketShutdown.Send);
-        }
-        catch (Exception e)
-        {
-            Logger.Error(e.ToString());
-        }
-
-        socket.Close();
-
-        Logger.Info($"{socketEndPointStr} Closed!");
-    }
+    
+    #endregion
+    
+    #region - Send -
 
     public void SendAll(UInt16 messageId, byte[] message)
     {
@@ -186,7 +157,7 @@ public class TCPListener : TCPService
         }
     }
 
-    public void Send(TCPClient client, UInt16 messageId, byte[] message)
+    public void Send(NetworkClient client, UInt16 messageId, byte[] message)
     {
         if (client == null || client.Socket == null || !client.Socket.Connected)
         {
@@ -195,7 +166,7 @@ public class TCPListener : TCPService
         }
 
         var sendArgs = client.SendArgs;
-        InnerSend(messageId, message, client.SendQueue, sendArgs);
+        AddMessageToSendQueue(messageId, message, client.SendQueue, sendArgs);
     }
 
     protected override void OnSend(object sender, SocketAsyncEventArgs args)
@@ -212,39 +183,58 @@ public class TCPListener : TCPService
             return;
         }
 
-        var count = args.BytesTransferred;
-
-        ByteBuffer byteBuffer;
-        lock (client.SendQueue)
+        CheckSendQueue(args, client.SendQueue);
+    }
+    
+    #endregion
+    
+    private void Close(Socket socket)
+    {
+        if (!_clients.TryGetValue(socket, out var client))
         {
-            byteBuffer = client.SendQueue.First();
+            Logger.Error($"Close Socket Error: Cannot find client");
+            return;
+        }
+        
+        ReturnEventArgs();
+        RemoveFromClientList();
+        CloseConnection();
+        return;
+
+        void ReturnEventArgs()
+        {
+            var receiveArgs = client.ReceiveArgs;
+            var sendArgs    = client.SendArgs;
+            receiveArgs.Completed -= OnReceive;
+            sendArgs.Completed    -= OnSend;
+            _eventArgsPool.Return(receiveArgs);
+            _eventArgsPool.Return(sendArgs);
         }
 
-        byteBuffer.SetReadIndex(byteBuffer.ReadIndex + count);
-
-        // 完整發送完一個ByteBuffer的資料
-        if (byteBuffer.Length <= 0)
+        void RemoveFromClientList()
         {
-            lock (client.SendQueue)
+            lock (_clients)
             {
-                client.SendQueue.Dequeue();
-                if (client.SendQueue.Count >= 1)
-                {
-                    byteBuffer = client.SendQueue.First();
-                }
-                else
-                {
-                    byteBuffer = null;
-                }
+                if (_clients.ContainsKey(socket)) _clients.Remove(socket);
             }
         }
 
-        if (byteBuffer != null)
+        void CloseConnection()
         {
-            // SendQueue還有資料，繼續發送
-            args.SetBuffer(args.Offset, byteBuffer.Length);
-            Array.Copy(byteBuffer.RawData, byteBuffer.ReadIndex, args.Buffer, args.Offset, byteBuffer.Length);
-            SendAsync(args);
+            var socketEndPointStr = socket.RemoteEndPoint?.ToString();
+            
+            try
+            {
+                socket.Shutdown(SocketShutdown.Send);
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e.ToString());
+            }
+
+            socket.Close();
+            
+            Logger.Info($"{socketEndPointStr} Closed!");
         }
     }
 
