@@ -13,6 +13,8 @@ public abstract class NetworkBase
 
     public Action<NetworkClient, UInt16, byte[]> OnReceivedMessage;
 
+    public Action<Socket> OnClosed;
+
     #region - Receive -
     
     protected abstract void OnReceive(object sender, SocketAsyncEventArgs args);

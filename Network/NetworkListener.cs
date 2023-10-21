@@ -228,6 +228,8 @@ public class NetworkListener : NetworkBase
 
         void CloseConnection()
         {
+            OnClosed?.Invoke(socket);
+            
             var socketEndPointStr = socket.RemoteEndPoint?.ToString();
             
             try

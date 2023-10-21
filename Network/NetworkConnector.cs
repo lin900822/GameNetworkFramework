@@ -122,6 +122,8 @@ public class NetworkConnector : NetworkBase
 
     public void Close()
     {
+        OnClosed?.Invoke(_connectFd);
+        
         try
         {
             _connectFd.Shutdown(SocketShutdown.Both);
