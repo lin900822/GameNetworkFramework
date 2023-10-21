@@ -2,7 +2,7 @@
 using Log;
 using Network.TCP;
 
-int connectionCount = 5000;
+int connectionCount = 1000;
 
 MessageRouter  messageRouter = new MessageRouter();
 TCPConnector[] connectors    = new TCPConnector[connectionCount];
@@ -13,13 +13,13 @@ messageRouter.RegisterMessageHandler(1, (_, message) =>
     Logger.Info(hello.Content);
 });
 
-for (int i = 0; i < connectionCount; i++)
-{
-    connectors[i] = new TCPConnector();
-
-    connectors[i].OnReceivedMessage += messageRouter.ReceiveMessage;
-    connectors[i].Connect("127.0.0.1", 10001);
-}
+// for (int i = 0; i < connectionCount; i++)
+// {
+//     connectors[i] = new TCPConnector();
+//
+//     connectors[i].OnReceivedMessage += messageRouter.ReceiveMessage;
+//     connectors[i].Connect("127.0.0.1", 10001);
+// }
 
 Thread.Sleep(3000);
 
@@ -38,16 +38,26 @@ void SendLoop()
 
     while (true)
     {
+        // for (int i = 0; i < connectionCount; i++)
+        // {
+        //     if(!connectors[i].IsConnected) continue;
+        //
+        //     for (int j = 0; j < 1; j++)
+        //     {
+        //         connectors[i].Send(1, data);
+        //     }
+        // }
+        //
+        // Thread.Sleep(300);
+        
         for (int i = 0; i < connectionCount; i++)
         {
-            if(!connectors[i].IsConnected) continue;
-
-            for (int j = 0; j < 1; j++)
-            {
-                connectors[i].Send(1, data);
-            }
+            connectors[i] = new TCPConnector();
+        
+            connectors[i].OnReceivedMessage += messageRouter.ReceiveMessage;
+            connectors[i].Connect("127.0.0.1", 10001);
+            
+            connectors[i].Close();
         }
-
-        Thread.Sleep(300);
     }
 }

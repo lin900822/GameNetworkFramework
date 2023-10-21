@@ -28,16 +28,11 @@ public class ByteBuffer
     public ByteBuffer(int size = DEFAULT_SIZE)
     {
         _rawData    = new byte[size];
-        // _rawData    = ArrayPool<byte>.Shared.Rent(size);
         _capacity   = size;
         _initSize   = size;
         _readIndex  = 0;
         _writeIndex = 0;
     }
-    // ~ByteBuffer()
-    // {
-    //     ArrayPool<byte>.Shared.Return(_rawData);
-    // }
 
     public void SetReadIndex(int value) => _readIndex = value;
     public void SetWriteIndex(int value) => _writeIndex = value;
@@ -57,7 +52,6 @@ public class ByteBuffer
 
         _capacity = newSize;
         var newData = new byte[_capacity];
-        // var newData = ArrayPool<byte>.Shared.Rent(_capacity);
         Array.Copy(_rawData, _readIndex, newData, 0, Length);
         _rawData = newData;
 
