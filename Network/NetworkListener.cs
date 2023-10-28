@@ -6,24 +6,24 @@ namespace Network;
 
 public class NetworkListener : NetworkBase
 {
-    public int ConnectionCount => _sessions.Count;
+    public int ConnectionCount => _sessionList.Count;
 
     // Variables
     private Socket _listenFd;
 
     private int _maxConnectionCount;
 
-    public  Dictionary<Socket, NetworkSession> Sessions => _sessions;
-    private Dictionary<Socket, NetworkSession> _sessions;
+    public  Dictionary<Socket, NetworkSession> SessionList => _sessionList;
+    private Dictionary<Socket, NetworkSession> _sessionList;
 
-    private SocketAsyncEventArgsPool _eventArgsPool;
+    private NetworkSessionPool _sessionPool;
 
     public NetworkListener(int maxConnectionCount)
     {
         _maxConnectionCount = maxConnectionCount;
         
-        _eventArgsPool = new SocketAsyncEventArgsPool(maxConnectionCount * 2, EventArgsBufferSize);
-        _sessions       = new Dictionary<Socket, NetworkSession>();
+        _sessionPool = new NetworkSessionPool();
+        _sessionList = new Dictionary<Socket, NetworkSession>();
     }
 
     public void Listen(string ip, int port)
@@ -79,27 +79,29 @@ public class NetworkListener : NetworkBase
         Logger.Info($"A Client {clientFd.RemoteEndPoint?.ToString()} Connected!");
 
         // 加入Clients列表
-        var client = new NetworkSession();
-        client.Socket = clientFd;
+        var client = _sessionPool.Rent();;
 
-        var receiveArgs = _eventArgsPool.Get();
-        receiveArgs.Completed    += OnReceive;
-        receiveArgs.AcceptSocket =  clientFd;
-        client.ReceiveArgs       =  receiveArgs;
-
-        var sendArgs = _eventArgsPool.Get();
-        sendArgs.Completed    += OnSend;
-        sendArgs.AcceptSocket =  clientFd;
-        client.SendArgs       =  sendArgs;
-
-        lock (_sessions)
+        if (client == null)
         {
-            _sessions.Add(clientFd, client);
+            CloseSocket(clientFd);
         }
+        else
+        {
+            client.Socket                   =  clientFd;
+            client.ReceiveArgs.AcceptSocket =  clientFd;
+            client.SendArgs.AcceptSocket    =  clientFd;
+            client.ReceiveArgs.Completed    += OnReceive;
+            client.SendArgs.Completed       += OnSend;
 
-        // 開始接收clientFd傳來的訊息
-        ReceiveAsync(receiveArgs);
+            lock (_sessionList)
+            {
+                _sessionList.Add(clientFd, client);
+            }
 
+            // 開始接收clientFd傳來的訊息
+            ReceiveAsync(client.ReceiveArgs);
+        }
+        
         // 重置acceptEventArg，並繼續監聽
         acceptEventArg.AcceptSocket = null;
         AcceptAsync(acceptEventArg);
@@ -111,10 +113,10 @@ public class NetworkListener : NetworkBase
 
     protected override void OnReceive(object sender, SocketAsyncEventArgs args)
     {
-        if (!_sessions.TryGetValue(args.AcceptSocket, out var client))
+        if (!_sessionList.TryGetValue(args.AcceptSocket, out var client))
         {
             Close(args.AcceptSocket);
-            Logger.Error("OnReceive Error: Cannot find client");
+            Logger.Error("OnReceive Error: Cannot find session");
             return;
         }
         
@@ -154,9 +156,9 @@ public class NetworkListener : NetworkBase
 
     public void SendAll(UInt16 messageId, byte[] message)
     {
-        lock (_sessions)
+        lock (_sessionList)
         {
-            using var enumerator = _sessions.GetEnumerator();
+            using var enumerator = _sessionList.GetEnumerator();
             while (enumerator.MoveNext())
             {
                 Send(enumerator.Current.Value, messageId, message);
@@ -178,7 +180,7 @@ public class NetworkListener : NetworkBase
 
     protected override void OnSend(object sender, SocketAsyncEventArgs args)
     {
-        if (!_sessions.TryGetValue(args.AcceptSocket, out var client))
+        if (!_sessionList.TryGetValue(args.AcceptSocket, out var client))
         {
             Logger.Error("OnSend Failed, client is null");
             return;
@@ -197,58 +199,57 @@ public class NetworkListener : NetworkBase
     
     private void Close(Socket socket)
     {
-        if (!_sessions.TryGetValue(socket, out var client))
+        if (!_sessionList.TryGetValue(socket, out var session))
         {
-            Logger.Error($"Close Socket Error: Cannot find client");
+            Logger.Error($"Close Socket Error: Cannot find session");
             return;
         }
         
-        ReturnEventArgs();
-        RemoveFromClientList();
+        RemoveFromSessionList();
+        ReturnSession();
         CloseConnection();
         return;
 
-        void ReturnEventArgs()
+        void RemoveFromSessionList()
         {
-            var receiveArgs = client.ReceiveArgs;
-            var sendArgs    = client.SendArgs;
-            receiveArgs.Completed -= OnReceive;
-            sendArgs.Completed    -= OnSend;
-            _eventArgsPool.Return(receiveArgs);
-            _eventArgsPool.Return(sendArgs);
+            lock (_sessionList)
+            {
+                if (_sessionList.ContainsKey(socket)) _sessionList.Remove(socket);
+            }
         }
 
-        void RemoveFromClientList()
+        void ReturnSession()
         {
-            lock (_sessions)
-            {
-                if (_sessions.ContainsKey(socket)) _sessions.Remove(socket);
-            }
+            session.ReceiveArgs.Completed -= OnReceive;
+            session.SendArgs.Completed    -= OnSend;
+            _sessionPool.Return(session);
         }
 
         void CloseConnection()
         {
             OnClosed?.Invoke(socket);
-            
             var socketEndPointStr = socket.RemoteEndPoint?.ToString();
-            
-            try
-            {
-                socket.Shutdown(SocketShutdown.Send);
-            }
-            catch (Exception e)
-            {
-                Logger.Error(e.ToString());
-            }
-
-            socket.Close();
-            
+            CloseSocket(socket);
             Logger.Info($"{socketEndPointStr} Closed!");
         }
     }
 
+    private void CloseSocket(Socket socket)
+    {
+        try
+        {
+            socket.Shutdown(SocketShutdown.Send);
+        }
+        catch (Exception e)
+        {
+            Logger.Error(e.ToString());
+        }
+
+        socket.Close();
+    }
+
     public void Debug()
     {
-        _eventArgsPool.Debug();
+        _sessionPool.Debug();
     }
 }

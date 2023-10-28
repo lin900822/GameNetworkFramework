@@ -1,11 +1,9 @@
-﻿using System.Buffers;
-
-namespace Network;
+﻿namespace Network;
 
 public class ByteBuffer
 {
     // Define
-    private const int DEFAULT_SIZE = 1024;
+    private const int DEFAULT_SIZE = 1024 * 16; // 16kb
 
     // Properties
     public int Remain => _capacity - _writeIndex;

@@ -2,7 +2,7 @@
 using Log;
 using Network;
 
-int connectionCount = 5000;
+int connectionCount = 1000;
 
 MessageRouter messageRouter = new MessageRouter();
 NetworkConnector[] connectors = new NetworkConnector[connectionCount];
