@@ -2,7 +2,7 @@
 
 namespace Network;
 
-public class NetworkClient
+public class NetworkSession
 {
     public Socket               Socket;
     public ByteBuffer           ReceiveBuffer = new ByteBuffer();

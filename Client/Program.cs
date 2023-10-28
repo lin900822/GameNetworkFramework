@@ -48,6 +48,6 @@ void SendLoop()
             }
         }
 
-        Thread.Sleep(300);
+        Thread.Sleep(150);
     }
 }

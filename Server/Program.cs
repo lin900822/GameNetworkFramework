@@ -28,7 +28,7 @@ while (true)
 
 Console.ReadKey();
 
-void HandleHello(NetworkClient client, byte[] message)
+void HandleHello(NetworkSession client, byte[] message)
 {
     handleCount++;
     var hello = ProtoUtils.Decode<Hello>(message);

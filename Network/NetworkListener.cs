@@ -6,15 +6,15 @@ namespace Network;
 
 public class NetworkListener : NetworkBase
 {
-    public int ConnectionCount => _clients.Count;
+    public int ConnectionCount => _sessions.Count;
 
     // Variables
     private Socket _listenFd;
 
     private int _maxConnectionCount;
 
-    public  Dictionary<Socket, NetworkClient> Clients => _clients;
-    private Dictionary<Socket, NetworkClient> _clients;
+    public  Dictionary<Socket, NetworkSession> Sessions => _sessions;
+    private Dictionary<Socket, NetworkSession> _sessions;
 
     private SocketAsyncEventArgsPool _eventArgsPool;
 
@@ -23,7 +23,7 @@ public class NetworkListener : NetworkBase
         _maxConnectionCount = maxConnectionCount;
         
         _eventArgsPool = new SocketAsyncEventArgsPool(maxConnectionCount * 2, EventArgsBufferSize);
-        _clients       = new Dictionary<Socket, NetworkClient>();
+        _sessions       = new Dictionary<Socket, NetworkSession>();
     }
 
     public void Listen(string ip, int port)
@@ -79,7 +79,7 @@ public class NetworkListener : NetworkBase
         Logger.Info($"A Client {clientFd.RemoteEndPoint?.ToString()} Connected!");
 
         // 加入Clients列表
-        var client = new NetworkClient();
+        var client = new NetworkSession();
         client.Socket = clientFd;
 
         var receiveArgs = _eventArgsPool.Get();
@@ -92,9 +92,9 @@ public class NetworkListener : NetworkBase
         sendArgs.AcceptSocket =  clientFd;
         client.SendArgs       =  sendArgs;
 
-        lock (_clients)
+        lock (_sessions)
         {
-            _clients.Add(clientFd, client);
+            _sessions.Add(clientFd, client);
         }
 
         // 開始接收clientFd傳來的訊息
@@ -111,7 +111,7 @@ public class NetworkListener : NetworkBase
 
     protected override void OnReceive(object sender, SocketAsyncEventArgs args)
     {
-        if (!_clients.TryGetValue(args.AcceptSocket, out var client))
+        if (!_sessions.TryGetValue(args.AcceptSocket, out var client))
         {
             Close(args.AcceptSocket);
             Logger.Error("OnReceive Error: Cannot find client");
@@ -129,9 +129,9 @@ public class NetworkListener : NetworkBase
         ReceiveAsync(args);
     }
 
-    private void ParseReceivedData(NetworkClient client)
+    private void ParseReceivedData(NetworkSession session)
     {
-        var readBuffer = client.ReceiveBuffer;
+        var readBuffer = session.ReceiveBuffer;
 
         if (!TryUnpackMessage(readBuffer, out var messageId, out var message))
         {
@@ -139,12 +139,12 @@ public class NetworkListener : NetworkBase
         }
 
         // 分發收到的 Message
-        OnReceivedMessage?.Invoke(client, messageId, message);
+        OnReceivedMessage?.Invoke(session, messageId, message);
 
         // 繼續解析 readBuffer
         if (readBuffer.Length > 2)
         {
-            ParseReceivedData(client);
+            ParseReceivedData(session);
         }
     }
     
@@ -154,9 +154,9 @@ public class NetworkListener : NetworkBase
 
     public void SendAll(UInt16 messageId, byte[] message)
     {
-        lock (_clients)
+        lock (_sessions)
         {
-            using var enumerator = _clients.GetEnumerator();
+            using var enumerator = _sessions.GetEnumerator();
             while (enumerator.MoveNext())
             {
                 Send(enumerator.Current.Value, messageId, message);
@@ -164,21 +164,21 @@ public class NetworkListener : NetworkBase
         }
     }
 
-    public void Send(NetworkClient client, UInt16 messageId, byte[] message)
+    public void Send(NetworkSession session, UInt16 messageId, byte[] message)
     {
-        if (client == null || client.Socket == null || !client.Socket.Connected)
+        if (session == null || session.Socket == null || !session.Socket.Connected)
         {
             Logger.Error("Send Failed, client is null or not connected");
             return;
         }
 
-        var sendArgs = client.SendArgs;
-        AddMessageToSendQueue(messageId, message, client.SendQueue, sendArgs);
+        var sendArgs = session.SendArgs;
+        AddMessageToSendQueue(messageId, message, session.SendQueue, sendArgs);
     }
 
     protected override void OnSend(object sender, SocketAsyncEventArgs args)
     {
-        if (!_clients.TryGetValue(args.AcceptSocket, out var client))
+        if (!_sessions.TryGetValue(args.AcceptSocket, out var client))
         {
             Logger.Error("OnSend Failed, client is null");
             return;
@@ -197,7 +197,7 @@ public class NetworkListener : NetworkBase
     
     private void Close(Socket socket)
     {
-        if (!_clients.TryGetValue(socket, out var client))
+        if (!_sessions.TryGetValue(socket, out var client))
         {
             Logger.Error($"Close Socket Error: Cannot find client");
             return;
@@ -220,9 +220,9 @@ public class NetworkListener : NetworkBase
 
         void RemoveFromClientList()
         {
-            lock (_clients)
+            lock (_sessions)
             {
-                if (_clients.ContainsKey(socket)) _clients.Remove(socket);
+                if (_sessions.ContainsKey(socket)) _sessions.Remove(socket);
             }
         }
 

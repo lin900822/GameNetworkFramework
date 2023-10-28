@@ -1,4 +1,5 @@
-﻿using Log;
+﻿using System.Collections.Concurrent;
+using Log;
 using Network;
 
 namespace Common;
@@ -7,22 +8,22 @@ public class MessageRouter
 {
     private struct MessageTask
     {
-        public NetworkClient Client;
+        public NetworkSession Session;
         public UInt16    MessageId;
         public byte[]    Message;
     }
 
-    private Dictionary<UInt16, Action<NetworkClient, byte[]>> _routeTable;
+    private Dictionary<UInt16, Action<NetworkSession, byte[]>> _routeTable;
 
-    private Queue<MessageTask> _taskQueue;
+    private ConcurrentQueue<MessageTask> _taskQueue;
 
     public MessageRouter()
     {
-        _routeTable = new Dictionary<UInt16, Action<NetworkClient, byte[]>>();
-        _taskQueue  = new Queue<MessageTask>();
+        _routeTable = new Dictionary<UInt16, Action<NetworkSession, byte[]>>();
+        _taskQueue  = new ConcurrentQueue<MessageTask>();
     }
 
-    public void RegisterMessageHandler(UInt16 messageId, Action<NetworkClient, byte[]> handler)
+    public void RegisterMessageHandler(UInt16 messageId, Action<NetworkSession, byte[]> handler)
     {
         if (_routeTable.TryGetValue(messageId, out var handlers))
         {
@@ -34,7 +35,7 @@ public class MessageRouter
         }
     }
 
-    public void UnregisterMessageHandler(UInt16 messageId, Action<NetworkClient, byte[]> handler)
+    public void UnregisterMessageHandler(UInt16 messageId, Action<NetworkSession, byte[]> handler)
     {
         if (_routeTable.TryGetValue(messageId, out var handlers))
         {
@@ -42,39 +43,28 @@ public class MessageRouter
         }
     }
 
-    public void ReceiveMessage(NetworkClient client, UInt16 messageId, byte[] message)
+    public void ReceiveMessage(NetworkSession session, UInt16 messageId, byte[] message)
     {
         var task = new MessageTask()
         {
-            Client    = client,
+            Session    = session,
             MessageId = messageId,
             Message   = message,
         };
 
-        lock (_taskQueue)
-        {
-            _taskQueue.Enqueue(task);
-        }
+        _taskQueue.Enqueue(task);
     }
 
     public void OnUpdateLogic()
     {
-        MessageTask task;
-        lock (_taskQueue)
+        if (!_taskQueue.TryDequeue(out var task))
         {
-            if (_taskQueue.Count > 0)
-            {
-                task = _taskQueue.Dequeue();
-            }
-            else
-            {
-                return;
-            }
+            return;
         }
 
         if (_routeTable.TryGetValue(task.MessageId, out var handler))
         {
-            handler?.Invoke(task.Client, task.Message);
+            handler?.Invoke(task.Session, task.Message);
         }
         else
         {

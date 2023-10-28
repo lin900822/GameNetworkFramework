@@ -11,7 +11,7 @@ public abstract class NetworkBase
     // Define
     protected static readonly int EventArgsBufferSize = 1024 * 50;
 
-    public Action<NetworkClient, UInt16, byte[]> OnReceivedMessage;
+    public Action<NetworkSession, UInt16, byte[]> OnReceivedMessage;
 
     public Action<Socket> OnClosed;
 
