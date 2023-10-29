@@ -8,9 +8,6 @@ namespace Network;
 /// </summary>
 public abstract class NetworkBase
 {
-    // Define
-    protected static readonly int EventArgsBufferSize = 1024 * 50;
-
     public Action<NetworkSession, UInt16, byte[]> OnReceivedMessage;
 
     public Action<Socket> OnClosed;
@@ -90,9 +87,9 @@ public abstract class NetworkBase
         // SendQueue.Count > 1時, 在 OnSend()裡面會持續發送, 直到發送完
         if (count == 1)
         {
-            args.SetBuffer(args.Offset, byteBuffer.Length);
-
-            Array.Copy(byteBuffer.RawData, byteBuffer.ReadIndex, args.Buffer, args.Offset, byteBuffer.Length);
+            var copyCount = Math.Min(byteBuffer.Length, NetworkConfig.BufferSize);
+            args.SetBuffer(args.Offset, copyCount);
+            Array.Copy(byteBuffer.RawData, byteBuffer.ReadIndex, args.Buffer, args.Offset, copyCount);
             SendAsync(args);
         }
     }
@@ -129,8 +126,9 @@ public abstract class NetworkBase
         if (byteBuffer != null)
         {
             // SendQueue還有資料，繼續發送
-            args.SetBuffer(args.Offset, byteBuffer.Length);
-            Array.Copy(byteBuffer.RawData, byteBuffer.ReadIndex, args.Buffer, args.Offset, byteBuffer.Length);
+            var copyCount = Math.Min(byteBuffer.Length, NetworkConfig.BufferSize);
+            args.SetBuffer(args.Offset, copyCount);
+            Array.Copy(byteBuffer.RawData, byteBuffer.ReadIndex, args.Buffer, args.Offset, copyCount);
             SendAsync(args);
         }
     }

@@ -5,8 +5,8 @@ namespace Network;
 public class NetworkSession
 {
     public Socket               Socket;
-    public ByteBuffer           ReceiveBuffer = new ByteBuffer();
-    public Queue<ByteBuffer>    SendQueue  = new Queue<ByteBuffer>();
+    public ByteBuffer           ReceiveBuffer;
+    public Queue<ByteBuffer>    SendQueue;
     
     public SocketAsyncEventArgs ReceiveArgs;
     public SocketAsyncEventArgs SendArgs;

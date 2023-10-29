@@ -3,7 +3,7 @@
 public class ByteBuffer
 {
     // Define
-    private const int DEFAULT_SIZE = 1024 * 16; // 16kb
+    private const int DEFAULT_SIZE = 1024 * 4; // 4kb
 
     // Properties
     public int Remain => _capacity - _writeIndex;

@@ -8,9 +8,9 @@ public class NetworkConnector : NetworkBase
 {
     public bool IsConnected => _connectFd.Connected;
     
-    private Socket _connectFd;
-    private ByteBuffer _receiveBuffer = new ByteBuffer(EventArgsBufferSize);
-    private Queue<ByteBuffer> _sendQueue = new Queue<ByteBuffer>();
+    private Socket            _connectFd;
+    private ByteBuffer        _receiveBuffer = new ByteBuffer(NetworkConfig.BufferSize);
+    private Queue<ByteBuffer> _sendQueue     = new Queue<ByteBuffer>();
 
     private SocketAsyncEventArgs _recieveArgs;
     private SocketAsyncEventArgs _sendArgs;
@@ -18,11 +18,11 @@ public class NetworkConnector : NetworkBase
     public NetworkConnector()
     {
         _recieveArgs = new SocketAsyncEventArgs();
-        _recieveArgs.SetBuffer(new byte[EventArgsBufferSize], 0, EventArgsBufferSize);
+        _recieveArgs.SetBuffer(new byte[NetworkConfig.BufferSize], 0, NetworkConfig.BufferSize);
         _recieveArgs.Completed += OnReceive;
 
         _sendArgs = new SocketAsyncEventArgs();
-        _sendArgs.SetBuffer(new byte[EventArgsBufferSize], 0, EventArgsBufferSize);
+        _sendArgs.SetBuffer(new byte[NetworkConfig.BufferSize], 0, NetworkConfig.BufferSize);
         _sendArgs.Completed += OnSend;
     }
 

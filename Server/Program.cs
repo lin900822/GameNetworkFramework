@@ -32,7 +32,6 @@ void HandleHello(NetworkSession client, byte[] message)
 {
     handleCount++;
     var hello = ProtoUtils.Decode<Hello>(message);
-
     hello.Content = $"{hello.Content} {handleCount}";
     var data = ProtoUtils.Encode(hello);
     networkListener.Send(client, 1, data);

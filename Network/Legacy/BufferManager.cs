@@ -1,7 +1,7 @@
 ﻿using System.Net.Sockets;
 using Log;
 
-namespace Network;
+namespace Network.Legacy;
 
 public class BufferManager
 {

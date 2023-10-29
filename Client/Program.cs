@@ -33,7 +33,7 @@ while (true)
 
 void SendLoop()
 {
-    var hello = new Hello() { Content = "client message" };
+    var hello = new Hello() { Content = "client message 66666666666666666666" };
     var data = ProtoUtils.Encode(hello);
 
     while (true)
@@ -47,7 +47,6 @@ void SendLoop()
                 connectors[i].Send(1, data);
             }
         }
-
         Thread.Sleep(150);
     }
 }
