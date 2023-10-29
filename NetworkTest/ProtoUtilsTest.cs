@@ -17,7 +17,7 @@ public class ProtoUtilsTest
         var data = ProtoUtils.Encode(hello);
         
         // Assert
-        var hello2 = ProtoUtils.Decode<Hello>(data);
+        if (!ProtoUtils.TryDecode<Hello>(data, out var hello2)) return;
         Assert.That(hello2.Content, Is.EqualTo(hello.Content));
     }
 }

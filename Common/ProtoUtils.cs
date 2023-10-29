@@ -10,20 +10,19 @@ public static class ProtoUtils
         return message.ToByteArray();
     }
 
-    public static T Decode<T>(byte[] message) where T : IMessage, new()
+    public static bool TryDecode<T>(byte[] message, out T outMessage) where T : IMessage, new()
     {
         try
         {
-            var value = new T();
-
-            value.MergeFrom(message);
-            return value;
+            outMessage = new T();
+            outMessage.MergeFrom(message);
+            return true;
         }
         catch (Exception e)
         {
             Logger.Error(e.ToString());
+            outMessage = default(T);
+            return false;
         }
-
-        return default(T);
     }
 }

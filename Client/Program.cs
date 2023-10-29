@@ -9,7 +9,7 @@ NetworkConnector[] connectors = new NetworkConnector[connectionCount];
 
 messageRouter.RegisterMessageHandler(1, (_, message) =>
 {
-    var hello = ProtoUtils.Decode<Hello>(message);
+    if (!ProtoUtils.TryDecode<Hello>(message, out var hello)) return;
     Logger.Info(hello.Content);
 });
 

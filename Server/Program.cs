@@ -31,7 +31,8 @@ Console.ReadKey();
 void HandleHello(NetworkSession client, byte[] message)
 {
     handleCount++;
-    var hello = ProtoUtils.Decode<Hello>(message);
+    if (!ProtoUtils.TryDecode<Hello>(message, out var hello)) return;
+    
     hello.Content = $"{hello.Content} {handleCount}";
     var data = ProtoUtils.Encode(hello);
     networkListener.Send(client, 1, data);
