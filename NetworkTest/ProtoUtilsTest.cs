@@ -1,4 +1,4 @@
-﻿using Common;
+﻿using Network;
 using NUnit.Framework;
 
 namespace NetworkTest;

@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Net.Sockets;
 using Log;
 
@@ -8,7 +9,7 @@ namespace Network;
 /// </summary>
 public abstract class NetworkBase
 {
-    public Action<NetworkSession, UInt16, byte[]> OnReceivedMessage;
+    public Action<MessagePack> OnReceivedMessage;
 
     public Action<Socket> OnClosed;
 
@@ -140,11 +141,10 @@ public abstract class NetworkBase
     /// <summary>
     /// | 總長度 2 Byte | MessageId 2 Byte | 資料內容 x Byte |
     /// </summary>
-    protected static bool TryUnpackMessage(ByteBuffer byteBuffer, out UInt16 outMessageId, out byte[] outMessage)
+    protected static bool TryUnpackMessage(ByteBuffer byteBuffer, out MessagePack messagePack)
     {
-        outMessageId = 0;
-        outMessage = null;
-        
+        messagePack = new MessagePack();
+
         // 連表示總長度的 2 Byte都沒收到
         if (byteBuffer.Length <= 2) return false;
         
@@ -154,12 +154,12 @@ public abstract class NetworkBase
 
         // 資料完整，開始解析
         totalLength = byteBuffer.ReadUInt16();
-        outMessageId = byteBuffer.ReadUInt16();
-
         var bodyLength = totalLength - 2 - 2;
-
-        outMessage = new byte[bodyLength];
-        byteBuffer.Read(outMessage, 0, bodyLength);
+        
+        messagePack.MessageLength = bodyLength;
+        messagePack.MessageId     = byteBuffer.ReadUInt16();
+        messagePack.Message       = ArrayPool<byte>.Shared.Rent(totalLength);
+        byteBuffer.Read(messagePack.Message, 0, bodyLength);
 
         return true;
     }

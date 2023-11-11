@@ -1,7 +1,7 @@
 ﻿using Google.Protobuf;
 using Log;
 
-namespace Common;
+namespace Network;
 
 public static class ProtoUtils
 {

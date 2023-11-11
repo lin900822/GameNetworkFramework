@@ -22,7 +22,7 @@ public class NetworkListener : NetworkBase
     {
         _maxConnectionCount = maxConnectionCount;
         
-        _sessionPool = new NetworkSessionPool();
+        _sessionPool = new NetworkSessionPool(_maxConnectionCount);
         _sessionList = new Dictionary<Socket, NetworkSession>();
     }
 
@@ -135,13 +135,15 @@ public class NetworkListener : NetworkBase
     {
         var readBuffer = session.ReceiveBuffer;
 
-        if (!TryUnpackMessage(readBuffer, out var messageId, out var message))
+        if (!TryUnpackMessage(readBuffer, out var messagePack))
         {
             return;
         }
 
+        messagePack.Session = session;
+        
         // 分發收到的 Message
-        OnReceivedMessage?.Invoke(session, messageId, message);
+        OnReceivedMessage?.Invoke(messagePack);
 
         // 繼續解析 readBuffer
         if (readBuffer.Length > 2)

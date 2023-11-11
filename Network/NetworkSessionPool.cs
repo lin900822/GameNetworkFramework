@@ -8,9 +8,8 @@ public class NetworkSessionPool
 {
     private ConcurrentQueue<NetworkSession> _sessionQueue;
 
-    public NetworkSessionPool()
+    public NetworkSessionPool(int maxSessionCount)
     {
-        var maxSessionCount = NetworkConfig.MaxSessionCount;
         var bufferSize = NetworkConfig.BufferSize;
         
         _sessionQueue = new ConcurrentQueue<NetworkSession>();
