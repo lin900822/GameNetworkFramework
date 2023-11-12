@@ -79,10 +79,8 @@ public class ByteBuffer
     // 寫入資料
     public int Write(byte[] bytes, int offset, int count)
     {
-        if (Remain < count)
-        {
-            Resize(Length + count);
-        }
+        if (Remain < count) ReuseCapacity();
+        if (Remain < count) Resize(Length + count);
 
         Array.Copy(bytes, offset, _rawData, _writeIndex, count);
         _writeIndex += count;
@@ -92,10 +90,8 @@ public class ByteBuffer
     // 寫入UInt16
     public void WriteUInt16(UInt16 value)
     {
-        if (Remain < 2)
-        {
-            Resize(Length + 2);
-        }
+        if (Remain < 2) ReuseCapacity();
+        if (Remain < 2) Resize(Length + 2);
 
         _rawData[_writeIndex] = (byte)(value & 0xFF);
         _rawData[_writeIndex + 1] = (byte)((value >> 8) & 0xFF);
@@ -106,10 +102,8 @@ public class ByteBuffer
     // 寫入UInt32
     public void WriteUInt32(UInt32 value)
     {
-        if (Remain < 4)
-        {
-            Resize(Length + 4);
-        }
+        if (Remain < 4) ReuseCapacity();
+        if (Remain < 4) Resize(Length + 4);
 
         _rawData[_writeIndex] = (byte)(value & 0xFF);
         _rawData[_writeIndex + 1] = (byte)((value >> 8) & 0xFF);

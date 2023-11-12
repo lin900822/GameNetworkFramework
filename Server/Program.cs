@@ -4,10 +4,16 @@ using Network;
 using Server;
 using Timer = System.Timers.Timer;
 
-ServerApp server = new ServerApp(5000);
+try
+{
+    ServerApp server = new ServerApp(5000);
 
-server.StartListening(10001);
-
+    server.StartListening(10001);
+}
+catch (Exception ex)
+{
+    Logger.Error(ex.ToString());
+}
 
 //
 // int lastCount = 0;

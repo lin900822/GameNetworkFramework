@@ -48,4 +48,18 @@ public class ByteBufferTest
 
         Assert.AreEqual(input, read);
     }
+
+    [Test]
+    public void Resize_WhenDataBiggerThenSize_Resize()
+    {
+        // Arrange
+        ByteBuffer buffer = new ByteBuffer(4);
+
+        // Act
+        var bigData = new byte[1024];
+        buffer.Write(bigData, 0, bigData.Length);
+
+        // Assert
+        Assert.AreEqual(buffer.RawData.Length, 1024);
+    }
 }
