@@ -22,6 +22,11 @@ public abstract class NetworkBase
         try
         {
             var socket = args.AcceptSocket;
+            if (socket == null)
+            {
+                Logger.Error("Receive Failed, client socket is null");
+                return;
+            }
             if (!socket.ReceiveAsync(args))
             {
                 OnReceive(this, args);
@@ -59,6 +64,11 @@ public abstract class NetworkBase
         try
         {
             var targetSocket = args.AcceptSocket;
+            if (targetSocket == null)
+            {
+                Logger.Error("Send Failed, client socket is null");
+                return;
+            }
             if (!targetSocket.SendAsync(args))
             {
                 OnSend(this, args);

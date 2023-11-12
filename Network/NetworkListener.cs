@@ -170,7 +170,17 @@ public class NetworkListener : NetworkBase
 
     public void Send(NetworkSession session, UInt16 messageId, byte[] message)
     {
-        if (session == null || session.Socket == null || !session.Socket.Connected)
+        if (session == null)
+        {
+            Logger.Error("Send Failed, client is null or not connected");
+            return;
+        }
+        if (session.Socket == null)
+        {
+            Logger.Error("Send Failed, client is null or not connected");
+            return;
+        }
+        if (!session.Socket.Connected)
         {
             Logger.Error("Send Failed, client is null or not connected");
             return;
@@ -182,6 +192,11 @@ public class NetworkListener : NetworkBase
 
     protected override void OnSend(object sender, SocketAsyncEventArgs args)
     {
+        if (args.AcceptSocket == null)
+        {
+            Logger.Error("OnSend Failed, client socket is null");
+            return;
+        }
         if (!_sessionList.TryGetValue(args.AcceptSocket, out var client))
         {
             Logger.Error("OnSend Failed, client is null");
