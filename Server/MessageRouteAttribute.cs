@@ -1,11 +1,11 @@
 ﻿namespace Server;
 
 [AttributeUsage(AttributeTargets.Method)]
-public class RouteAttribute : Attribute
+public class MessageRouteAttribute : Attribute
 {
     public ushort MessageId { get; private set; }
 
-    public RouteAttribute(ushort messageId)
+    public MessageRouteAttribute(ushort messageId)
     {
         MessageId = messageId;
     }

@@ -1,7 +1,7 @@
 ﻿using Log;
 using Network;
 
-int connectionCount = 10;
+int connectionCount = 1;
 
 MessageRouter messageRouter = new MessageRouter();
 NetworkConnector[] connectors = new NetworkConnector[connectionCount];
@@ -47,9 +47,9 @@ void SendLoop()
             for (int j = 0; j < 1; j++)
             {
                 connectors[i].Send(1, data);
-                connectors[i].Send(2, data2);
+                //connectors[i].Send(2, data2);
             }
         }
-        Thread.Sleep(150);
+        Thread.Sleep(50);
     }
 }

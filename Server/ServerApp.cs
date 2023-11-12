@@ -46,10 +46,10 @@ public class ServerApp
             var methodInfos = type.GetMethods();
             foreach (var methodInfo in methodInfos)
             {
-                if(!methodInfo.IsDefined(typeof(RouteAttribute), false)) continue;
+                if(!methodInfo.IsDefined(typeof(MessageRouteAttribute), false)) continue;
                 
                 var action = (Action<MessagePack>)Delegate.CreateDelegate(typeof(Action<MessagePack>), instance, methodInfo);
-                var routeAttribute = methodInfo.GetCustomAttribute<RouteAttribute>();
+                var routeAttribute = methodInfo.GetCustomAttribute<MessageRouteAttribute>();
                 messageRouter.RegisterMessageHandler(routeAttribute.MessageId, action);
             }
         }

@@ -9,7 +9,7 @@ public class TestMessageHandler : MessageHandler
     {
     }
     
-    [Route(1)]
+    [MessageRoute(1)]
     public void OnReceiveHello(MessagePack messagePack)
     {
         if (!messagePack.TryDecode<Hello>(out var hello)) return;
@@ -17,9 +17,12 @@ public class TestMessageHandler : MessageHandler
         hello.Content = $"Server Response: {hello.Content}";
         var data = ProtoUtils.Encode(hello);
         _serverApp.Send(messagePack.Session, 1, data);
+        
+        Logger.Debug($"{messagePack.Session.ReceiveBuffer.ReadIndex} {messagePack.Session.ReceiveBuffer.WriteIndex}");
+        
     }
     
-    [Route(2)]
+    [MessageRoute(2)]
     public void OnReceiveMove(MessagePack messagePack)
     {
         if (!messagePack.TryDecode<Move>(out var move)) return;
