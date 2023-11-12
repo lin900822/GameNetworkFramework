@@ -4,7 +4,7 @@ using Network;
 using Server;
 using Timer = System.Timers.Timer;
 
-ServerApp server = new ServerApp(10);
+ServerApp server = new ServerApp(5000);
 
 server.StartListening(10001);
 

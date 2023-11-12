@@ -5,6 +5,9 @@ namespace Server;
 
 public class ServerApp
 {
+    public MessageRouter   Router          => messageRouter;
+    public NetworkListener NetworkListener => networkListener;
+    
     private MessageRouter   messageRouter;
     private NetworkListener networkListener;
 
