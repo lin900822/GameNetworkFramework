@@ -1,12 +1,16 @@
 ﻿using Log;
 using Network;
 
-int connectionCount = 5000;
+int connectionCount = 1;
 
 MessageRouter messageRouter = new MessageRouter();
 NetworkConnector[] connectors = new NetworkConnector[connectionCount];
 
 messageRouter.RegisterMessageHandler(1, (messagePack) =>
+{
+    Logger.Info("Pong!");
+});
+messageRouter.RegisterMessageHandler(101, (messagePack) =>
 {
     if (!messagePack.TryDecode<Hello>(out var hello)) return;
     Logger.Info(hello.Content);
@@ -46,10 +50,10 @@ void SendLoop()
 
             for (int j = 0; j < 1; j++)
             {
-                connectors[i].Send(1, data);
-                //connectors[i].Send(2, data2);
+                connectors[i].Send(101, data);
+                //connectors[i].Send(102, data2);
             }
         }
-        Thread.Sleep(1);
+        Thread.Sleep(1000);
     }
 }

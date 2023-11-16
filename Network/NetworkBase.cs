@@ -9,6 +9,8 @@ namespace Network;
 /// </summary>
 public abstract class NetworkBase
 {
+    public Action<NetworkSession> OnConnected;
+
     public Action<MessagePack> OnReceivedMessage;
 
     public Action<Socket> OnClosed;
@@ -116,7 +118,7 @@ public abstract class NetworkBase
         }
 
         byteBuffer.SetReadIndex(byteBuffer.ReadIndex + count);
-
+        
         // 完整發送完一個ByteBuffer的資料
         if (byteBuffer.Length <= 0)
         {

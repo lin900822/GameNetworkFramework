@@ -6,9 +6,9 @@ using Timer = System.Timers.Timer;
 
 try
 {
-    ServerApp server = new ServerApp(5000);
+    DemoServer demoServer = new DemoServer(5000);
 
-    server.StartListening(10001);
+    demoServer.Start(10001);
 }
 catch (Exception ex)
 {

@@ -10,4 +10,6 @@ public class NetworkSession
     
     public SocketAsyncEventArgs ReceiveArgs;
     public SocketAsyncEventArgs SendArgs;
+
+    public object SessionObject;
 }

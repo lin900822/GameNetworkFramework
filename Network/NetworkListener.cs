@@ -36,7 +36,7 @@ public class NetworkListener : NetworkBase
         {
             _listenFd.Bind(endPoint);
             _listenFd.Listen(_maxConnectionCount);
-            Logger.Info("Start Listening...");
+            Logger.Info($"Start Listening at {port} Port");
 
             var acceptEventArg = new SocketAsyncEventArgs(); // 所有Accept共用這個eventArgs
             acceptEventArg.Completed += OnAccept;
@@ -78,28 +78,30 @@ public class NetworkListener : NetworkBase
 
         Logger.Info($"A Client {clientFd.RemoteEndPoint?.ToString()} Connected!");
 
-        // 加入Clients列表
-        var client = _sessionPool.Rent();;
+        // 加入SessionList列表
+        var session = _sessionPool.Rent();;
 
-        if (client == null)
+        if (session == null)
         {
             CloseSocket(clientFd);
         }
         else
         {
-            client.Socket                   =  clientFd;
-            client.ReceiveArgs.AcceptSocket =  clientFd;
-            client.SendArgs.AcceptSocket    =  clientFd;
-            client.ReceiveArgs.Completed    += OnReceive;
-            client.SendArgs.Completed       += OnSend;
+            session.Socket                   =  clientFd;
+            session.ReceiveArgs.AcceptSocket =  clientFd;
+            session.SendArgs.AcceptSocket    =  clientFd;
+            session.ReceiveArgs.Completed    += OnReceive;
+            session.SendArgs.Completed       += OnSend;
 
             lock (_sessionList)
             {
-                _sessionList.Add(clientFd, client);
+                _sessionList.Add(clientFd, session);
             }
+            
+            OnConnected?.Invoke(session);
 
             // 開始接收clientFd傳來的訊息
-            ReceiveAsync(client.ReceiveArgs);
+            ReceiveAsync(session.ReceiveArgs);
         }
         
         // 重置acceptEventArg，並繼續監聽
@@ -202,7 +204,6 @@ public class NetworkListener : NetworkBase
             Logger.Error("OnSend Failed, client is null");
             return;
         }
-
         if (args.SocketError != SocketError.Success)
         {
             Logger.Error($"OnSend Failed, Socket Error: {args.SocketError}");
@@ -214,7 +215,7 @@ public class NetworkListener : NetworkBase
     
     #endregion
     
-    private void Close(Socket socket)
+    public void Close(Socket socket)
     {
         if (!_sessionList.TryGetValue(socket, out var session))
         {
