@@ -23,7 +23,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
     protected long _millisecondsPassed;
     protected long _frameCount = 0;
 
-    private int _hearBeat = 30;
+    private int _hearBeat = 300000;
 
     public ServerBase(int maxSessionCount = 10)
     {
@@ -126,13 +126,16 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
     private void CheckHeartBeat()
     {
         var currentTime = GetTimeStamp();
-        foreach (var session in SessionList.Values)
+        lock (SessionList)
         {
-            if(session.SessionObject is not ClientBase client) continue;
-            
-            if (currentTime - client.LastPingTime >= _hearBeat)
+            foreach (var session in SessionList.Values)
             {
-                Close(session);
+                if(session.SessionObject is not ClientBase client) continue;
+            
+                if (currentTime - client.LastPingTime >= _hearBeat)
+                {
+                    Close(session);
+                }
             }
         }
     }

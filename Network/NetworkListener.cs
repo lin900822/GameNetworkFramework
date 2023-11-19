@@ -22,7 +22,7 @@ public class NetworkListener : NetworkBase
     {
         _maxConnectionCount = maxConnectionCount;
         
-        _sessionPool = new NetworkSessionPool(_maxConnectionCount);
+        _sessionPool = new NetworkSessionPool(_maxConnectionCount, _byteBufferPool);
         _sessionList = new Dictionary<Socket, NetworkSession>();
     }
 

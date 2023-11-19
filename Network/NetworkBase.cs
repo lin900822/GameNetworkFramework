@@ -15,6 +15,13 @@ public abstract class NetworkBase
 
     public Action<Socket> OnClosed;
 
+    protected ByteBufferPool _byteBufferPool;
+
+    public NetworkBase()
+    {
+        _byteBufferPool = new ByteBufferPool();
+    }
+
     #region - Receive -
     
     protected abstract void OnReceive(object sender, SocketAsyncEventArgs args);
@@ -85,7 +92,7 @@ public abstract class NetworkBase
     protected void AddMessageToSendQueue(UInt16 messageId, byte[] message, Queue<ByteBuffer> sendQueue, SocketAsyncEventArgs args)
     {
         // 打包資料
-        var byteBuffer = new ByteBuffer(2 + 2 + message.Length);
+        var byteBuffer = _byteBufferPool.Rent(2 + 2 + message.Length);
         PackMessage(byteBuffer, messageId, message);
 
         // 透過 SendQueue處理發送不完整問題
@@ -122,9 +129,10 @@ public abstract class NetworkBase
         // 完整發送完一個ByteBuffer的資料
         if (byteBuffer.Length <= 0)
         {
+            ByteBuffer dequeueBuffer;
             lock (sendQueue)
             {
-                sendQueue.Dequeue();
+                dequeueBuffer = sendQueue.Dequeue();
                 if (sendQueue.Count >= 1)
                 {
                     byteBuffer = sendQueue.First();
@@ -134,6 +142,7 @@ public abstract class NetworkBase
                     byteBuffer = null;
                 }
             }
+            _byteBufferPool.Return(dequeueBuffer);
         }
 
         if (byteBuffer != null)

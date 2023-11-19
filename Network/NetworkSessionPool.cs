@@ -7,9 +7,13 @@ namespace Network;
 public class NetworkSessionPool
 {
     private ConcurrentQueue<NetworkSession> _sessionQueue;
+    
+    private ByteBufferPool _byteBufferPool; 
 
-    public NetworkSessionPool(int maxSessionCount)
+    public NetworkSessionPool(int maxSessionCount, ByteBufferPool byteBufferPool)
     {
+        _byteBufferPool = byteBufferPool;
+        
         var bufferSize = NetworkConfig.BufferSize;
         
         _sessionQueue = new ConcurrentQueue<NetworkSession>();
@@ -50,8 +54,18 @@ public class NetworkSessionPool
         
         session.ReceiveBuffer.SetReadIndex(0);
         session.ReceiveBuffer.SetWriteIndex(0);
+
+        lock (session.SendQueue)
+        {
+            var sendQueueCount = session.SendQueue.Count;
+            for (int i = 0; i < sendQueueCount; i++)
+            {
+                var item = session.SendQueue.Dequeue();
+                _byteBufferPool.Return(item);
+            }
+        }
         
-        session.SendQueue.Clear();
+        session.SessionObject = null;
         
         _sessionQueue.Enqueue(session);
     }

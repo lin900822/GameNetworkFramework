@@ -5,6 +5,8 @@ namespace Server;
 
 public partial class DemoServer
 {
+    private int _lastCount;
+
     [MessageRoute(101)]
     public void OnReceiveHello(MessagePack messagePack)
     {
@@ -15,6 +17,13 @@ public partial class DemoServer
         Send(messagePack.Session, 101, data);
 
         _handleCount++;
+        
+        if (_handleCount == 100000)
+        {
+            _handleCount = 0;
+            Logger.Debug($"{(float)(GC.CollectionCount(0) + GC.CollectionCount(1) + GC.CollectionCount(2) - _lastCount)}");
+            _lastCount = (GC.CollectionCount(0) + GC.CollectionCount(1) + GC.CollectionCount(2));
+        }
     }
     
     [MessageRoute(102)]
