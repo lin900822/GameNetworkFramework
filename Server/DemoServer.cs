@@ -1,15 +1,18 @@
 ﻿using System.Timers;
 using Log;
 using Network;
+using Server.Repositories;
 using Timer = System.Timers.Timer;
 
 namespace Server;
 
 public partial class DemoServer : ServerBase<DemoClient>
 {
-    public DemoServer(int maxSessionCount = 10) : base(maxSessionCount)
+    private UserRepository _userRepository;
+    
+    public DemoServer(UserRepository userRepository, int maxSessionCount = 10) : base(maxSessionCount)
     {
-        
+        _userRepository = userRepository;
     }
     
     protected override void OnInit()

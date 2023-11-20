@@ -1,5 +1,6 @@
 ﻿using Log;
 using Network;
+using Server.PO;
 
 namespace Server;
 
@@ -32,5 +33,17 @@ public partial class DemoServer
         if (!messagePack.TryDecode<Move>(out var move)) return;
         
         Logger.Info($"({move.X},{move.Y},{move.Z})");
+    }
+    
+    [MessageRoute(103)]
+    public void OnReceiveUserRegister(MessagePack messagePack)
+    {
+        if (!messagePack.TryDecode<User>(out var user)) return;
+
+        _userRepository.Insert(new UserPO()
+        {
+            Username = user.Username,
+            Password = user.Password,
+        });
     }
 }

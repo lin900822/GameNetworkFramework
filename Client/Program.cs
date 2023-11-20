@@ -1,7 +1,7 @@
 ﻿using Log;
 using Network;
 
-int connectionCount = 333;
+int connectionCount = 1;
 
 MessageRouter messageRouter = new MessageRouter();
 NetworkConnector[] connectors = new NetworkConnector[connectionCount];
@@ -26,8 +26,16 @@ for (int i = 0; i < connectionCount; i++)
 
 Thread.Sleep(1000);
 
-Thread sendThread = new Thread(SendLoop);
-sendThread.Start();
+// var sendThread = new Thread(SendLoop);
+// sendThread.Start();
+
+var user = new User()
+{
+    Username = "Steven",
+    Password = "123123"
+};
+var userData = ProtoUtils.Encode(user);
+connectors[0].Send(103, userData);
 
 while (true)
 {
