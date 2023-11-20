@@ -1,80 +1,38 @@
 ﻿using System.Timers;
 using Log;
+using Microsoft.Extensions.DependencyInjection;
 using Network;
 using Server;
+using Server.Database;
+using Server.PO;
+using Server.Repositories;
 using Timer = System.Timers.Timer;
 
-try
-{
-    DemoServer demoServer = new DemoServer(5000);
+var connectString = @"server=localhost;port=3306;database=gameserver;SslMode=None;uid=root;pwd=root;Allow User Variables=true";
 
-    demoServer.Start(10001);
-}
-catch (Exception ex)
+var serviceCollection = new ServiceCollection();
+
+serviceCollection.AddSingleton<DemoServer>();
+
+serviceCollection.AddSingleton<IDbContext>(new MySqlDbContext(connectString));
+serviceCollection.AddSingleton<UserRepository>();
+
+var serviceProvider = serviceCollection.BuildServiceProvider();
+
+var userRepository = serviceProvider.GetRequiredService<UserRepository>();
+var list           = await userRepository.SelectAll();
+foreach (var item in list)
 {
-    Logger.Error(ex.ToString());
+    Logger.Info(item.Username);
 }
 
+// var server = serviceProvider.GetRequiredService<DemoServer>();
 //
-// int lastCount = 0;
-// int handleCount = 0;
-//
-// HandleException();
-//
-// MessageRouter messageRouter = new MessageRouter();
-// NetworkListener networkListener = new NetworkListener(5000);
-//
-// messageRouter.RegisterMessageHandler(1, HandleHello);
-//
-// networkListener.OnReceivedMessage += messageRouter.ReceiveMessage;
-// networkListener.Listen("0.0.0.0", 10001);
-//
-// var debugTimer = new Timer(1000);
-// debugTimer.Elapsed += HandleDebug;
-// debugTimer.Start();
-//
-// while (true)
+// try
 // {
-//     messageRouter.OnUpdateLogic();
+//     server.Start(10001);
 // }
-//
-// Console.ReadKey();
-//
-// void HandleHello(MessagePack messagePack)
+// catch (Exception ex)
 // {
-//     handleCount++;
-//     if (!messagePack.TryDecode<Hello>(out var hello)) return;
-//     
-//     hello.Content = $"{hello.Content} {handleCount}";
-//     var data = ProtoUtils.Encode(hello);
-//     networkListener.Send(messagePack.Session, 1, data);
-//
-//     if (handleCount == 100000)
-//     {
-//         handleCount = 0;
-//         Logger.Debug($"{(float)(GC.CollectionCount(0) + GC.CollectionCount(1) + GC.CollectionCount(2) - lastCount)}");
-//         lastCount = (GC.CollectionCount(0) + GC.CollectionCount(1) + GC.CollectionCount(2));
-//     }
-// }
-//
-// void HandleDebug(object sender, ElapsedEventArgs elapsedEventArgs)
-// {
-//     return;
-//     Logger.Warn("--------------Debug--------------");
-//     Logger.Debug($"Handle Count {handleCount} Connection Count {networkListener.ConnectionCount}");
-//     handleCount = 0;
-//
-//     networkListener.Debug();
-//     messageRouter.Debug();
-// }
-//
-// void HandleException()
-// {
-//     AppDomain.CurrentDomain.UnhandledException += ExceptionHandler;
-//
-//     void ExceptionHandler(object sender, UnhandledExceptionEventArgs args)
-//     {
-//         var exception = (Exception)args.ExceptionObject;
-//         Logger.Error("Global Exception Handler Caught: " + exception.ToString());
-//     }
+//     Logger.Error(ex.ToString());
 // }
