@@ -23,12 +23,14 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
     protected long _millisecondsPassed;
     protected long _frameCount = 0;
 
-    private int _hearBeat = 300000;
-
-    public ServerBase(int maxSessionCount = 10)
+    private readonly ServerSettings _settings;
+    
+    public ServerBase(ServerSettings settings)
     {
+        _settings = settings;
+        
         _messageRouter   = new MessageRouter();
-        _networkListener = new NetworkListener(maxSessionCount);
+        _networkListener = new NetworkListener(settings.MaxSessionCount);
 
         _networkListener.OnConnected += (session) =>
         {
@@ -67,10 +69,10 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
         _networkListener.Close(session.Socket);
     }
 
-    public void Start(int port)
+    public void Start()
     {
-        Logger.Info($"Server Init!");
-        _networkListener.Listen("0.0.0.0", port);
+        Logger.Info($"{_settings.ServerName} (Id:{_settings.ServerId}) Init!");
+        _networkListener.Listen("0.0.0.0", _settings.Port);
         
         AppDomain.CurrentDomain.ProcessExit += (_, _) => { Deinit();};
 
@@ -132,7 +134,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
             {
                 if(session.SessionObject is not ClientBase client) continue;
             
-                if (currentTime - client.LastPingTime >= _hearBeat)
+                if (currentTime - client.LastPingTime >= _settings.HeartBeat)
                 {
                     Close(session);
                 }

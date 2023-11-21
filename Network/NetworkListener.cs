@@ -36,7 +36,7 @@ public class NetworkListener : NetworkBase
         {
             _listenFd.Bind(endPoint);
             _listenFd.Listen(_maxConnectionCount);
-            Logger.Info($"Start Listening at {port} Port");
+            Logger.Info($"Start Listening at Port: {port}");
 
             var acceptEventArg = new SocketAsyncEventArgs(); // 所有Accept共用這個eventArgs
             acceptEventArg.Completed += OnAccept;

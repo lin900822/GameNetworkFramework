@@ -1,16 +1,16 @@
 ﻿using System.Timers;
 using Log;
-using Network;
-using Server.Repositories;
+using Server;
+using ServerDemo.Repositories;
 using Timer = System.Timers.Timer;
 
-namespace Server;
+namespace ServerDemo;
 
 public partial class DemoServer : ServerBase<DemoClient>
 {
     private UserRepository _userRepository;
     
-    public DemoServer(UserRepository userRepository, int maxSessionCount = 10) : base(maxSessionCount)
+    public DemoServer(UserRepository userRepository, ServerSettings settings) : base(settings)
     {
         _userRepository = userRepository;
     }

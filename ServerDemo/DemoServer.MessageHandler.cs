@@ -1,8 +1,9 @@
 ﻿using Log;
 using Network;
-using Server.PO;
+using Server;
+using ServerDemo.PO;
 
-namespace Server;
+namespace ServerDemo;
 
 public partial class DemoServer
 {

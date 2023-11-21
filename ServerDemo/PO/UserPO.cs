@@ -1,4 +1,4 @@
-﻿namespace Server.PO;
+﻿namespace ServerDemo.PO;
 
 public class UserPO
 {

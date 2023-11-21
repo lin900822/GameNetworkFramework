@@ -1,8 +1,8 @@
-﻿using Dapper;
-using Server.Database;
-using Server.PO;
+﻿using Server.Database;
+using Server.Repositories;
+using ServerDemo.PO;
 
-namespace Server.Repositories;
+namespace ServerDemo.Repositories;
 
 public class UserRepository : BaseRepository<UserPO>
 {
