@@ -61,16 +61,15 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
 
             if (returnType == typeof(void))
             {
-                _messageRouter.RegisterMessageHandler(routeAttribute.MessageId, (messagePack) =>
-                {
-                    methodInfo.Invoke(this, new object[] {messagePack});
-                });
+                var action = (Action<MessagePack>)Delegate.CreateDelegate(typeof(Action<MessagePack>), this, methodInfo);
+                _messageRouter.RegisterMessageHandler(routeAttribute.MessageId, action);
             }
             else if(returnType == typeof(Task))
             {
+                var action = (Func<MessagePack, Task>)Delegate.CreateDelegate(typeof(Func<MessagePack, Task>), this, methodInfo);
                 _messageRouter.RegisterMessageHandler(routeAttribute.MessageId, async (messagePack) =>
                 {
-                    await (Task)methodInfo.Invoke(this, new object[] {messagePack});
+                    await action(messagePack);
                 });
             }
             else
