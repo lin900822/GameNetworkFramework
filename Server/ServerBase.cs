@@ -24,8 +24,8 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
     protected long _frameCount = 0;
 
     private readonly ServerSettings _settings;
-    
-    public ServerBase(ServerSettings settings)
+
+    protected ServerBase(ServerSettings settings)
     {
         _settings = settings;
         
@@ -49,10 +49,34 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
         foreach (var methodInfo in methodInfos)
         {
             if(!methodInfo.IsDefined(typeof(MessageRouteAttribute), true)) continue;
-                
-            var action = (Action<MessagePack>)Delegate.CreateDelegate(typeof(Action<MessagePack>), this, methodInfo);
+
+            var parameters     = methodInfo.GetParameters();
+            var returnType     = methodInfo.ReturnType;
             var routeAttribute = methodInfo.GetCustomAttribute<MessageRouteAttribute>();
-            _messageRouter.RegisterMessageHandler(routeAttribute.MessageId, action);
+
+            if (parameters.Length != 1 || parameters[0].ParameterType != typeof(MessagePack))
+            {
+                throw new ArgumentException($"MessageRoute {routeAttribute.MessageId} Method \"{methodInfo.Name}\" Parameters Error!");
+            }
+
+            if (returnType == typeof(void))
+            {
+                _messageRouter.RegisterMessageHandler(routeAttribute.MessageId, (messagePack) =>
+                {
+                    methodInfo.Invoke(this, new object[] {messagePack});
+                });
+            }
+            else if(returnType == typeof(Task))
+            {
+                _messageRouter.RegisterMessageHandler(routeAttribute.MessageId, async (messagePack) =>
+                {
+                    await (Task)methodInfo.Invoke(this, new object[] {messagePack});
+                });
+            }
+            else
+            {
+                throw new ArgumentException($"MessageRoute {routeAttribute.MessageId} Method \"{methodInfo.Name}\" Return Type Error!");
+            }
         }
     }
     

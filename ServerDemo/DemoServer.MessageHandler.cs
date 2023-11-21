@@ -37,11 +37,11 @@ public partial class DemoServer
     }
     
     [MessageRoute(103)]
-    public void OnReceiveUserRegister(MessagePack messagePack)
+    public async Task OnReceiveUserRegister(MessagePack messagePack)
     {
         if (!messagePack.TryDecode<User>(out var user)) return;
 
-        _userRepository.Insert(new UserPO()
+        await _userRepository.Insert(new UserPO()
         {
             Username = user.Username,
             Password = user.Password,
