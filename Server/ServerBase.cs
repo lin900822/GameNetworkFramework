@@ -50,36 +50,87 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
         {
             if(!methodInfo.IsDefined(typeof(MessageRouteAttribute), true)) continue;
 
-            var parameters     = methodInfo.GetParameters();
-            var returnType     = methodInfo.ReturnType;
-            var routeAttribute = methodInfo.GetCustomAttribute<MessageRouteAttribute>();
+            var parameters      = methodInfo.GetParameters();
+            var returnType      = methodInfo.ReturnType;
+            var routeAttributes = methodInfo.GetCustomAttributes<MessageRouteAttribute>();
 
-            if (parameters.Length != 1 || parameters[0].ParameterType != typeof(MessagePack))
+            if (parameters.Length != 1 || parameters[0].ParameterType != typeof(Packet))
             {
-                throw new ArgumentException($"MessageRoute {routeAttribute.MessageId} Method \"{methodInfo.Name}\" Parameters Error!");
+                throw new ArgumentException($"MessageRoute Method \"{methodInfo.Name}\" Parameters Error!");
             }
 
             if (returnType == typeof(void))
             {
-                var action = (Action<MessagePack>)Delegate.CreateDelegate(typeof(Action<MessagePack>), this, methodInfo);
-                _messageRouter.RegisterMessageHandler(routeAttribute.MessageId, action);
+                var action = (Action<Packet>)Delegate.CreateDelegate(typeof(Action<Packet>), this, methodInfo);
+                
+                using var enumerator = routeAttributes.GetEnumerator();
+                while (enumerator.MoveNext())
+                {
+                    var routeAttribute = enumerator.Current;
+                    _messageRouter.RegisterMessageHandler(routeAttribute.MessageId, action);
+                }
             }
             else if(returnType == typeof(Task))
             {
-                var action = (Func<MessagePack, Task>)Delegate.CreateDelegate(typeof(Func<MessagePack, Task>), this, methodInfo);
-                _messageRouter.RegisterMessageHandler(routeAttribute.MessageId, async (messagePack) =>
+                var func = (Func<Packet, Task>)Delegate.CreateDelegate(typeof(Func<Packet, Task>), this, methodInfo);
+                
+                using var enumerator = routeAttributes.GetEnumerator();
+                while (enumerator.MoveNext())
                 {
-                    await action(messagePack);
-                });
+                    var routeAttribute = enumerator.Current;
+
+                    async void Handler(Packet packet)
+                    {
+                        await func(packet);
+                    }
+
+                    _messageRouter.RegisterMessageHandler(routeAttribute.MessageId, Handler);
+                }
+            }
+            else if (returnType == typeof(Response))
+            {
+                var func = (Func<Packet, Response>)Delegate.CreateDelegate(typeof(Func<Packet, Response>), this, methodInfo);
+                
+                using var enumerator = routeAttributes.GetEnumerator();
+                while (enumerator.MoveNext())
+                {
+                    var routeAttribute = enumerator.Current;
+
+                    _messageRouter.RegisterMessageHandler(routeAttribute.MessageId, (packet) =>
+                    {
+                        var response = func(packet);
+                        if (response.Message == null) return;
+                        _networkListener.Send(packet.Session, packet.MessageId, response.Message, response.StateCode);
+                    });
+                }
+            }
+            else if (returnType == typeof(Task<Response>))
+            {
+                var func = (Func<Packet, Task<Response>>)Delegate.CreateDelegate(typeof(Func<Packet, Task<Response>>), this, methodInfo);
+                
+                using var enumerator = routeAttributes.GetEnumerator();
+                while (enumerator.MoveNext())
+                {
+                    var routeAttribute = enumerator.Current;
+
+                    async void Handler(Packet packet)
+                    {
+                        var response = await func(packet);
+                        if (response.Message == null) return;
+                        _networkListener.Send(packet.Session, packet.MessageId, response.Message, response.StateCode);
+                    }
+
+                    _messageRouter.RegisterMessageHandler(routeAttribute.MessageId, Handler);
+                }
             }
             else
             {
-                throw new ArgumentException($"MessageRoute {routeAttribute.MessageId} Method \"{methodInfo.Name}\" Return Type Error!");
+                throw new ArgumentException($"MessageRoute Method \"{methodInfo.Name}\" Return Type Error!");
             }
         }
     }
     
-    public void Send(NetworkSession session, UInt16 messageId, byte[] message)
+    public void SendMessage(NetworkSession session, ushort messageId, byte[] message)
     {
         _networkListener.Send(session, messageId, message);
     }
@@ -140,12 +191,12 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
     protected virtual void OnDeinit() {}
 
     [MessageRoute(0)]
-    public void OnReceivedPing(MessagePack messagePack)
+    public void OnReceivedPing(Packet packet)
     {
-        if (messagePack.Session.SessionObject is not ClientBase client) return;
+        if (packet.Session.SessionObject is not ClientBase client) return;
         
         client.LastPingTime = GetTimeStamp();
-        Send(messagePack.Session, 1, Array.Empty<byte>());
+        SendMessage(packet.Session, 1, Array.Empty<byte>());
     }
 
     private void CheckHeartBeat()

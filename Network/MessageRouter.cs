@@ -5,12 +5,32 @@ using Log;
 
 namespace Network;
 
-public struct MessagePack
+public struct Packet
 {
+    /// <summary>
+    /// 僅伺服器使用
+    /// </summary>
     public NetworkSession Session;
-    public UInt16         MessageId;
-    public int            MessageLength;
-    public byte[]         Message;
+
+    /// <summary>
+    /// 訊息Id
+    /// </summary>
+    public ushort MessageId;
+
+    /// <summary>
+    /// 狀態碼，預設0為成功
+    /// </summary>
+    public uint StateCode;
+
+    /// <summary>
+    /// 有意義的訊息長度
+    /// </summary>
+    public int MessageLength;
+
+    /// <summary>
+    /// 訊息本體
+    /// </summary>
+    public byte[] Message;
 
     public bool TryDecode<T>(out T outMessage) where T : IMessage, new()
     {
@@ -27,21 +47,26 @@ public struct MessagePack
             return false;
         }
     }
+
+    public void Release()
+    {
+        ArrayPool<byte>.Shared.Return(Message);
+    }
 }
 
 public class MessageRouter
 {
-    private Dictionary<UInt16, Action<MessagePack>> _routeTable;
+    private Dictionary<ushort, Action<Packet>> _routeTable;
 
-    private ConcurrentQueue<MessagePack> _packQueue;
+    private ConcurrentQueue<Packet> _packetQueue;
 
     public MessageRouter()
     {
-        _routeTable = new Dictionary<UInt16, Action<MessagePack>>();
-        _packQueue  = new ConcurrentQueue<MessagePack>();
+        _routeTable  = new Dictionary<ushort, Action<Packet>>();
+        _packetQueue = new ConcurrentQueue<Packet>();
     }
 
-    public void RegisterMessageHandler(UInt16 messageId, Action<MessagePack> handler)
+    public void RegisterMessageHandler(ushort messageId, Action<Packet> handler)
     {
         if (_routeTable.TryGetValue(messageId, out var handlers))
         {
@@ -53,7 +78,7 @@ public class MessageRouter
         }
     }
 
-    public void UnregisterMessageHandler(UInt16 messageId, Action<MessagePack> handler)
+    public void UnregisterMessageHandler(ushort messageId, Action<Packet> handler)
     {
         if (_routeTable.TryGetValue(messageId, out var handlers))
         {
@@ -61,14 +86,14 @@ public class MessageRouter
         }
     }
 
-    public void ReceiveMessage(MessagePack messagePack)
+    public void ReceiveMessage(Packet packet)
     {
-        _packQueue.Enqueue(messagePack);
+        _packetQueue.Enqueue(packet);
     }
 
     public void OnUpdateLogic()
     {
-        if (!_packQueue.TryDequeue(out var pack))
+        if (!_packetQueue.TryDequeue(out var pack))
         {
             return;
         }
@@ -76,7 +101,7 @@ public class MessageRouter
         if (_routeTable.TryGetValue(pack.MessageId, out var handler))
         {
             handler?.Invoke(pack);
-            ArrayPool<byte>.Shared.Return(pack.Message);
+            pack.Release();
         }
         else
         {
@@ -86,6 +111,6 @@ public class MessageRouter
 
     public void Debug()
     {
-        Logger.Debug($"MessageTaskQueue {_packQueue.Count}");
+        Logger.Debug($"MessageTaskQueue {_packetQueue.Count}");
     }
 }

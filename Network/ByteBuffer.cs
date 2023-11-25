@@ -88,8 +88,8 @@ public class ByteBuffer
         return count;
     }
 
-    // 寫入UInt16
-    public void WriteUInt16(UInt16 value)
+    // 寫入ushort
+    public void WriteUInt16(ushort value)
     {
         if (Remain < 2) ReuseCapacity();
         if (Remain < 2) Resize(Length + 2);
@@ -124,21 +124,21 @@ public class ByteBuffer
         return count;
     }
 
-    // 檢查UInt16
-    public UInt16 CheckUInt16()
+    // 檢查ushort
+    public ushort CheckUInt16()
     {
         if (Length < 2) return 0;
         // 以小端方式讀取Int16
-        UInt16 readUInt16 = (UInt16)((_rawData[_readIndex + 1] << 8) | _rawData[_readIndex]);
+        ushort readUInt16 = (ushort)((_rawData[_readIndex + 1] << 8) | _rawData[_readIndex]);
         return readUInt16;
     }
 
-    // 讀取UInt16
-    public UInt16 ReadUInt16()
+    // 讀取ushort
+    public ushort ReadUInt16()
     {
         if (Length < 2) return 0;
         // 以小端方式讀取Int16
-        UInt16 readUInt16 = (UInt16)((_rawData[_readIndex + 1] << 8) | _rawData[_readIndex]);
+        ushort readUInt16 = (ushort)((_rawData[_readIndex + 1] << 8) | _rawData[_readIndex]);
         _readIndex += 2;
         CheckAndReuseCapacity();
         return readUInt16;

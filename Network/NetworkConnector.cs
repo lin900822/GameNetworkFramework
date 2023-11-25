@@ -71,13 +71,13 @@ public class NetworkConnector : NetworkBase
 
     private void ParseReceivedData()
     {
-        if (!TryUnpackMessage(_receiveBuffer, out var messagePack))
+        if (!TryUnpackMessage(_receiveBuffer, out var packet))
         {
             return;
         }
 
         // 分發收到的 Message
-        OnReceivedMessage?.Invoke(messagePack);
+        OnReceivedMessage?.Invoke(packet);
 
         // 繼續解析 readBuffer
         if (_receiveBuffer.Length > 2)
@@ -90,7 +90,7 @@ public class NetworkConnector : NetworkBase
 
     #region - Send -
     
-    public void Send(UInt16 messageId, byte[] message)
+    public void Send(ushort messageId, byte[] message, uint stateCode = 0)
     {
         if (_connectFd == null || !_connectFd.Connected)
         {
@@ -98,7 +98,7 @@ public class NetworkConnector : NetworkBase
             return;
         }
         
-        AddMessageToSendQueue(messageId, message, _sendQueue, _sendArgs);
+        AddMessageToSendQueue(messageId, stateCode, message, _sendQueue, _sendArgs);
     }
 
     protected override void OnSend(object sender, SocketAsyncEventArgs args)

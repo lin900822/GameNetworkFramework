@@ -137,15 +137,15 @@ public class NetworkListener : NetworkBase
     {
         var readBuffer = session.ReceiveBuffer;
 
-        if (!TryUnpackMessage(readBuffer, out var messagePack))
+        if (!TryUnpackMessage(readBuffer, out var packet))
         {
             return;
         }
 
-        messagePack.Session = session;
+        packet.Session = session;
         
         // 分發收到的 Message
-        OnReceivedMessage?.Invoke(messagePack);
+        OnReceivedMessage?.Invoke(packet);
 
         // 繼續解析 readBuffer
         if (readBuffer.Length > 2)
@@ -158,19 +158,19 @@ public class NetworkListener : NetworkBase
     
     #region - Send -
 
-    public void SendAll(UInt16 messageId, byte[] message)
+    public void SendAll(ushort messageId, byte[] message, uint stateCode = 0)
     {
         lock (_sessionList)
         {
             using var enumerator = _sessionList.GetEnumerator();
             while (enumerator.MoveNext())
             {
-                Send(enumerator.Current.Value, messageId, message);
+                Send(enumerator.Current.Value, messageId, message, stateCode);
             }
         }
     }
 
-    public void Send(NetworkSession session, UInt16 messageId, byte[] message)
+    public void Send(NetworkSession session, ushort messageId, byte[] message, uint stateCode = 0)
     {
         if (session == null)
         {
@@ -189,7 +189,7 @@ public class NetworkListener : NetworkBase
         }
 
         var sendArgs = session.SendArgs;
-        AddMessageToSendQueue(messageId, message, session.SendQueue, sendArgs);
+        AddMessageToSendQueue(messageId, stateCode, message, session.SendQueue, sendArgs);
     }
 
     protected override void OnSend(object sender, SocketAsyncEventArgs args)

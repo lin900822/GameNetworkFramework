@@ -1,67 +1,47 @@
-﻿using Log;
+﻿using Client;
+using Log;
 using Network;
 
 int connectionCount = 1;
 
-MessageRouter messageRouter = new MessageRouter();
-NetworkConnector[] connectors = new NetworkConnector[connectionCount];
+ClientBase clientBase = new ClientBase();
 
-messageRouter.RegisterMessageHandler(1, (messagePack) =>
+clientBase.RegisterMessageHandler(1, (packet) =>
 {
     Logger.Info("Pong!");
 });
-messageRouter.RegisterMessageHandler(101, (messagePack) =>
-{
-    if (!messagePack.TryDecode<Hello>(out var hello)) return;
-    Logger.Info(hello.Content);
-});
+// clientBase.RegisterMessageHandler(101, (messagePack) =>
+// {
+//     if (!messagePack.TryDecode<Hello>(out var hello)) return;
+//     Logger.Info(hello.Content);
+// });
 
-for (int i = 0; i < connectionCount; i++)
-{
-    connectors[i] = new NetworkConnector();
+clientBase.Connect("127.0.0.1", 10001);
 
-    connectors[i].OnReceivedMessage += messageRouter.ReceiveMessage;
-    connectors[i].Connect("127.0.0.1", 10001);
-}
-
-Thread.Sleep(1000);
-
-// var sendThread = new Thread(SendLoop);
-// sendThread.Start();
-
-var user = new User()
-{
-    Username = "Steven",
-    Password = "123123"
-};
-var userData = ProtoUtils.Encode(user);
-connectors[0].Send(103, userData);
+var sendThread = new Thread(SendLoop);
+sendThread.Start();
 
 while (true)
 {
-    messageRouter.OnUpdateLogic();
+    clientBase.Update();
 }
 
 void SendLoop()
 {
-    var hello = new Hello() { Content = "client message 66666666666666666666" };
+    var hello = new Hello() { Content = "client message 666" };
     var data = ProtoUtils.Encode(hello);
-
-    var move  = new Move() { X = 1, Y = 2, Z = 3};
-    var data2 = ProtoUtils.Encode(move);
 
     while (true)
     {
-        for (int i = 0; i < connectionCount; i++)
+        var info = Console.ReadKey();
+        if (info.Key == ConsoleKey.A)
         {
-            if (!connectors[i].IsConnected) continue;
-
-            for (int j = 0; j < 1; j++)
-            {
-                connectors[i].Send(101, data);
-                //connectors[i].Send(102, data2);
-            }
+            clientBase.SendRequest(101, data, packet =>
+            { 
+                if (!packet.TryDecode<Hello>(out var response)) return;
+                Logger.Info(response.Content);
+                Logger.Info(packet.StateCode.ToString());
+            });
         }
-        Thread.Sleep(100);
     }
 }

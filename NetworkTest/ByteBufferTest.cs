@@ -21,7 +21,7 @@ public class ByteBufferTest
         // Assert
         var data = new byte[2];
         Array.Copy(buffer.RawData, buffer.ReadIndex, data, 0, buffer.Length);
-        var read = (UInt16)((data[1] << 8) | data[0]);
+        var read = (ushort)((data[1] << 8) | data[0]);
 
         Assert.AreEqual(input, read);
     }
