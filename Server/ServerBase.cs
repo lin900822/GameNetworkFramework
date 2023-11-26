@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Net.Sockets;
 using System.Reflection;
+using Common;
 using Log;
 using Network;
 
@@ -36,7 +37,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
         {
             var client = new TClient();
             
-            client.LastPingTime   = GetTimeStamp();
+            client.LastPingTime   = TimeUtils.GetTimeStamp();
             session.SessionObject = client;
         };
         _networkListener.OnReceivedMessage += _messageRouter.ReceiveMessage;
@@ -54,14 +55,14 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
             var returnType      = methodInfo.ReturnType;
             var routeAttributes = methodInfo.GetCustomAttributes<MessageRouteAttribute>();
 
-            if (parameters.Length != 1 || parameters[0].ParameterType != typeof(Packet))
+            if (parameters.Length != 1 || parameters[0].ParameterType != typeof(ReceivedMessageInfo))
             {
                 throw new ArgumentException($"MessageRoute Method \"{methodInfo.Name}\" Parameters Error!");
             }
 
             if (returnType == typeof(void))
             {
-                var action = (Action<Packet>)Delegate.CreateDelegate(typeof(Action<Packet>), this, methodInfo);
+                var action = (Action<ReceivedMessageInfo>)Delegate.CreateDelegate(typeof(Action<ReceivedMessageInfo>), this, methodInfo);
                 
                 using var enumerator = routeAttributes.GetEnumerator();
                 while (enumerator.MoveNext())
@@ -72,16 +73,16 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
             }
             else if(returnType == typeof(Task))
             {
-                var func = (Func<Packet, Task>)Delegate.CreateDelegate(typeof(Func<Packet, Task>), this, methodInfo);
+                var func = (Func<ReceivedMessageInfo, Task>)Delegate.CreateDelegate(typeof(Func<ReceivedMessageInfo, Task>), this, methodInfo);
                 
                 using var enumerator = routeAttributes.GetEnumerator();
                 while (enumerator.MoveNext())
                 {
                     var routeAttribute = enumerator.Current;
 
-                    async void Handler(Packet packet)
+                    async void Handler(ReceivedMessageInfo messageInfo)
                     {
-                        await func(packet);
+                        await func(messageInfo);
                     }
 
                     _messageRouter.RegisterMessageHandler(routeAttribute.MessageId, Handler);
@@ -89,35 +90,35 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
             }
             else if (returnType == typeof(Response))
             {
-                var func = (Func<Packet, Response>)Delegate.CreateDelegate(typeof(Func<Packet, Response>), this, methodInfo);
+                var func = (Func<ReceivedMessageInfo, Response>)Delegate.CreateDelegate(typeof(Func<ReceivedMessageInfo, Response>), this, methodInfo);
                 
                 using var enumerator = routeAttributes.GetEnumerator();
                 while (enumerator.MoveNext())
                 {
                     var routeAttribute = enumerator.Current;
 
-                    _messageRouter.RegisterMessageHandler(routeAttribute.MessageId, (packet) =>
+                    _messageRouter.RegisterMessageHandler(routeAttribute.MessageId, (messageInfo) =>
                     {
-                        var response = func(packet);
+                        var response = func(messageInfo);
                         if (response.Message == null) return;
-                        _networkListener.Send(packet.Session, packet.MessageId, response.Message, response.StateCode);
+                        _networkListener.Send(messageInfo.Session, messageInfo.StateCode, response.Message, response.StateCode);
                     });
                 }
             }
             else if (returnType == typeof(Task<Response>))
             {
-                var func = (Func<Packet, Task<Response>>)Delegate.CreateDelegate(typeof(Func<Packet, Task<Response>>), this, methodInfo);
+                var func = (Func<ReceivedMessageInfo, Task<Response>>)Delegate.CreateDelegate(typeof(Func<ReceivedMessageInfo, Task<Response>>), this, methodInfo);
                 
                 using var enumerator = routeAttributes.GetEnumerator();
                 while (enumerator.MoveNext())
                 {
                     var routeAttribute = enumerator.Current;
 
-                    async void Handler(Packet packet)
+                    async void Handler(ReceivedMessageInfo messageInfo)
                     {
-                        var response = await func(packet);
+                        var response = await func(messageInfo);
                         if (response.Message == null) return;
-                        _networkListener.Send(packet.Session, packet.MessageId, response.Message, response.StateCode);
+                        _networkListener.Send(messageInfo.Session, messageInfo.StateCode, response.Message, response.StateCode);
                     }
 
                     _messageRouter.RegisterMessageHandler(routeAttribute.MessageId, Handler);
@@ -130,7 +131,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
         }
     }
     
-    public void SendMessage(NetworkSession session, ushort messageId, byte[] message)
+    public void SendMessage(NetworkSession session, uint messageId, byte[] message)
     {
         _networkListener.Send(session, messageId, message);
     }
@@ -191,17 +192,17 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
     protected virtual void OnDeinit() {}
 
     [MessageRoute(0)]
-    public void OnReceivedPing(Packet packet)
+    public void OnReceivedPing(ReceivedMessageInfo receivedMessageInfo)
     {
-        if (packet.Session.SessionObject is not ClientBase client) return;
+        if (receivedMessageInfo.Session.SessionObject is not ClientBase client) return;
         
-        client.LastPingTime = GetTimeStamp();
-        SendMessage(packet.Session, 1, Array.Empty<byte>());
+        client.LastPingTime = TimeUtils.GetTimeStamp();
+        SendMessage(receivedMessageInfo.Session, 1, Array.Empty<byte>());
     }
 
     private void CheckHeartBeat()
     {
-        var currentTime = GetTimeStamp();
+        var currentTime = TimeUtils.GetTimeStamp();
         lock (SessionList)
         {
             foreach (var session in SessionList.Values)
@@ -214,11 +215,5 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
                 }
             }
         }
-    }
-    
-    public static long GetTimeStamp()
-    {
-        TimeSpan timeSpan = DateTime.UtcNow - new DateTime(1970, 1, 1, 0, 0, 0, 0);
-        return Convert.ToInt64(timeSpan.TotalSeconds);
     }
 }

@@ -1,11 +1,13 @@
-﻿namespace Server;
+﻿using Protocol;
+
+namespace Server;
 
 [AttributeUsage(AttributeTargets.Method)]
 public class MessageRouteAttribute : Attribute
 {
-    public ushort MessageId { get; private set; }
+    public uint MessageId { get; private set; }
 
-    public MessageRouteAttribute(ushort messageId)
+    public MessageRouteAttribute(uint messageId)
     {
         MessageId = messageId;
     }

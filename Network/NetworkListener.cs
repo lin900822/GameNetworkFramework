@@ -137,15 +137,15 @@ public class NetworkListener : NetworkBase
     {
         var readBuffer = session.ReceiveBuffer;
 
-        if (!TryUnpackMessage(readBuffer, out var packet))
+        if (!TryUnpackMessage(readBuffer, out var messageInfo))
         {
             return;
         }
 
-        packet.Session = session;
+        messageInfo.Session = session;
         
         // 分發收到的 Message
-        OnReceivedMessage?.Invoke(packet);
+        OnReceivedMessage?.Invoke(messageInfo);
 
         // 繼續解析 readBuffer
         if (readBuffer.Length > 2)
@@ -158,7 +158,7 @@ public class NetworkListener : NetworkBase
     
     #region - Send -
 
-    public void SendAll(ushort messageId, byte[] message, uint stateCode = 0)
+    public void SendAll(uint messageId, byte[] message, uint stateCode = 0)
     {
         lock (_sessionList)
         {
@@ -170,7 +170,7 @@ public class NetworkListener : NetworkBase
         }
     }
 
-    public void Send(NetworkSession session, ushort messageId, byte[] message, uint stateCode = 0)
+    public void Send(NetworkSession session, uint messageId, byte[] message, uint stateCode = 0)
     {
         if (session == null)
         {

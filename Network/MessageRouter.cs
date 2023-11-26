@@ -5,7 +5,7 @@ using Log;
 
 namespace Network;
 
-public struct Packet
+public struct ReceivedMessageInfo
 {
     /// <summary>
     /// 僅伺服器使用
@@ -15,7 +15,7 @@ public struct Packet
     /// <summary>
     /// 訊息Id
     /// </summary>
-    public ushort MessageId;
+    public uint MessageId;
 
     /// <summary>
     /// 狀態碼，預設0為成功
@@ -48,6 +48,11 @@ public struct Packet
         }
     }
 
+    public void Allocate(int size)
+    {
+        Message = ArrayPool<byte>.Shared.Rent(size);
+    }
+
     public void Release()
     {
         ArrayPool<byte>.Shared.Return(Message);
@@ -56,17 +61,17 @@ public struct Packet
 
 public class MessageRouter
 {
-    private Dictionary<ushort, Action<Packet>> _routeTable;
+    private Dictionary<uint, Action<ReceivedMessageInfo>> _routeTable;
 
-    private ConcurrentQueue<Packet> _packetQueue;
+    private ConcurrentQueue<ReceivedMessageInfo> _messageInfoQueue;
 
     public MessageRouter()
     {
-        _routeTable  = new Dictionary<ushort, Action<Packet>>();
-        _packetQueue = new ConcurrentQueue<Packet>();
+        _routeTable       = new Dictionary<uint, Action<ReceivedMessageInfo>>();
+        _messageInfoQueue = new ConcurrentQueue<ReceivedMessageInfo>();
     }
 
-    public void RegisterMessageHandler(ushort messageId, Action<Packet> handler)
+    public void RegisterMessageHandler(uint messageId, Action<ReceivedMessageInfo> handler)
     {
         if (_routeTable.TryGetValue(messageId, out var handlers))
         {
@@ -78,7 +83,7 @@ public class MessageRouter
         }
     }
 
-    public void UnregisterMessageHandler(ushort messageId, Action<Packet> handler)
+    public void UnregisterMessageHandler(uint messageId, Action<ReceivedMessageInfo> handler)
     {
         if (_routeTable.TryGetValue(messageId, out var handlers))
         {
@@ -86,14 +91,14 @@ public class MessageRouter
         }
     }
 
-    public void ReceiveMessage(Packet packet)
+    public void ReceiveMessage(ReceivedMessageInfo receivedMessageInfo)
     {
-        _packetQueue.Enqueue(packet);
+        _messageInfoQueue.Enqueue(receivedMessageInfo);
     }
 
     public void OnUpdateLogic()
     {
-        if (!_packetQueue.TryDequeue(out var pack))
+        if (!_messageInfoQueue.TryDequeue(out var pack))
         {
             return;
         }
@@ -101,16 +106,17 @@ public class MessageRouter
         if (_routeTable.TryGetValue(pack.MessageId, out var handler))
         {
             handler?.Invoke(pack);
-            pack.Release();
         }
         else
         {
             Logger.Warn($"Message Router: Received Unregistered Message, messageId = {pack.MessageId}");
         }
+        
+        pack.Release();
     }
 
     public void Debug()
     {
-        Logger.Debug($"MessageTaskQueue {_packetQueue.Count}");
+        Logger.Debug($"MessageTaskQueue {_messageInfoQueue.Count}");
     }
 }

@@ -71,13 +71,13 @@ public class NetworkConnector : NetworkBase
 
     private void ParseReceivedData()
     {
-        if (!TryUnpackMessage(_receiveBuffer, out var packet))
+        if (!TryUnpackMessage(_receiveBuffer, out var messageInfo))
         {
             return;
         }
 
         // 分發收到的 Message
-        OnReceivedMessage?.Invoke(packet);
+        OnReceivedMessage?.Invoke(messageInfo);
 
         // 繼續解析 readBuffer
         if (_receiveBuffer.Length > 2)
@@ -90,7 +90,7 @@ public class NetworkConnector : NetworkBase
 
     #region - Send -
     
-    public void Send(ushort messageId, byte[] message, uint stateCode = 0)
+    public void Send(uint messageId, byte[] message, uint stateCode = 0)
     {
         if (_connectFd == null || !_connectFd.Connected)
         {

@@ -1,5 +1,6 @@
 ﻿using Log;
 using Network;
+using Protocol;
 using Server;
 using ServerDemo.PO;
 
@@ -9,16 +10,17 @@ public partial class DemoServer
 {
     private int _lastCount;
     
-    [MessageRoute(101)]
-    public Response OnReceiveHello(Packet packet)
+    [MessageRoute((uint)MessageId.Hello)]
+    public Response OnReceiveHello(ReceivedMessageInfo receivedMessageInfo)
     {
-        if (!packet.TryDecode<Hello>(out var hello)) return default;
+        if (!receivedMessageInfo.TryDecode<Hello>(out var hello)) return default;
         
         hello.Content = $"Server Response: {hello.Content}";
         var data = ProtoUtils.Encode(hello);
         //SendMessage(messagePack.Session, 101, data);
 
         _handleCount++;
+        Logger.Debug(_handleCount.ToString());
         if (_handleCount == 100000)
         {
             _handleCount = 0;
@@ -28,18 +30,18 @@ public partial class DemoServer
         return new Response(data, 200);
     }
     
-    [MessageRoute(102)]
-    public void OnReceiveMove(Packet packet)
+    [MessageRoute((uint)MessageId.Move)]
+    public void OnReceiveMove(ReceivedMessageInfo receivedMessageInfo)
     {
-        if (!packet.TryDecode<Move>(out var move)) return;
+        if (!receivedMessageInfo.TryDecode<Move>(out var move)) return;
         
         Logger.Info($"({move.X},{move.Y},{move.Z})");
     }
     
     [MessageRoute(103)]
-    public async Task OnReceiveUserRegister(Packet packet)
+    public async Task OnReceiveUserRegister(ReceivedMessageInfo receivedMessageInfo)
     {
-        if (!packet.TryDecode<User>(out var user)) return;
+        if (!receivedMessageInfo.TryDecode<User>(out var user)) return;
 
         await _userRepository.Insert(new UserPO()
         {

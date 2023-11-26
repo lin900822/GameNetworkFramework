@@ -1,68 +1,85 @@
-﻿using System.Buffers;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
+using Common;
 using Network;
+using Protocol;
 
 namespace Client;
 
-public struct RequestPack
+public struct RequestInfo
 {
-    public Packet         Packet;
-    public ushort              RequestMessageId;
-    public Action<Packet> OnCompleted;
-    public Action              OnTimeOut;
+    public ReceivedMessageInfo         ReceivedMessageInfo;
+    public uint                        MessageId;
+    public uint                        RequestId;
+    public Action<ReceivedMessageInfo> OnCompleted;
+    public Action                      OnTimeOut;
+    public long                        RequestTime;
 }
 
 public class ClientBase
 {
-    private static readonly int REQUEST_TIME_OUT_SECONDS = 5;
+    private static readonly long REQUEST_TIME_OUT_MILLISECONDS       = 5 * 1000;
+    private static readonly long CHECK_REQUEST_TIME_OUT_MILLISECONDS = 1 * 1000;
 
     private MessageRouter    _messageRouter;
     private NetworkConnector _connector;
 
-    private LinkedList<RequestPack>      _requestPacks;
-    private ConcurrentQueue<RequestPack> _requestQueue;
+    private LinkedList<RequestInfo>      _requestPacks;
+    private ConcurrentQueue<RequestInfo> _requestQueue;
+    private Queue<RequestInfo>           _timeOutRequests;
+
+    private uint _requestSerialId = (uint)(int.MaxValue) + 1;
+
+    private long _lastCheckRequestTimeOutTime;
 
     public ClientBase()
     {
         _messageRouter = new MessageRouter();
         _connector     = new NetworkConnector();
 
-        _requestPacks = new LinkedList<RequestPack>();
-        _requestQueue = new ConcurrentQueue<RequestPack>();
+        _requestPacks    = new LinkedList<RequestInfo>();
+        _requestQueue    = new ConcurrentQueue<RequestInfo>();
+        _timeOutRequests = new Queue<RequestInfo>();
 
         _connector.OnReceivedMessage += OnReceivedMessage;
     }
 
-    private void OnReceivedMessage(Packet packet)
+    private void OnReceivedMessage(ReceivedMessageInfo receivedMessageInfo)
     {
-        lock (_requestPacks)
+        // 普通的Message: MessageId = 0 ~ int.MaxValue
+        // 請求 Request: MessageId = int.MaxValue ~ uint.MaxValue
+        if (receivedMessageInfo.MessageId >= (uint)(int.MaxValue) + 1)
         {
-            if (TryGetRequestPack(packet.MessageId, out var requestPack))
+            lock (_requestPacks)
             {
-                requestPack.Packet = packet;
-                _requestQueue.Enqueue(requestPack);
-                _requestPacks.Remove(requestPack);
-                return;
+                if (TryGetRequestPack(receivedMessageInfo.MessageId, out var requestPack))
+                {
+                    requestPack.ReceivedMessageInfo = receivedMessageInfo;
+                    _requestQueue.Enqueue(requestPack);
+                
+                    _requestPacks.Remove(requestPack);
+                    return;
+                }
             }
         }
-
-        _messageRouter.ReceiveMessage(packet);
+        else
+        {
+            _messageRouter.ReceiveMessage(receivedMessageInfo);
+        }
     }
 
-    private bool TryGetRequestPack(ushort responseMessageId, out RequestPack outRequestPack)
+    private bool TryGetRequestPack(uint requestId, out RequestInfo outRequestInfo)
     {
         var enumerator = _requestPacks.GetEnumerator();
         while (enumerator.MoveNext())
         {
             var current = enumerator.Current;
-            if (current.RequestMessageId == responseMessageId)
-            {
-                outRequestPack = current;
-                return true;
-            }
+            if (current.RequestId != requestId) continue;
+            
+            outRequestInfo = current;
+            return true;
         }
 
-        outRequestPack = default;
+        outRequestInfo = default;
         return false;
     }
 
@@ -72,8 +89,43 @@ public class ClientBase
 
         if (_requestQueue.TryDequeue(out var requestPack))
         {
-            requestPack.OnCompleted?.Invoke(requestPack.Packet);
-            requestPack.Packet.Release();
+            requestPack.OnCompleted?.Invoke(requestPack.ReceivedMessageInfo);
+            requestPack.ReceivedMessageInfo.Release();
+        }
+
+        CheckRequestTimeOut();
+    }
+
+    private void CheckRequestTimeOut()
+    {
+        if(TimeUtils.MilliSecondsSinceStart - _lastCheckRequestTimeOutTime < CHECK_REQUEST_TIME_OUT_MILLISECONDS) return;
+
+        _lastCheckRequestTimeOutTime = TimeUtils.MilliSecondsSinceStart;
+
+        _timeOutRequests.Clear();
+        
+        lock (_requestPacks)
+        {
+            var enumerator = _requestPacks.GetEnumerator();
+            while (enumerator.MoveNext())
+            {
+                var current = enumerator.Current;
+
+                if (TimeUtils.MilliSecondsSinceStart - current.RequestTime >= REQUEST_TIME_OUT_MILLISECONDS)
+                {
+                    _timeOutRequests.Enqueue(current);
+                }
+            }
+
+            foreach (var request in _timeOutRequests)
+            {
+                _requestPacks.Remove(request);
+            }
+        }
+        
+        foreach (var request in _timeOutRequests)
+        {
+            request.OnTimeOut?.Invoke();
         }
     }
 
@@ -82,29 +134,32 @@ public class ClientBase
         _connector.Connect(ip, port);
     }
 
-    public void RegisterMessageHandler(ushort messageId, Action<Packet> handler)
+    public void RegisterMessageHandler(uint messageId, Action<ReceivedMessageInfo> handler)
     {
         _messageRouter.RegisterMessageHandler(messageId, handler);
     }
 
-    public void UnregisterMessageHandler(ushort messageId, Action<Packet> handler)
+    public void UnregisterMessageHandler(uint messageId, Action<ReceivedMessageInfo> handler)
     {
         _messageRouter.UnregisterMessageHandler(messageId, handler);
     }
 
-    public void SendMessage(ushort messageId, byte[] message)
+    public void SendMessage(uint messageId, byte[] message)
     {
         _connector.Send(messageId, message);
     }
 
-    public void SendRequest(ushort requestMessageId, byte[] request, Action<Packet> onCompleted,
-        Action                     onTimeOut = null)
+    public void SendRequest(uint messageId, byte[] request, Action<ReceivedMessageInfo> onCompleted, Action onTimeOut = null)
     {
-        var requestPack = new RequestPack()
+        var requestId = Interlocked.Increment(ref _requestSerialId);
+
+        var requestPack = new RequestInfo()
         {
-            RequestMessageId = requestMessageId,
-            OnCompleted      = onCompleted,
-            OnTimeOut        = onTimeOut,
+            MessageId   = messageId,
+            RequestId   = requestId,
+            OnCompleted = onCompleted,
+            OnTimeOut   = onTimeOut,
+            RequestTime = TimeUtils.MilliSecondsSinceStart,
         };
 
         lock (_requestPacks)
@@ -112,6 +167,6 @@ public class ClientBase
             _requestPacks.AddLast(requestPack);
         }
 
-        _connector.Send(requestMessageId, request);
+        _connector.Send(messageId, request, requestId);
     }
 }

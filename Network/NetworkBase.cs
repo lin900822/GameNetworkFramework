@@ -11,7 +11,7 @@ public abstract class NetworkBase
 {
     public Action<NetworkSession> OnConnected;
 
-    public Action<Packet> OnReceivedMessage;
+    public Action<ReceivedMessageInfo> OnReceivedMessage;
 
     public Action<Socket> OnClosed;
 
@@ -89,7 +89,7 @@ public abstract class NetworkBase
         }
     }
     
-    protected void AddMessageToSendQueue(ushort messageId, uint stateCode, byte[] message, Queue<ByteBuffer> sendQueue, SocketAsyncEventArgs args)
+    protected void AddMessageToSendQueue(uint messageId, uint stateCode, byte[] message, Queue<ByteBuffer> sendQueue, SocketAsyncEventArgs args)
     {
         // 打包資料
         var byteBuffer = _byteBufferPool.Rent(2 + 2 + 4 + message.Length);
@@ -160,11 +160,11 @@ public abstract class NetworkBase
     #region - Message -
 
     /// <summary>
-    /// | 總長度 2 Byte | MessageId 2 Byte | State Code 4 Byte | 資料內容 x Byte |
+    /// | 總長度 2 Byte | MessageId 4 Byte | State Code 4 Byte | 資料內容 x Byte |
     /// </summary>
-    protected static bool TryUnpackMessage(ByteBuffer byteBuffer, out Packet packet)
+    protected static bool TryUnpackMessage(ByteBuffer byteBuffer, out ReceivedMessageInfo receivedMessageInfo)
     {
-        packet = new Packet();
+        receivedMessageInfo = new ReceivedMessageInfo();
 
         // 連表示總長度的 2 Byte都沒收到
         if (byteBuffer.Length <= 2) return false;
@@ -175,22 +175,22 @@ public abstract class NetworkBase
 
         // 資料完整，開始解析
         totalLength = byteBuffer.ReadUInt16();
-        var bodyLength = totalLength - 2 - 2 - 4;
+        var bodyLength = totalLength - 2 - 4 - 4;
         
-        packet.MessageLength = bodyLength;
-        packet.MessageId     = byteBuffer.ReadUInt16();
-        packet.StateCode     = byteBuffer.ReadUInt32();
-        packet.Message       = ArrayPool<byte>.Shared.Rent(totalLength);
-        byteBuffer.Read(packet.Message, 0, bodyLength);
+        receivedMessageInfo.MessageLength = bodyLength;
+        receivedMessageInfo.MessageId     = byteBuffer.ReadUInt32();
+        receivedMessageInfo.StateCode     = byteBuffer.ReadUInt32();
+        receivedMessageInfo.Allocate(totalLength);
+        byteBuffer.Read(receivedMessageInfo.Message, 0, bodyLength);
 
         return true;
     }
 
-    private static void PackMessage(ByteBuffer byteBuffer, ushort messageId, uint stateCode, byte[] message)
+    private static void PackMessage(ByteBuffer byteBuffer, uint messageId, uint stateCode, byte[] message)
     {
-        var totalLength = message.Length + 2 + 2 + 4;
+        var totalLength = message.Length + 2 + 4 + 4;
         byteBuffer.WriteUInt16((ushort)totalLength);
-        byteBuffer.WriteUInt16(messageId);
+        byteBuffer.WriteUInt32(messageId);
         byteBuffer.WriteUInt32(stateCode);
         byteBuffer.Write(message, 0, message.Length);
     }
