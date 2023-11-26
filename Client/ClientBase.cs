@@ -1,11 +1,10 @@
 ﻿using System.Collections.Concurrent;
 using Common;
 using Network;
-using Protocol;
 
 namespace Client;
 
-public struct RequestInfo
+public class RequestInfo
 {
     public ReceivedMessageInfo         ReceivedMessageInfo;
     public uint                        MessageId;
@@ -13,6 +12,7 @@ public struct RequestInfo
     public Action<ReceivedMessageInfo> OnCompleted;
     public Action                      OnTimeOut;
     public long                        RequestTime;
+    public bool                        IsCompleted;
 }
 
 public class ClientBase
@@ -55,8 +55,6 @@ public class ClientBase
                 {
                     requestPack.ReceivedMessageInfo = receivedMessageInfo;
                     _responseQueue.Enqueue(requestPack);
-                
-                    _requestPacks.Remove(requestPack);
                 }
             }
         }
@@ -89,6 +87,7 @@ public class ClientBase
         if (_responseQueue.TryDequeue(out var requestPack))
         {
             requestPack.OnCompleted?.Invoke(requestPack.ReceivedMessageInfo);
+            requestPack.IsCompleted = true;
             requestPack.ReceivedMessageInfo.Release();
         }
 
@@ -124,7 +123,10 @@ public class ClientBase
         
         foreach (var request in _timeOutRequests)
         {
-            request.OnTimeOut?.Invoke();
+            if (!request.IsCompleted)
+            {
+                request.OnTimeOut?.Invoke();
+            }
         }
     }
 
