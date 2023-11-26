@@ -10,4 +10,16 @@ public struct Response
         Message   = message;
         StateCode = stateCode;
     }
+
+    public static Response None
+    {
+        get
+        {
+            var response = new Response()
+            {
+                Message = null,
+            };
+            return response;
+        }
+    } 
 }

@@ -1,4 +1,5 @@
-﻿using Server.Database;
+﻿using Dapper;
+using Server.Database;
 using Server.Repositories;
 using ServerDemo.PO;
 
@@ -63,5 +64,20 @@ public class UserRepository : BaseRepository<UserPO>
         ";
 
         return await SelectAll(sql);
+    }
+
+    public async Task<bool> IsUserExist(string username)
+    {
+        var sql = 
+        @"
+        SELECT COUNT(*) FROM User WHERE username=@Username;
+        ";
+        
+        using var dbConnection = _dbContext.Connection;
+        dbConnection.Open();
+        
+        var count = await dbConnection.QueryFirstAsync<int>(sql, new { Username = username });
+
+        return count >= 1;
     }
 }

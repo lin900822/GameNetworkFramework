@@ -6,4 +6,5 @@ public enum MessageId : uint
     
     Hello = 101,
     Move = 102,
+    Register = 103,
 }

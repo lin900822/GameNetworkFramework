@@ -41,8 +41,8 @@ public partial class DemoServer : ServerBase<DemoClient>
 
     private void HandleDebug(object sender, ElapsedEventArgs elapsedEventArgs)
     {
-        Logger.Debug($"Messages Handled: {_handleCount}");
-        _handleCount = 0;
+        // Logger.Debug($"Messages Handled: {_handleCount}");
+        // _handleCount = 0;
         
         Router.Debug();
         NetworkListener.Debug();

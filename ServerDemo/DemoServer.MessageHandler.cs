@@ -13,21 +13,19 @@ public partial class DemoServer
     [MessageRoute((uint)MessageId.Hello)]
     public Response OnReceiveHello(ReceivedMessageInfo receivedMessageInfo)
     {
-        if (!receivedMessageInfo.TryDecode<Hello>(out var hello)) return default;
+        if (!receivedMessageInfo.TryDecode<Hello>(out var hello)) return Response.None;
         
         hello.Content = $"Server Response: {hello.Content}";
         var data = ProtoUtils.Encode(hello);
-        //SendMessage(messagePack.Session, 101, data);
 
         _handleCount++;
-        Logger.Debug(_handleCount.ToString());
         if (_handleCount == 100000)
         {
             _handleCount = 0;
             Logger.Debug($"{(float)(GC.CollectionCount(0) + GC.CollectionCount(1) + GC.CollectionCount(2) - _lastCount)}");
             _lastCount = (GC.CollectionCount(0) + GC.CollectionCount(1) + GC.CollectionCount(2));
         }
-        return new Response(data, 200);
+        return new Response(data);
     }
     
     [MessageRoute((uint)MessageId.Move)]
@@ -38,15 +36,25 @@ public partial class DemoServer
         Logger.Info($"({move.X},{move.Y},{move.Z})");
     }
     
-    [MessageRoute(103)]
-    public async Task OnReceiveUserRegister(ReceivedMessageInfo receivedMessageInfo)
+    [MessageRoute((uint)MessageId.Register)]
+    public async Task<Response> OnReceiveUserRegister(ReceivedMessageInfo receivedMessageInfo)
     {
-        if (!receivedMessageInfo.TryDecode<User>(out var user)) return;
+        if (!receivedMessageInfo.TryDecode<User>(out var user)) return Response.None;
+        
+        if(user.Username.Length <= 2) return Response.None;
 
+        var isUserExist = await _userRepository.IsUserExist(user.Username);
+        if (isUserExist)
+        {
+            return new Response(Array.Empty<byte>(), (uint)StateCode.Register_Failed_UserExist);
+        }
+        
         await _userRepository.Insert(new UserPO()
         {
             Username = user.Username,
             Password = user.Password,
         });
+
+        return new Response(Array.Empty<byte>(), (uint)StateCode.Success);
     }
 }

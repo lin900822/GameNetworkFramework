@@ -24,7 +24,7 @@ public class ClientBase
     private NetworkConnector _connector;
 
     private LinkedList<RequestInfo>      _requestPacks;
-    private ConcurrentQueue<RequestInfo> _requestQueue;
+    private ConcurrentQueue<RequestInfo> _responseQueue;
     private Queue<RequestInfo>           _timeOutRequests;
 
     private uint _requestSerialId = (uint)(int.MaxValue) + 1;
@@ -37,7 +37,7 @@ public class ClientBase
         _connector     = new NetworkConnector();
 
         _requestPacks    = new LinkedList<RequestInfo>();
-        _requestQueue    = new ConcurrentQueue<RequestInfo>();
+        _responseQueue    = new ConcurrentQueue<RequestInfo>();
         _timeOutRequests = new Queue<RequestInfo>();
 
         _connector.OnReceivedMessage += OnReceivedMessage;
@@ -51,13 +51,12 @@ public class ClientBase
         {
             lock (_requestPacks)
             {
-                if (TryGetRequestPack(receivedMessageInfo.MessageId, out var requestPack))
+                if (TryGetRequestInfo(receivedMessageInfo.MessageId, out var requestPack))
                 {
                     requestPack.ReceivedMessageInfo = receivedMessageInfo;
-                    _requestQueue.Enqueue(requestPack);
+                    _responseQueue.Enqueue(requestPack);
                 
                     _requestPacks.Remove(requestPack);
-                    return;
                 }
             }
         }
@@ -67,7 +66,7 @@ public class ClientBase
         }
     }
 
-    private bool TryGetRequestPack(uint requestId, out RequestInfo outRequestInfo)
+    private bool TryGetRequestInfo(uint requestId, out RequestInfo outRequestInfo)
     {
         var enumerator = _requestPacks.GetEnumerator();
         while (enumerator.MoveNext())
@@ -87,7 +86,7 @@ public class ClientBase
     {
         _messageRouter.OnUpdateLogic();
 
-        if (_requestQueue.TryDequeue(out var requestPack))
+        if (_responseQueue.TryDequeue(out var requestPack))
         {
             requestPack.OnCompleted?.Invoke(requestPack.ReceivedMessageInfo);
             requestPack.ReceivedMessageInfo.Release();

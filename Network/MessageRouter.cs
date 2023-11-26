@@ -35,7 +35,7 @@ public struct ReceivedMessageInfo
     public bool TryDecode<T>(out T outMessage) where T : IMessage, new()
     {
         try
-        {
+        { 
             outMessage = new T();
             outMessage.MergeFrom(Message, 0, MessageLength);
             return true;

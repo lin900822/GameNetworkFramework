@@ -36,7 +36,7 @@ public class ConsoleLog : ILog
         lock (this)
         {
             Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine($"{DateTime.Now:yyyy/MM/dd HH:mm:ss} [Warning] {message}");
+            Console.WriteLine($"{DateTime.Now:yyyy/MM/dd HH:mm:ss} [Warn] {message}");
         }
     }
 
