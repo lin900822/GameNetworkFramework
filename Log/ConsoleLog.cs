@@ -11,43 +11,31 @@ public class ConsoleLog : ILog
     {
         if (!IsLogDebug) return;
         
-        lock (this)
-        {
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine($"{DateTime.Now:yyyy/MM/dd HH:mm:ss} [Debug] {message}");
-        }
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [Debug] {message}");
     }
 
     public void Info(string message)
     {
         if (!IsLogInfo) return;
         
-        lock (this)
-        {
-            Console.ForegroundColor = ConsoleColor.Blue;
-            Console.WriteLine($"{DateTime.Now:yyyy/MM/dd HH:mm:ss} [Info] {message}");
-        }
+        Console.ForegroundColor = ConsoleColor.Blue;
+        Console.WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [Info] {message}");
     }
 
     public void Warn(string message)
     {
         if (!IsLogWarn) return;
         
-        lock (this)
-        {
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine($"{DateTime.Now:yyyy/MM/dd HH:mm:ss} [Warn] {message}");
-        }
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [Warn] {message}");
     }
 
     public void Error(string message)
     {
         if (!IsLogError) return;
         
-        lock (this)
-        {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"{DateTime.Now:yyyy/MM/dd HH:mm:ss} [Error] {message}");
-        }
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [Error] {message}");
     }
 }

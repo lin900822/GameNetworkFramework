@@ -11,6 +11,26 @@ public struct Response
         StateCode = stateCode;
     }
 
+    public static Response Create(uint stateCode = 0)
+    {
+        var response = new Response()
+        {
+            Message   = Array.Empty<byte>(),
+            StateCode = stateCode,
+        };
+        return response;
+    } 
+
+    public static Response Create(byte[] message = null, uint stateCode = 0)
+    {
+        var response = new Response()
+        {
+            Message = message == null ? Array.Empty<byte>() : message,
+            StateCode = stateCode,
+        };
+        return response;
+    }
+
     public static Response None
     {
         get

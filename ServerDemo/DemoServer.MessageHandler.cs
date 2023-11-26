@@ -25,7 +25,7 @@ public partial class DemoServer
             Logger.Debug($"{(float)(GC.CollectionCount(0) + GC.CollectionCount(1) + GC.CollectionCount(2) - _lastCount)}");
             _lastCount = (GC.CollectionCount(0) + GC.CollectionCount(1) + GC.CollectionCount(2));
         }
-        return new Response(data);
+        return Response.Create(data);
     }
     
     [MessageRoute((uint)MessageId.Move)]
@@ -46,7 +46,7 @@ public partial class DemoServer
         var isUserExist = await _userRepository.IsUserExist(user.Username);
         if (isUserExist)
         {
-            return new Response(Array.Empty<byte>(), (uint)StateCode.Register_Failed_UserExist);
+            return Response.Create((uint)StateCode.Register_Failed_UserExist);
         }
         
         await _userRepository.Insert(new UserPO()
@@ -55,6 +55,6 @@ public partial class DemoServer
             Password = user.Password,
         });
 
-        return new Response(Array.Empty<byte>(), (uint)StateCode.Success);
+        return Response.Create((uint)StateCode.Success);
     }
 }
