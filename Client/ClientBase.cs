@@ -4,7 +4,7 @@ using Network;
 
 namespace Client;
 
-public class RequestInfo
+public class RequestInfo : IPoolable
 {
     public ReceivedMessageInfo         ReceivedMessageInfo;
     public uint                        MessageId;
@@ -13,6 +13,17 @@ public class RequestInfo
     public Action                      OnTimeOut;
     public long                        RequestTime;
     public bool                        IsCompleted;
+
+    public void Reset()
+    {
+        ReceivedMessageInfo = default;
+        MessageId           = 0;
+        RequestId           = 0;
+        OnCompleted         = null;
+        OnTimeOut           = null;
+        RequestTime         = 0;
+        IsCompleted         = false;
+    }
 }
 
 public class ClientBase
@@ -27,6 +38,8 @@ public class ClientBase
     private ConcurrentQueue<RequestInfo> _responseQueue;
     private Queue<RequestInfo>           _timeOutRequests;
 
+    private ConcurrentPool<RequestInfo> _requestPool;
+
     private uint _requestSerialId = (uint)(int.MaxValue) + 1;
 
     private long _lastCheckRequestTimeOutTime;
@@ -37,8 +50,10 @@ public class ClientBase
         _connector     = new NetworkConnector();
 
         _requestPacks    = new LinkedList<RequestInfo>();
-        _responseQueue    = new ConcurrentQueue<RequestInfo>();
+        _responseQueue   = new ConcurrentQueue<RequestInfo>();
         _timeOutRequests = new Queue<RequestInfo>();
+
+        _requestPool = new ConcurrentPool<RequestInfo>();
 
         _connector.OnReceivedMessage += OnReceivedMessage;
     }
@@ -71,7 +86,7 @@ public class ClientBase
         {
             var current = enumerator.Current;
             if (current.RequestId != requestId) continue;
-            
+
             outRequestInfo = current;
             return true;
         }
@@ -96,12 +111,13 @@ public class ClientBase
 
     private void CheckRequestTimeOut()
     {
-        if(TimeUtils.MilliSecondsSinceStart - _lastCheckRequestTimeOutTime < CHECK_REQUEST_TIME_OUT_MILLISECONDS) return;
+        if (TimeUtils.MilliSecondsSinceStart - _lastCheckRequestTimeOutTime <
+            CHECK_REQUEST_TIME_OUT_MILLISECONDS) return;
 
         _lastCheckRequestTimeOutTime = TimeUtils.MilliSecondsSinceStart;
 
         _timeOutRequests.Clear();
-        
+
         lock (_requestPacks)
         {
             var enumerator = _requestPacks.GetEnumerator();
@@ -120,13 +136,14 @@ public class ClientBase
                 _requestPacks.Remove(request);
             }
         }
-        
+
         foreach (var request in _timeOutRequests)
         {
             if (!request.IsCompleted)
             {
                 request.OnTimeOut?.Invoke();
             }
+            _requestPool.Return(request);
         }
     }
 
@@ -150,18 +167,17 @@ public class ClientBase
         _connector.Send(messageId, message);
     }
 
-    public void SendRequest(uint messageId, byte[] request, Action<ReceivedMessageInfo> onCompleted, Action onTimeOut = null)
+    public void SendRequest(uint messageId, byte[] request, Action<ReceivedMessageInfo> onCompleted,
+        Action                   onTimeOut = null)
     {
         var requestId = Interlocked.Increment(ref _requestSerialId);
 
-        var requestPack = new RequestInfo()
-        {
-            MessageId   = messageId,
-            RequestId   = requestId,
-            OnCompleted = onCompleted,
-            OnTimeOut   = onTimeOut,
-            RequestTime = TimeUtils.MilliSecondsSinceStart,
-        };
+        var requestPack = _requestPool.Rent();
+        requestPack.MessageId   = messageId;
+        requestPack.RequestId   = requestId;
+        requestPack.OnCompleted = onCompleted;
+        requestPack.OnTimeOut   = onTimeOut;
+        requestPack.RequestTime = TimeUtils.MilliSecondsSinceStart;
 
         lock (_requestPacks)
         {
