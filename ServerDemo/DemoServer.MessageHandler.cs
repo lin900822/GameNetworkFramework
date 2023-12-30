@@ -43,17 +43,23 @@ public partial class DemoServer
         
         if(user.Username.Length <= 2) return Response.None;
 
+        Logger.Debug($"{Environment.CurrentManagedThreadId}: Before IsUserExist");
         var isUserExist = await _userRepository.IsUserExist(user.Username);
+        Logger.Debug($"{Environment.CurrentManagedThreadId}: After IsUserExist");
         if (isUserExist)
         {
             return Response.Create((uint)StateCode.Register_Failed_UserExist);
         }
+        
+        Logger.Debug($"{Environment.CurrentManagedThreadId}: Before Insert");
         
         await _userRepository.Insert(new UserPO()
         {
             Username = user.Username,
             Password = user.Password,
         });
+        
+        Logger.Debug($"{Environment.CurrentManagedThreadId}: After Insert");
 
         return Response.Create((uint)StateCode.Success);
     }

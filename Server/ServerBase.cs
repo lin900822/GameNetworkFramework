@@ -154,10 +154,14 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
         _updateStopwatch = Stopwatch.StartNew();
         
         Init();
+
+        var synchronizationContext = new ServerSynchronizationContext();
+        SynchronizationContext.SetSynchronizationContext(synchronizationContext);
         
         while (true)
         {
             Update();
+            synchronizationContext.ProcessQueue();
         }
     }
 
