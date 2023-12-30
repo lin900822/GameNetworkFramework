@@ -1,5 +1,6 @@
 ﻿using Dapper;
 using Log;
+using Server;
 using Server.Database;
 using Server.Repositories;
 using ServerDemo.PO;
@@ -78,7 +79,7 @@ public class UserRepository : BaseRepository<UserPO>
         dbConnection.Open();
         Logger.Debug($"{Environment.CurrentManagedThreadId}: Before QueryFirstAsync");
         var count = await dbConnection.QueryFirstAsync<int>(sql, new { Username = username });
-        Logger.Debug($"{Environment.CurrentManagedThreadId}: Before QueryFirstAsync");
+        Logger.Debug($"{Environment.CurrentManagedThreadId}: After QueryFirstAsync");
         return count >= 1;
     }
 }

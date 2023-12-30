@@ -19,6 +19,8 @@ clientBase.RegisterMessageHandler(1, (messageInfo) =>
 
 clientBase.Connect("127.0.0.1", 10001);
 
+Thread.Sleep(100);
+
 var sendThread = new Thread(SendLoop);
 sendThread.Start();
 
