@@ -82,7 +82,14 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
 
                     async void Handler(ReceivedMessageInfo messageInfo)
                     {
-                        await func(messageInfo);
+                        try
+                        {
+                            await func(messageInfo);
+                        }
+                        catch (Exception e)
+                        {
+                            Logger.Error(e.ToString());
+                        }
                     }
 
                     _messageRouter.RegisterMessageHandler(routeAttribute.MessageId, Handler);
@@ -116,9 +123,16 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
 
                     async void Handler(ReceivedMessageInfo messageInfo)
                     {
-                        var response = await func(messageInfo);
-                        if (response.Message == null) return;
-                        _networkListener.Send(messageInfo.Session, messageInfo.StateCode, response.Message, response.StateCode);
+                        try
+                        {
+                            var response = await func(messageInfo);
+                            if (response.Message == null) return;
+                            _networkListener.Send(messageInfo.Session, messageInfo.StateCode, response.Message, response.StateCode);
+                        }
+                        catch (Exception e)
+                        {
+                            Logger.Error(e.ToString());
+                        }
                     }
 
                     _messageRouter.RegisterMessageHandler(routeAttribute.MessageId, Handler);
@@ -173,15 +187,22 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
     }
 
     private void Update()
-    { 
-        _messageRouter.OnUpdateLogic();
-
-        _millisecondsPassed = _updateStopwatch.ElapsedMilliseconds;
-        while (_millisecondsPassed - _frameCount * _millisecondsPerFrame >= _millisecondsPerFrame)
+    {
+        try
         {
-            ++_frameCount;
-            OnUpdate();
-            CheckHeartBeat();
+            _messageRouter.OnUpdateLogic();
+
+            _millisecondsPassed = _updateStopwatch.ElapsedMilliseconds;
+            while (_millisecondsPassed - _frameCount * _millisecondsPerFrame >= _millisecondsPerFrame)
+            {
+                ++_frameCount;
+                OnUpdate();
+                CheckHeartBeat();
+            }
+        }
+        catch (Exception e)
+        {
+            Logger.Error(e.ToString());
         }
     }
 
