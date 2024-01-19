@@ -4,11 +4,16 @@ using Server;
 using Server.Database;
 using ServerDemo;
 using ServerDemo.Repositories;
+using Microsoft.Extensions.Configuration;
 
 try
 {
-    var connectString = @"server=localhost;port=3306;database=gameserver;SslMode=None;uid=root;pwd=root;Allow User Variables=true";
+    var configuration = new ConfigurationBuilder()
+        .AddJsonFile("appsettings.json")
+        .Build();
 
+    var connectionString  = configuration.GetConnectionString("DefaultConnection");
+    
     var serviceCollection = new ServiceCollection();
 
     serviceCollection.AddSingleton(new ServerSettings()
@@ -21,7 +26,7 @@ try
     });
     serviceCollection.AddSingleton<DemoServer>();
 
-    serviceCollection.AddSingleton<IDbContext>(new MySqlDbContext(connectString));
+    serviceCollection.AddSingleton<IDbContext>(new MySqlDbContext(connectionString));
     serviceCollection.AddSingleton<UserRepository>();
 
     var serviceProvider = serviceCollection.BuildServiceProvider();
