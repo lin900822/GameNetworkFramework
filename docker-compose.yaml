@@ -1,0 +1,25 @@
+version: '3.9'
+
+services:
+  game-server:
+    build: .
+    container_name: game-server
+    ports:
+      - "10001:10001"
+    depends_on:
+      - mysql
+    
+  mysql:
+    image: mysql:latest
+    container_name: game-server-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: gameserver
+      MYSQL_USER: lin
+      MYSQL_PASSWORD: lin
+    volumes:
+      - db:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+volumes:
+  db:
