@@ -1,8 +1,8 @@
 ﻿using System.Collections.Concurrent;
 
-namespace Server;
+namespace Common;
 
-public class ServerSynchronizationContext : SynchronizationContext
+public class GameSynchronizationContext : SynchronizationContext
 {
     private readonly ConcurrentStack<Action> _stack = new ConcurrentStack<Action>();
 

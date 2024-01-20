@@ -169,7 +169,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
         
         Init();
 
-        var synchronizationContext = new ServerSynchronizationContext();
+        var synchronizationContext = new GameSynchronizationContext();
         SynchronizationContext.SetSynchronizationContext(synchronizationContext);
         
         while (true)

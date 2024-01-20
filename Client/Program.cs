@@ -1,101 +1,47 @@
-﻿using Client;
+﻿using System.Collections.Concurrent;
+using Client;
+using Common;
 using Log;
-using Network;
-using Protocol;
 
-int connectionCount = 1;
+// 
+ConcurrentQueue<Action> _inputActions = new ConcurrentQueue<Action>();
 
+// Init
 ClientBase clientBase = new ClientBase();
+CommandHandler commandHandler = new CommandHandler(clientBase, _inputActions);
 
-clientBase.RegisterMessageHandler(1, (messageInfo) =>
-{
-    Logger.Info("Pong!");
-});
-// clientBase.RegisterMessageHandler(101, (messagePack) =>
-// {
-//     if (!messagePack.TryDecode<Hello>(out var hello)) return;
-//     Logger.Info(hello.Content);
-// });
+var synchronizationContext = new GameSynchronizationContext();
+SynchronizationContext.SetSynchronizationContext(synchronizationContext);
 
+// Register Handlers
+clientBase.RegisterMessageHandler(1, (messageInfo) => { Logger.Info("Pong!"); });
+
+// Connect
 clientBase.Connect("127.0.0.1", 10001);
 
 Thread.Sleep(100);
 
-var sendThread = new Thread(SendLoop);
-sendThread.Start();
+var inputThread = new Thread(() =>
+{
+    while (true)
+    {
+        var cmd = Console.ReadLine();
+        commandHandler.InvokeCommand(cmd);
+    }
+});
+inputThread.Start();
 
+// Main Loop
 while (true)
 {
     clientBase.Update();
-}
+    synchronizationContext.ProcessQueue();
 
-async Task SendHello(byte[] helloData)
-{
-    Logger.Info($"Before await Thread:{Environment.CurrentManagedThreadId}");
-    var messageInfo = await clientBase.SendRequest((uint)MessageId.Hello, helloData);
-    Logger.Info($"After await Thread:{Environment.CurrentManagedThreadId}");        
-    
-    if (!messageInfo.TryDecode<Hello>(out var response)) return;
-    Logger.Info($"StateCode({messageInfo.StateCode}): " + response.Content);
-};
-
-void SendLoop()
-{
-    var hello = new Hello() { Content = "client message 666" };
-    var helloData = ProtoUtils.Encode(hello);
-
-    var move     = new Move() { X = 99 };
-    var moveData = ProtoUtils.Encode(move);
-
-    while (true)
+    if (_inputActions.TryDequeue(out var action))
     {
-        // for (int i = 0; i < 1000; i++)
-        // {
-        //     clientBase.SendRequest(101, data, messageInfo =>
-        //     { 
-        //         if (!messageInfo.TryDecode<Hello>(out var response)) return;
-        //         Logger.Info(response.Content);
-        //         Logger.Info(messageInfo.StateCode.ToString());
-        //     });
-        // }
-        // Thread.Sleep(1);
-        
-        var info = Console.ReadKey();
-        if (info.Key == ConsoleKey.A)
-        {
-            SendHello(helloData);
-        }
-        if (info.Key == ConsoleKey.B)
-        {
-            clientBase.SendRequest((uint)MessageId.Move, moveData, null, () =>
-            {
-                Logger.Warn($"Time Out!");
-            });
-        }
-        if (info.Key == ConsoleKey.C)
-        {
-            Logger.Info("請輸入用戶名稱:");
-            var username = Console.ReadLine();
-            Logger.Info("請輸入密碼:");
-            var password = Console.ReadLine();
-            
-            var user     = new User() { Username = username, Password = password};
-            var userData = ProtoUtils.Encode(user);
-            
-            clientBase.SendRequest((uint)MessageId.Register, userData, (messageInfo) =>
-            {
-                if (messageInfo.StateCode == (uint)StateCode.Success)
-                {
-                    Logger.Info($"註冊成功!");
-                }
-                else
-                {
-                    Logger.Info($"{messageInfo.StateCode.ToString()}");
-                }
-            }, () =>
-            {
-                Logger.Warn($"Time Out");
-            });
-        }
+        action?.Invoke();
     }
 }
+
+
+
