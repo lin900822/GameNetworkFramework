@@ -186,4 +186,23 @@ public class ClientBase
 
         _connector.Send(messageId, request, requestId);
     }
+
+    public Task<ReceivedMessageInfo> SendRequest(uint messageId, byte[] request, Action onTimeOut = null)
+    {
+        var taskCompletionSource = new TaskCompletionSource<ReceivedMessageInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
+        try
+        {
+            SendRequest(messageId, request, 
+            (info) => 
+            {
+                taskCompletionSource.SetResult(info);
+            }, 
+            onTimeOut);
+        }
+        catch (Exception ex)
+        {
+            taskCompletionSource.SetException(ex);
+        }
+        return taskCompletionSource.Task;
+    }
 }

@@ -29,6 +29,16 @@ while (true)
     clientBase.Update();
 }
 
+async Task SendHello(byte[] helloData)
+{
+    Logger.Info($"Before await Thread:{Environment.CurrentManagedThreadId}");
+    var messageInfo = await clientBase.SendRequest((uint)MessageId.Hello, helloData);
+    Logger.Info($"After await Thread:{Environment.CurrentManagedThreadId}");        
+    
+    if (!messageInfo.TryDecode<Hello>(out var response)) return;
+    Logger.Info($"StateCode({messageInfo.StateCode}): " + response.Content);
+};
+
 void SendLoop()
 {
     var hello = new Hello() { Content = "client message 666" };
@@ -53,12 +63,7 @@ void SendLoop()
         var info = Console.ReadKey();
         if (info.Key == ConsoleKey.A)
         {
-            clientBase.SendRequest((uint)MessageId.Hello, helloData, messageInfo =>
-            { 
-                if (!messageInfo.TryDecode<Hello>(out var response)) return;
-                Logger.Info(response.Content);
-                Logger.Info(messageInfo.StateCode.ToString());
-            });
+            SendHello(helloData);
         }
         if (info.Key == ConsoleKey.B)
         {
