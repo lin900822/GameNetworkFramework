@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Reflection;
+using Common;
 using Log;
 using Network;
 using Protocol;
@@ -30,7 +31,7 @@ public class CommandHandler
     {
         _clientBase = clientBase;
         _inputActions = inputActions;
-        
+
         _commandHandlers = new Dictionary<string, Action>();
         RegisterHandlers();
     }
@@ -69,41 +70,60 @@ public class CommandHandler
 
     #endregion
 
+    [Command("a")]
+    public void TestFireAndForget()
+    {
+        Logger.Debug("Before Task");
+        DoSomething().Await(() =>
+        {
+            Logger.Info("Completed!");
+        }, (e) =>
+        {
+            Logger.Error($"{e.Message}");
+        });
+        Logger.Debug("After Task");
+    }
+
+    private async Task DoSomething()
+    {
+        await Task.Delay(0);
+        SomethingWrong();
+    }
+    
+    private void SomethingWrong() => throw new Exception("Error!");
+
     [Command("await")]
     public async void TestAwait()
     {
         Logger.Info($"Before await Thread:{Environment.CurrentManagedThreadId}");
         await Task.Delay(1);
         Logger.Info($"After  await Thread:{Environment.CurrentManagedThreadId}");
-        
-        YieldToMainThread(async () =>
-        {
-            
-        });
+
+        YieldToMainThread(async () => { });
     }
-    
+
     [Command("hello")]
     public async void TestHello()
     {
         await SendHello();
     }
-    
+
     private async Task SendHello()
     {
         YieldToMainThread(async () =>
         {
             var hello = new Hello() { Content = "client message 666" };
             var helloData = ProtoUtils.Encode(hello);
-            
+
             Logger.Info($"Before await Thread:{Environment.CurrentManagedThreadId}");
             var messageInfo = await _clientBase.SendRequest((uint)MessageId.Hello, helloData);
             Logger.Info($"After  await Thread:{Environment.CurrentManagedThreadId}");
-            
+
             if (!messageInfo.TryDecode<Hello>(out var response)) return;
             Logger.Info($"StateCode({messageInfo.StateCode}): " + response.Content);
         });
     }
-    
+
     [Command("move")]
     public async void TestMove()
     {
@@ -111,11 +131,11 @@ public class CommandHandler
         {
             var move = new Move() { X = 99 };
             var moveData = ProtoUtils.Encode(move);
-            
+
             await _clientBase.SendRequest((uint)MessageId.Move, moveData, () => { Logger.Warn($"Time Out!"); });
         });
     }
-    
+
     [Command("register")]
     public async void TestRegister()
     {
@@ -129,8 +149,9 @@ public class CommandHandler
             var user = new User() { Username = username, Password = password };
             var userData = ProtoUtils.Encode(user);
 
-            var messageInfo = await _clientBase.SendRequest((uint)MessageId.Register, userData, () => { Logger.Warn($"Time Out"); });
-            
+            var messageInfo = await _clientBase.SendRequest((uint)MessageId.Register, userData,
+                () => { Logger.Warn($"Time Out"); });
+
             if (messageInfo.StateCode == (uint)StateCode.Success)
             {
                 Logger.Info($"註冊成功!");
