@@ -68,6 +68,19 @@ public class CommandHandler
     }
 
     #endregion
+
+    [Command("await")]
+    public async void TestAwait()
+    {
+        Logger.Info($"Before await Thread:{Environment.CurrentManagedThreadId}");
+        await Task.Delay(1);
+        Logger.Info($"After  await Thread:{Environment.CurrentManagedThreadId}");
+        
+        YieldToMainThread(async () =>
+        {
+            
+        });
+    }
     
     [Command("hello")]
     public async void TestHello()
@@ -81,11 +94,11 @@ public class CommandHandler
         {
             var hello = new Hello() { Content = "client message 666" };
             var helloData = ProtoUtils.Encode(hello);
-
+            
             Logger.Info($"Before await Thread:{Environment.CurrentManagedThreadId}");
             var messageInfo = await _clientBase.SendRequest((uint)MessageId.Hello, helloData);
             Logger.Info($"After  await Thread:{Environment.CurrentManagedThreadId}");
-
+            
             if (!messageInfo.TryDecode<Hello>(out var response)) return;
             Logger.Info($"StateCode({messageInfo.StateCode}): " + response.Content);
         });

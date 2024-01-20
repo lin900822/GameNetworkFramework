@@ -11,6 +11,11 @@ public class GameSynchronizationContext : SynchronizationContext
         _stack.Push(() => d(state));
     }
 
+    public override void Send(SendOrPostCallback d, object? state)
+    {
+        _stack.Push(() => d(state));
+    }
+
     public void ProcessQueue()
     {
         while (_stack.TryPop(out var action))
