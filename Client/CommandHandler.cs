@@ -70,7 +70,25 @@ public class CommandHandler
 
     #endregion
 
-    [Command("a")]
+    [Command("safewait")]
+    public void TestSafeWait()
+    {
+        YieldToMainThread(() =>
+        {
+            Logger.Debug($"{Environment.CurrentManagedThreadId} Before SafeWait");
+            DoSomethingHeavy().SafeWait();
+            Logger.Debug($"{Environment.CurrentManagedThreadId} After  SafeWait");
+        });
+    }
+
+    private async Task DoSomethingHeavy()
+    {
+        Logger.Debug($"{Environment.CurrentManagedThreadId} Before Heavy Work");
+        await Task.Delay(1500);
+        Logger.Debug($"{Environment.CurrentManagedThreadId} After Heavy Work");
+    }
+    
+    [Command("fireandforget")]
     public void TestFireAndForget()
     {
         Logger.Debug("Before Task");
