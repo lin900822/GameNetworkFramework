@@ -15,7 +15,7 @@ public static class TaskExtensions
         {
             while (!awaiter.IsCompleted)
             {
-                Thread.Sleep(0);
+                Thread.Sleep(0);                        // 避免佔走CPU所有資源
                 synchronizationContext.ProcessQueue();
             }
         }
@@ -34,7 +34,7 @@ public static class TaskExtensions
         {
             while (!awaiter.IsCompleted)
             {
-                Thread.Sleep(0);
+                Thread.Sleep(0);                        // 避免佔走CPU所有資源
                 synchronizationContext.ProcessQueue();
             }
         }
