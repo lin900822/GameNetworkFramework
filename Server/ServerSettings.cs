@@ -6,6 +6,6 @@ public class ServerSettings
     public string ServerName;
 
     public int Port = 10001;
-    public int MaxSessionCount = 10;
+    public int MaxSessionCount = 1;
     public int HeartBeat       = 120;
 }

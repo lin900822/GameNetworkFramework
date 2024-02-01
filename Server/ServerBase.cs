@@ -33,7 +33,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
         _messageRouter = new MessageRouter();
         _networkListener = new NetworkListener(settings.MaxSessionCount);
 
-        _networkListener.OnConnected += (session) =>
+        _networkListener.OnSessionConnected += (session) =>
         {
             var client = new TClient();
 

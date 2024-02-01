@@ -4,8 +4,13 @@ using Log;
 
 namespace Network;
 
-public class NetworkListener : NetworkBase
+public class NetworkListener 
 {
+    public Action<NetworkSession> OnSessionConnected;
+    public Action<NetworkSession> OnSessionDisconnected;
+
+    public Action<ReceivedMessageInfo> OnReceivedMessage;
+    
     public int ConnectionCount => _sessionList.Count;
 
     // Variables
@@ -22,7 +27,7 @@ public class NetworkListener : NetworkBase
     {
         _maxConnectionCount = maxConnectionCount;
         
-        _sessionPool = new NetworkSessionPool(_maxConnectionCount, _byteBufferPool);
+        _sessionPool = new NetworkSessionPool(_maxConnectionCount);
         _sessionList = new Dictionary<Socket, NetworkSession>();
     }
 
@@ -83,75 +88,29 @@ public class NetworkListener : NetworkBase
 
         if (session == null)
         {
+            // 超過最大連線數
             CloseSocket(clientFd);
         }
         else
         {
-            session.Socket                   =  clientFd;
-            session.ReceiveArgs.AcceptSocket =  clientFd;
-            session.SendArgs.AcceptSocket    =  clientFd;
-            session.ReceiveArgs.Completed    += OnReceive;
-            session.SendArgs.Completed       += OnSend;
+            session.SetActive(clientFd);
+            session.OnReceivedMessage += OnReceivedMessage;
+            session.OnReceivedNothing += OnSessionReceivedNothing;
 
             lock (_sessionList)
             {
                 _sessionList.Add(clientFd, session);
             }
             
-            OnConnected?.Invoke(session);
+            OnSessionConnected?.Invoke(session);
 
             // 開始接收clientFd傳來的訊息
-            ReceiveAsync(session.ReceiveArgs);
+            session.ReceiveAsync();
         }
         
         // 重置acceptEventArg，並繼續監聽
         acceptEventArg.AcceptSocket = null;
         AcceptAsync(acceptEventArg);
-    }
-    
-    #endregion
-    
-    #region - Receive -
-
-    protected override void OnReceive(object sender, SocketAsyncEventArgs args)
-    {
-        if (!_sessionList.TryGetValue(args.AcceptSocket, out var client))
-        {
-            Close(args.AcceptSocket);
-            Logger.Error("OnReceive Error: Cannot find session");
-            return;
-        }
-        
-        if (!ReadDataToBuffer(args, client.ReceiveBuffer))
-        {
-            // 收到 0個 Byte代表 Client已關閉
-            Close(args.AcceptSocket);
-            return;
-        }
-
-        ParseReceivedData(client);
-        ReceiveAsync(args);
-    }
-
-    private void ParseReceivedData(NetworkSession session)
-    {
-        var readBuffer = session.ReceiveBuffer;
-
-        if (!TryUnpackMessage(readBuffer, out var messageInfo))
-        {
-            return;
-        }
-
-        messageInfo.Session = session;
-        
-        // 分發收到的 Message
-        OnReceivedMessage?.Invoke(messageInfo);
-
-        // 繼續解析 readBuffer
-        if (readBuffer.Length > 2)
-        {
-            ParseReceivedData(session);
-        }
     }
     
     #endregion
@@ -177,43 +136,16 @@ public class NetworkListener : NetworkBase
             Logger.Error("Send Failed, client is null or not connected");
             return;
         }
-        if (session.Socket == null)
-        {
-            Logger.Error("Send Failed, client is null or not connected");
-            return;
-        }
-        if (!session.Socket.Connected)
-        {
-            Logger.Error("Send Failed, client is null or not connected");
-            return;
-        }
-
-        var sendArgs = session.SendArgs;
-        AddMessageToSendQueue(messageId, stateCode, message, session.SendQueue, sendArgs);
-    }
-
-    protected override void OnSend(object sender, SocketAsyncEventArgs args)
-    {
-        if (args.AcceptSocket == null)
-        {
-            Logger.Error("OnSend Failed, client socket is null");
-            return;
-        }
-        if (!_sessionList.TryGetValue(args.AcceptSocket, out var client))
-        {
-            Logger.Error("OnSend Failed, client is null");
-            return;
-        }
-        if (args.SocketError != SocketError.Success)
-        {
-            Logger.Error($"OnSend Failed, Socket Error: {args.SocketError}");
-            return;
-        }
-
-        CheckSendQueue(args, client.SendQueue);
+        
+        session.Send(messageId, message, stateCode);
     }
     
     #endregion
+
+    private void OnSessionReceivedNothing(NetworkSession session)
+    {
+        Close(session.Socket);
+    }
     
     public void Close(Socket socket)
     {
@@ -230,6 +162,7 @@ public class NetworkListener : NetworkBase
 
         void RemoveFromSessionList()
         {
+            OnSessionDisconnected?.Invoke(session);
             lock (_sessionList)
             {
                 if (_sessionList.ContainsKey(socket)) _sessionList.Remove(socket);
@@ -238,14 +171,13 @@ public class NetworkListener : NetworkBase
 
         void ReturnSession()
         {
-            session.ReceiveArgs.Completed -= OnReceive;
-            session.SendArgs.Completed    -= OnSend;
+            session.OnReceivedMessage -= OnReceivedMessage;
+            session.OnReceivedNothing -= OnSessionReceivedNothing;
             _sessionPool.Return(session);
         }
 
         void CloseConnection()
         {
-            OnClosed?.Invoke(socket);
             var socketEndPointStr = socket.RemoteEndPoint?.ToString();
             CloseSocket(socket);
             Logger.Info($"{socketEndPointStr} Closed!");

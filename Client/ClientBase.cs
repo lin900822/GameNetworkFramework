@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using Common;
+using Log;
 using Network;
 
 namespace Client;
@@ -195,7 +196,14 @@ public class ClientBase
             SendRequest(messageId, request, 
             (info) => 
             {
-                taskCompletionSource.SetResult(info);
+                try
+                {
+                    taskCompletionSource.SetResult(info);
+                }
+                catch(Exception e)
+                {
+                    Logger.Error(e.ToString());
+                }
             }, 
             onTimeOut);
         }
