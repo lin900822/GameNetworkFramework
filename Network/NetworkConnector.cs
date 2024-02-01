@@ -4,26 +4,23 @@ using Log;
 
 namespace Network;
 
-public class NetworkConnector : NetworkBase
+public class NetworkConnector
 {
+    public Action<NetworkSession> OnConnected;
+
+    public Action<ReceivedMessageInfo> OnReceivedMessage;
+
+    public Action<Socket> OnClosed;
+    
     public bool IsConnected => _connectFd.Connected;
     
     private Socket            _connectFd;
-    private ByteBuffer        _receiveBuffer = new ByteBuffer(NetworkConfig.BufferSize);
-    private Queue<ByteBuffer> _sendQueue     = new Queue<ByteBuffer>();
 
-    private SocketAsyncEventArgs _recieveArgs;
-    private SocketAsyncEventArgs _sendArgs;
-
+    private NetworkSession _session;
+    
     public NetworkConnector()
     {
-        _recieveArgs = new SocketAsyncEventArgs();
-        _recieveArgs.SetBuffer(new byte[NetworkConfig.BufferSize], 0, NetworkConfig.BufferSize);
-        _recieveArgs.Completed += OnReceive;
-
-        _sendArgs = new SocketAsyncEventArgs();
-        _sendArgs.SetBuffer(new byte[NetworkConfig.BufferSize], 0, NetworkConfig.BufferSize);
-        _sendArgs.Completed += OnSend;
+        _session = new NetworkSession(new ByteBufferPool(), NetworkConfig.BufferSize);
     }
 
     public async void Connect(string ip, int port)
@@ -44,10 +41,11 @@ public class NetworkConnector : NetworkBase
             
             Logger.Info("Connected!");
 
-            _recieveArgs.AcceptSocket = _connectFd;
-            _sendArgs.AcceptSocket = _connectFd;
-
-            ReceiveAsync(_recieveArgs);
+            _session.OnReceivedMessage += OnReceivedMessage;
+            _session.OnReceivedNothing += OnSessionReceivedNothing;
+            
+            _session.SetActive(_connectFd);
+            _session.ReceiveAsync();
         }
         catch (Exception e)
         {
@@ -55,70 +53,20 @@ public class NetworkConnector : NetworkBase
         }
     }
 
-    #region - Receive -
-    
-    protected override void OnReceive(object sender, SocketAsyncEventArgs args)
-    {
-        if (!ReadDataToBuffer(args, _receiveBuffer))
-        {
-            Close();
-            return;
-        }
-
-        ParseReceivedData();
-        ReceiveAsync(args);
-    }
-
-    private void ParseReceivedData()
-    {
-        if (!TryUnpackMessage(_receiveBuffer, out var messageInfo))
-        {
-            return;
-        }
-
-        // 分發收到的 Message
-        OnReceivedMessage?.Invoke(messageInfo);
-
-        // 繼續解析 readBuffer
-        if (_receiveBuffer.Length > 2)
-        {
-            ParseReceivedData();
-        }
-    }
-    
-    #endregion
-
-    #region - Send -
-    
     public void Send(uint messageId, byte[] message, uint stateCode = 0)
     {
-        if (_connectFd == null || !_connectFd.Connected)
-        {
-            Logger.Error("Send Failed, _connectFd is null or not connected");
-            return;
-        }
+        if (_session == null) return;
         
-        AddMessageToSendQueue(messageId, stateCode, message, _sendQueue, _sendArgs);
-    }
-
-    protected override void OnSend(object sender, SocketAsyncEventArgs args)
-    {
-        if (_connectFd == null || !_connectFd.Connected)
-        {
-            Logger.Error("Send Failed, _connectFd is null or not connected");
-            return;
-        }
-        
-        if (args.SocketError != SocketError.Success)
-        {
-            Logger.Error($"Send Failed, Socket Error: {args.SocketError}");
-            return;
-        }
-        
-        CheckSendQueue(args, _sendQueue);
+        _session.Send(messageId, message, stateCode);
     }
     
-    #endregion
+    private void OnSessionReceivedNothing(NetworkSession session)
+    {
+        _session.OnReceivedMessage -= OnReceivedMessage;
+        _session.OnReceivedNothing -= OnSessionReceivedNothing;
+        
+        Close();
+    } 
 
     public void Close()
     {
