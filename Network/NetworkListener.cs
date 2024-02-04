@@ -95,7 +95,7 @@ public class NetworkListener
         {
             session.SetActive(clientFd);
             session.OnReceivedMessage += OnReceivedMessage;
-            session.OnReceivedNothing += OnSessionReceivedNothing;
+            session.OnReceivedNothing += OnCommunicatorReceivedNothing;
 
             lock (_sessionList)
             {
@@ -129,22 +129,22 @@ public class NetworkListener
         }
     }
 
-    public void Send(NetworkSession session, uint messageId, byte[] message, uint stateCode = 0)
+    public void Send(NetworkCommunicator communicator, uint messageId, byte[] message, uint stateCode = 0)
     {
-        if (session == null)
+        if (communicator == null)
         {
             Logger.Error("Send Failed, client is null or not connected");
             return;
         }
         
-        session.Send(messageId, message, stateCode);
+        communicator.Send(messageId, message, stateCode);
     }
     
     #endregion
 
-    private void OnSessionReceivedNothing(NetworkSession session)
+    private void OnCommunicatorReceivedNothing(NetworkCommunicator _communicator)
     {
-        Close(session.Socket);
+        Close(_communicator.Socket);
     }
     
     public void Close(Socket socket)
@@ -172,7 +172,7 @@ public class NetworkListener
         void ReturnSession()
         {
             session.OnReceivedMessage -= OnReceivedMessage;
-            session.OnReceivedNothing -= OnSessionReceivedNothing;
+            session.OnReceivedNothing -= OnCommunicatorReceivedNothing;
             _sessionPool.Return(session);
         }
 

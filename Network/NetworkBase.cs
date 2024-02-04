@@ -7,9 +7,10 @@ namespace Network;
 /// <summary>
 /// 封裝 NetworkListener NetworkConnector 共用方法
 /// </summary>
+[Obsolete]
 public abstract class NetworkBase
 {
-    public Action<NetworkSession> OnConnected;
+    public Action<NetworkCommunicator> OnConnected;
 
     public Action<ReceivedMessageInfo> OnReceivedMessage;
 

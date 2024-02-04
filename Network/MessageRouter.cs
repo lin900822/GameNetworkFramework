@@ -10,7 +10,17 @@ public struct ReceivedMessageInfo
     /// <summary>
     /// 僅伺服器使用
     /// </summary>
-    public NetworkSession Session;
+    public NetworkCommunicator Communicator;
+
+    public NetworkSession Session
+    {
+        get
+        {
+            if (Communicator == null) return null;
+            if (Communicator is NetworkSession session) return session;
+            return null;
+        }
+    }
 
     /// <summary>
     /// 訊息Id

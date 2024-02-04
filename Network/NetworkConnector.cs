@@ -6,7 +6,7 @@ namespace Network;
 
 public class NetworkConnector
 {
-    public Action<NetworkSession> OnConnected;
+    public Action<NetworkCommunicator> OnConnected;
 
     public Action<ReceivedMessageInfo> OnReceivedMessage;
 
@@ -16,11 +16,11 @@ public class NetworkConnector
     
     private Socket            _connectFd;
 
-    private NetworkSession _session;
+    private NetworkCommunicator _communicator;
     
     public NetworkConnector()
     {
-        _session = new NetworkSession(new ByteBufferPool(), NetworkConfig.BufferSize);
+        _communicator = new NetworkCommunicator(new ByteBufferPool(), NetworkConfig.BufferSize);
     }
 
     public async void Connect(string ip, int port)
@@ -41,11 +41,11 @@ public class NetworkConnector
             
             Logger.Info("Connected!");
 
-            _session.OnReceivedMessage += OnReceivedMessage;
-            _session.OnReceivedNothing += OnSessionReceivedNothing;
+            _communicator.OnReceivedMessage += OnReceivedMessage;
+            _communicator.OnReceivedNothing += OnSessionReceivedNothing;
             
-            _session.SetActive(_connectFd);
-            _session.ReceiveAsync();
+            _communicator.SetActive(_connectFd);
+            _communicator.ReceiveAsync();
         }
         catch (Exception e)
         {
@@ -55,15 +55,15 @@ public class NetworkConnector
 
     public void Send(uint messageId, byte[] message, uint stateCode = 0)
     {
-        if (_session == null) return;
+        if (_communicator == null) return;
         
-        _session.Send(messageId, message, stateCode);
+        _communicator.Send(messageId, message, stateCode);
     }
     
-    private void OnSessionReceivedNothing(NetworkSession session)
+    private void OnSessionReceivedNothing(NetworkCommunicator session)
     {
-        _session.OnReceivedMessage -= OnReceivedMessage;
-        _session.OnReceivedNothing -= OnSessionReceivedNothing;
+        _communicator.OnReceivedMessage -= OnReceivedMessage;
+        _communicator.OnReceivedNothing -= OnSessionReceivedNothing;
         
         Close();
     } 

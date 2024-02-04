@@ -105,7 +105,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
                     {
                         var response = func(messageInfo);
                         if (response.Message == null) return;
-                        _networkListener.Send(messageInfo.Session, messageInfo.StateCode, response.Message,
+                        _networkListener.Send(messageInfo.Communicator, messageInfo.StateCode, response.Message,
                             response.StateCode);
                     });
                 }
@@ -126,7 +126,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
                             response =>
                             {
                                 if (response.Message == null) return;
-                                _networkListener.Send(messageInfo.Session, messageInfo.StateCode, response.Message, response.StateCode);
+                                _networkListener.Send(messageInfo.Communicator, messageInfo.StateCode, response.Message, response.StateCode);
                             },
                             e => Logger.Error(e.ToString()));
                     }
@@ -141,12 +141,12 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
         }
     }
 
-    public void SendMessage(NetworkSession session, uint messageId, byte[] message)
+    public void SendMessage(NetworkCommunicator session, uint messageId, byte[] message)
     {
         _networkListener.Send(session, messageId, message);
     }
 
-    public void Close(NetworkSession session)
+    public void Close(NetworkCommunicator session)
     {
         if (session == null) return;
         if (session.Socket == null) return;
@@ -226,7 +226,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
         if (receivedMessageInfo.Session.SessionObject is not ClientBase client) return;
 
         client.LastPingTime = TimeUtils.GetTimeStamp();
-        SendMessage(receivedMessageInfo.Session, 1, Array.Empty<byte>());
+        SendMessage(receivedMessageInfo.Communicator, 1, Array.Empty<byte>());
     }
 
     private void CheckHeartBeat()
