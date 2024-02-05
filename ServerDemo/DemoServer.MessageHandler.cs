@@ -11,21 +11,25 @@ public partial class DemoServer
     private int _lastCount;
     
     [MessageRoute((uint)MessageId.Hello)]
-    public Response OnReceiveHello(ReceivedMessageInfo receivedMessageInfo)
+    public async Task<Response> OnReceiveHello(ReceivedMessageInfo receivedMessageInfo)
     {
-        if (!receivedMessageInfo.TryDecode<Hello>(out var hello)) return Response.None;
-        
-        hello.Content = $"Server Response: {hello.Content}";
-        var data = ProtoUtils.Encode(hello);
-
-        _handleCount++;
-        if (_handleCount == 100000)
+        if (!receivedMessageInfo.TryDecode<Hello>(out var hello))
         {
-            _handleCount = 0;
-            Logger.Debug($"{(float)(GC.CollectionCount(0) + GC.CollectionCount(1) + GC.CollectionCount(2) - _lastCount)}");
-            _lastCount = (GC.CollectionCount(0) + GC.CollectionCount(1) + GC.CollectionCount(2));
+            return Response.None;
         }
-        return Response.Create(data);
+
+        var helloData = ProtoUtils.Encode(hello);
+
+        var response = await _connectorClient.SendRequest((uint)MessageId.Hello, helloData);
+
+        if (!response.TryDecode<Hello>(out hello))
+        {
+            return Response.None;
+        }
+        
+        helloData = ProtoUtils.Encode(hello);
+        
+        return Response.Create(helloData);
     }
     
     [MessageRoute((uint)MessageId.Move)]
