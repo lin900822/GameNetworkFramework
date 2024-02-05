@@ -125,12 +125,23 @@ public class ByteBuffer
     }
 
     // 檢查ushort
-    public ushort CheckUInt16()
+    public ushort CheckUInt16(int offset = 0)
     {
         if (Length < 2) return 0;
         // 以小端方式讀取Int16
-        ushort readUInt16 = (ushort)((_rawData[_readIndex + 1] << 8) | _rawData[_readIndex]);
+        ushort readUInt16 = (ushort)((_rawData[_readIndex + 1 + offset] << 8) | _rawData[_readIndex + offset]);
         return readUInt16;
+    }
+    
+    public uint CheckUInt32()
+    {
+        if (Length < 4) return 0;
+        // 以小端方式讀取Int32
+        uint readUInt32 = (uint)((_rawData[_readIndex + 3] << 24) |
+                                 (_rawData[_readIndex + 2] << 16) |
+                                 (_rawData[_readIndex + 1] << 8) |
+                                 _rawData[_readIndex]);
+        return readUInt32;
     }
 
     // 讀取ushort
@@ -145,14 +156,14 @@ public class ByteBuffer
     }
 
     // 讀取UInt32
-    public UInt32 ReadUInt32()
+    public uint ReadUInt32()
     {
         if (Length < 4) return 0;
         // 以小端方式讀取Int32
-        UInt32 readUInt32 = (UInt32)((_rawData[_readIndex + 3] << 24) |
-                                     (_rawData[_readIndex + 2] << 16) |
-                                     (_rawData[_readIndex + 1] << 8) |
-                                     _rawData[_readIndex]);
+        uint readUInt32 = (uint)((_rawData[_readIndex + 3] << 24) |
+                                 (_rawData[_readIndex + 2] << 16) |
+                                 (_rawData[_readIndex + 1] << 8) |
+                                 _rawData[_readIndex]);
         _readIndex += 4;
         CheckAndReuseCapacity();
         return readUInt32;

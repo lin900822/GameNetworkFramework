@@ -95,18 +95,12 @@ public class CommandHandler
         await Task.Delay(1500);
         Logger.Debug($"{Environment.CurrentManagedThreadId} After Heavy Work");
     }
-    
+
     [Command("fireandforget")]
     public void TestFireAndForget()
     {
         Logger.Debug("Before Task");
-        DoSomething().Await(() =>
-        {
-            Logger.Info("Completed!");
-        }, (e) =>
-        {
-            Logger.Error($"{e.Message}");
-        });
+        DoSomething().Await(() => { Logger.Info("Completed!"); }, (e) => { Logger.Error($"{e.Message}"); });
         Logger.Debug("After Task");
     }
 
@@ -115,7 +109,7 @@ public class CommandHandler
         await Task.Delay(0);
         SomethingWrong();
     }
-    
+
     private void SomethingWrong() => throw new Exception("Error!");
 
     [Command("await")]
@@ -138,16 +132,37 @@ public class CommandHandler
     {
         YieldToMainThread(async () =>
         {
-            var hello = new Hello() { Content = "client message 666" };
+            int length = 1024 * 1024 * 8;
+            byte[] randomBytes = GenerateRandomBytes(length);
+
+            // 将字节数组转换为 Base64 字符串
+            string randomString = Convert.ToBase64String(randomBytes);
+            
+            var hello = new Hello() { Content = randomString };
             var helloData = ProtoUtils.Encode(hello);
+            Logger.Info($"Data Length: {helloData.Length}");
 
             Logger.Info($"Before await Thread:{Environment.CurrentManagedThreadId}");
             var messageInfo = await _clientBase.SendRequest((uint)MessageId.Hello, helloData);
             Logger.Info($"After  await Thread:{Environment.CurrentManagedThreadId}");
 
             if (!messageInfo.TryDecode<Hello>(out var response)) return;
-            Logger.Info($"StateCode({messageInfo.StateCode}): " + response.Content);
+            if(response.Content == hello.Content)
+                Logger.Info("True");
+            else
+                Logger.Info("False");
+            //Logger.Info($"StateCode({messageInfo.StateCode}): " + response.Content);
         });
+    }
+    
+    private byte[] GenerateRandomBytes(int length)
+    {
+        byte[] randomBytes = new byte[length];
+        Random random = new Random();
+
+        random.NextBytes(randomBytes);
+
+        return randomBytes;
     }
 
     [Command("move")]

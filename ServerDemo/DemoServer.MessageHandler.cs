@@ -20,14 +20,14 @@ public partial class DemoServer
 
         var helloData = ProtoUtils.Encode(hello);
 
-        var response = await _connectorClient.SendRequest((uint)MessageId.Hello, helloData);
-
-        if (!response.TryDecode<Hello>(out hello))
-        {
-            return Response.None;
-        }
-        
-        helloData = ProtoUtils.Encode(hello);
+        // var response = await _connectorClient.SendRequest((uint)MessageId.Hello, helloData);
+        //
+        // if (!response.TryDecode<Hello>(out hello))
+        // {
+        //     return Response.None;
+        // }
+        //
+        // helloData = ProtoUtils.Encode(hello);
         
         return Response.Create(helloData);
     }
