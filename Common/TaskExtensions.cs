@@ -5,7 +5,7 @@ namespace Common;
 public static class TaskExtensions
 {
     /// <summary>
-    /// 在MainThread上安全等待(只能在MainThread上使用)
+    /// 在MainThread上安全等待, 其他Thread維持原處理方式
     /// </summary>
     public static void SafeWait(this Task task)
     {
@@ -25,7 +25,7 @@ public static class TaskExtensions
     }
 
     /// <summary>
-    /// 在MainThread上安全等待(只能在MainThread上使用)
+    /// 在MainThread上安全等待, 其他Thread維持原處理方式
     /// </summary>
     public static T SafeWait<T>(this Task<T> task)
     {

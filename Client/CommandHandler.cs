@@ -81,6 +81,14 @@ public class CommandHandler
         });
     }
 
+    [Command("safewaitotherthread")]
+    public void TestSafeWaitOtherThread()
+    {
+        Logger.Debug($"{Environment.CurrentManagedThreadId} Before SafeWait");
+        DoSomethingHeavy().SafeWait();
+        Logger.Debug($"{Environment.CurrentManagedThreadId} After  SafeWait");
+    }
+
     private async Task DoSomethingHeavy()
     {
         Logger.Debug($"{Environment.CurrentManagedThreadId} Before Heavy Work");
