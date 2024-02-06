@@ -28,6 +28,8 @@ public partial class DemoServer
         // }
         //
         // helloData = ProtoUtils.Encode(hello);
+
+        _lastCount++;
         
         return Response.Create(helloData);
     }
@@ -36,8 +38,8 @@ public partial class DemoServer
     public void OnReceiveMove(ReceivedMessageInfo receivedMessageInfo)
     {
         if (!receivedMessageInfo.TryDecode<Move>(out var move)) return;
-        
-        Logger.Info($"({move.X},{move.Y},{move.Z})");
+        _lastCount++;
+        //Logger.Info($"({move.X},{move.Y},{move.Z})");
     }
     
     [MessageRoute((uint)MessageId.Register)]

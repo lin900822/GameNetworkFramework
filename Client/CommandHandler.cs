@@ -132,7 +132,7 @@ public class CommandHandler
     {
         YieldToMainThread(async () =>
         {
-            int length = 1024 * 1024 * 8;
+            int length = 1024 * 100;
             byte[] randomBytes = GenerateRandomBytes(length);
 
             // 将字节数组转换为 Base64 字符串

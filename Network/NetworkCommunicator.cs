@@ -21,8 +21,8 @@ public class NetworkCommunicator
     private ByteBufferPool _byteBufferPool;
     
     // Const
-    private const int ShortPacketSize = 2;
-    private const int LongPacketSize  = 4;
+    private const int ShortPacketLength = 2;
+    private const int LongPacketLength  = 4;
     private const uint LongPacketFlag = 0b_00000000_00000000_10000000_00000000;
     private const uint RequestFlag    = 0b_01000000_00000000_00000000_00000000;
 
@@ -280,14 +280,14 @@ public class NetworkCommunicator
         receivedMessageInfo = new ReceivedMessageInfo();
 
         // 連表示總長度的 2 Byte都沒收到
-        if (byteBuffer.Length <= 2) return false;
+        if (byteBuffer.Length < ShortPacketLength) return false;
 
         // 檢查是否是長封包
         var isLongPacket = false;
         var totalLength = (int)byteBuffer.CheckUInt16();
-        if (totalLength > short.MaxValue)
+        if (HasLongPacketFlag(totalLength))
         {
-            if (byteBuffer.Length <= LongPacketSize) return false;
+            if (byteBuffer.Length < LongPacketLength) return false;
 
             isLongPacket = true;
             totalLength = (int)(((totalLength & ~LongPacketFlag) << 16) | byteBuffer.CheckUInt16(2));
@@ -306,7 +306,7 @@ public class NetworkCommunicator
             totalLength = byteBuffer.ReadUInt16();
         }
         
-        var bodyLength = totalLength - (isLongPacket ? LongPacketSize : ShortPacketSize) - 4 - 4;
+        var bodyLength = totalLength - (isLongPacket ? LongPacketLength : ShortPacketLength) - 4 - 4;
         
         receivedMessageInfo.MessageLength = bodyLength;
         receivedMessageInfo.MessageId = byteBuffer.ReadUInt32();
@@ -317,22 +317,33 @@ public class NetworkCommunicator
         return true;
     }
 
+    /// <summary>
+    /// 10000000 00000000 => 定義第一個Bit如果是1的話代表長封包, 0代表短封包
+    /// </summary>
+    private static bool HasLongPacketFlag(int value) => value > short.MaxValue;
+
     private static void PackMessage(ByteBuffer byteBuffer, uint messageId, uint stateCode, byte[] message)
     {
-        if (message.Length > short.MaxValue)
+        var length = message.Length;
+        if (length >= 1024 * 4)
         {
-            var totalLength = message.Length + LongPacketSize + 4 + 4;
+            //Logger.Warn($"MessageId({messageId}) length({length}) is too big.");
+        }
+        
+        if (length > short.MaxValue)
+        {
+            var totalLength = length + LongPacketLength + 4 + 4;
             byteBuffer.WriteUInt16((ushort)((totalLength >> 16) | LongPacketFlag));
             byteBuffer.WriteUInt16((ushort)totalLength);
         }
         else
         {
-            var totalLength = message.Length + ShortPacketSize + 4 + 4;
+            var totalLength = length + ShortPacketLength + 4 + 4;
             byteBuffer.WriteUInt16((ushort)totalLength);
         }
         
         byteBuffer.WriteUInt32(messageId);
         byteBuffer.WriteUInt32(stateCode);
-        byteBuffer.Write(message, 0, message.Length);
+        byteBuffer.Write(message, 0, length);
     }
 }

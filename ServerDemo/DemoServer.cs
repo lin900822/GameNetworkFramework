@@ -1,4 +1,5 @@
-﻿using System.Timers;
+﻿using System.Diagnostics;
+using System.Timers;
 using Log;
 using Network;
 using Server;
@@ -12,6 +13,8 @@ public partial class DemoServer : ServerBase<DemoClient>
 {
     private UserRepository _userRepository;
     //private ClientBase _connectorClient;
+
+    private Stopwatch _stopwatch;
     
     public DemoServer(UserRepository userRepository, ServerSettings settings) : base(settings)
     {
@@ -24,11 +27,22 @@ public partial class DemoServer : ServerBase<DemoClient>
     {
         //InitDebug();
         //_connectorClient.Connect("127.0.0.1", 10002);
+        
+        _stopwatch = new Stopwatch();
+        _stopwatch.Start();
     }
 
     protected override void OnUpdate()
     {
         //_connectorClient.Update();
+
+        if (_stopwatch.ElapsedMilliseconds >= 1000)
+        {
+            _stopwatch.Restart();
+            Logger.Info($"{_lastCount}");
+            Logger.Info($"Session: {SessionList.Count}");
+            _lastCount = 0;
+        }
     }
 
     protected override void OnDeinit()
