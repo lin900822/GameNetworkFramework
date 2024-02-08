@@ -18,9 +18,9 @@ public partial class DemoServer
 
         var helloData = ProtoUtils.Encode(hello);
 
-        Log.Debug($"Before await Thread: {Environment.CurrentManagedThreadId}");
+        //Log.Debug($"Before await Thread: {Environment.CurrentManagedThreadId}");
         await Task.Delay(100);
-        Log.Debug($"After await Thread: {Environment.CurrentManagedThreadId}");
+        //Log.Debug($"After await Thread: {Environment.CurrentManagedThreadId}");
 
         // var response = await _connectorClient.SendRequest((uint)MessageId.Hello, helloData);
         //
@@ -38,7 +38,7 @@ public partial class DemoServer
     public void OnReceiveMove(ReceivedMessageInfo receivedMessageInfo)
     {
         if (!receivedMessageInfo.TryDecode<Move>(out var move)) return;
-        Log.Debug($"({move.X},{move.Y},{move.Z})");
+        //Log.Debug($"({move.X},{move.Y},{move.Z})");
     }
     
     [MessageRoute(MessageId.Register)]

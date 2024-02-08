@@ -1,10 +1,9 @@
 ﻿using System.Diagnostics;
-using System.Timers;
 using Core.Log;
+using Core.Metrics;
 using Server;
 using ServerDemo.Repositories;
-using Timer = System.Timers.Timer;
-using ClientBase = Client.ClientBase;
+using Debugger = Core.Metrics.Debugger;
 
 namespace ServerDemo;
 
@@ -13,7 +12,7 @@ public partial class DemoServer : ServerBase<DemoClient>
     private UserRepository _userRepository;
     //private ClientBase _connectorClient;
 
-    private Stopwatch _stopwatch;
+    private Debugger _debugger;
     
     public DemoServer(UserRepository userRepository, ServerSettings settings) : base(settings)
     {
@@ -26,19 +25,20 @@ public partial class DemoServer : ServerBase<DemoClient>
     {
         //InitDebug();
         //_connectorClient.Connect("127.0.0.1", 10002);
-        
-        _stopwatch = new Stopwatch();
-        _stopwatch.Start();
+
+        _debugger = new Debugger();
+        _debugger.Start(1000, () =>
+        {
+            Log.Debug($"Received Message Count: {SystemMetrics.ReceivedMessageCount}");
+            Log.Debug($"Session Count: {SystemMetrics.SessionCount}");
+            SystemMetrics.ResetReceivedMessageCount();
+        });
     }
 
     protected override void OnUpdate()
     {
         //_connectorClient.Update();
-
-        if (_stopwatch.ElapsedMilliseconds >= 1000)
-        {
-            _stopwatch.Restart();
-        }
+        _debugger.Update();
     }
 
     protected override void OnDeinit()

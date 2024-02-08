@@ -154,6 +154,7 @@ public class NetworkListener
     private void OnCommunicatorReceivedNothing(NetworkCommunicator _communicator)
     {
         Close(_communicator.Socket);
+        SystemMetrics.UpdateSessionCount(ConnectionCount);
     }
     
     public void Close(Socket socket)
