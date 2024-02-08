@@ -124,9 +124,4 @@ public class MessageRouter
         
         pack.Release();
     }
-
-    public void Debug()
-    {
-        Log.Log.Debug($"MessageTaskQueue {_messageInfoQueue.Count}");
-    }
 }

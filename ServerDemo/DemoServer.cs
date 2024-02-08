@@ -38,32 +38,11 @@ public partial class DemoServer : ServerBase<DemoClient>
         if (_stopwatch.ElapsedMilliseconds >= 1000)
         {
             _stopwatch.Restart();
-            Log.Info($"{_lastCount}");
-            Log.Info($"Session: {SessionList.Count}");
-            _lastCount = 0;
         }
     }
 
     protected override void OnDeinit()
     {
         
-    }
-    
-    private int _handleCount = 0;
-    
-    public void InitDebug()
-    {
-        var debugTimer = new Timer(1000);
-        debugTimer.Elapsed += HandleDebug;
-        debugTimer.Start();
-    }
-
-    private void HandleDebug(object sender, ElapsedEventArgs elapsedEventArgs)
-    {
-        // Logger.Debug($"Messages Handled: {_handleCount}");
-        // _handleCount = 0;
-        
-        Router.Debug();
-        NetworkListener.Debug();
     }
 }

@@ -206,9 +206,4 @@ public class NetworkListener
 
         socket.Close();
     }
-
-    public void Debug()
-    {
-        _sessionPool.Debug();
-    }
 }

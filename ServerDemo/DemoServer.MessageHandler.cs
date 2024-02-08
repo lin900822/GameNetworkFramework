@@ -8,8 +8,6 @@ namespace ServerDemo;
 
 public partial class DemoServer
 {
-    private int _lastCount;
-    
     [MessageRoute(MessageId.Hello)]
     public async Task<Response> OnReceiveHello(ReceivedMessageInfo receivedMessageInfo)
     {
@@ -20,6 +18,10 @@ public partial class DemoServer
 
         var helloData = ProtoUtils.Encode(hello);
 
+        Log.Debug($"Before await Thread: {Environment.CurrentManagedThreadId}");
+        await Task.Delay(100);
+        Log.Debug($"After await Thread: {Environment.CurrentManagedThreadId}");
+
         // var response = await _connectorClient.SendRequest((uint)MessageId.Hello, helloData);
         //
         // if (!response.TryDecode<Hello>(out hello))
@@ -29,8 +31,6 @@ public partial class DemoServer
         //
         // helloData = ProtoUtils.Encode(hello);
 
-        _lastCount++;
-        
         return Response.Create(helloData);
     }
     
@@ -38,8 +38,7 @@ public partial class DemoServer
     public void OnReceiveMove(ReceivedMessageInfo receivedMessageInfo)
     {
         if (!receivedMessageInfo.TryDecode<Move>(out var move)) return;
-        _lastCount++;
-        //Logger.Info($"({move.X},{move.Y},{move.Z})");
+        Log.Debug($"({move.X},{move.Y},{move.Z})");
     }
     
     [MessageRoute(MessageId.Register)]

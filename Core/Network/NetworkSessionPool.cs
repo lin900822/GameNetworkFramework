@@ -37,9 +37,4 @@ public class NetworkSessionPool
         session.SetInactive();
         _sessionStack.Push(session);
     }
-
-    public void Debug()
-    {
-        Log.Log.Debug($"Session Pool Count: {_sessionStack.Count}");
-    }
 }

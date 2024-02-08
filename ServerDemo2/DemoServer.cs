@@ -25,22 +25,4 @@ public partial class DemoServer : ServerBase<DemoClient>
     {
         
     }
-    
-    private int _handleCount = 0;
-    
-    public void InitDebug()
-    {
-        var debugTimer = new Timer(1000);
-        debugTimer.Elapsed += HandleDebug;
-        debugTimer.Start();
-    }
-
-    private void HandleDebug(object sender, ElapsedEventArgs elapsedEventArgs)
-    {
-        // Logger.Debug($"Messages Handled: {_handleCount}");
-        // _handleCount = 0;
-        
-        Router.Debug();
-        NetworkListener.Debug();
-    }
 }
