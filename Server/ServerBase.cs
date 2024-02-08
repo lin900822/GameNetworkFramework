@@ -3,6 +3,7 @@ using System.Net.Sockets;
 using System.Reflection;
 using Core.Common;
 using Core.Log;
+using Core.Metrics;
 using Core.Network;
 using Protocol;
 
@@ -195,6 +196,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
             {
                 ++_frameCount;
                 OnUpdate();
+                SystemMetrics.HandledFrame++;
                 CheckHeartBeat();
             }
         }

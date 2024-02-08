@@ -1,6 +1,5 @@
 ﻿using System.Buffers;
 using System.Collections.Concurrent;
-using Core.Log;
 using Core.Metrics;
 using Google.Protobuf;
 
@@ -110,8 +109,8 @@ public class MessageRouter
     public void OnUpdateLogic()
     {
         SystemMetrics.RemainMessageCount = _messageInfoQueue.Count;
-        // 每次處理100個Message
-        for (var i = 0; i < 100; i++)
+        // 每次處理500個Message
+        for (var i = 0; i < 500; i++)
         {
             if (_messageInfoQueue.Count <= 0) return;
             

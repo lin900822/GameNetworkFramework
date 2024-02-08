@@ -29,8 +29,10 @@ public partial class DemoServer : ServerBase<DemoClient>
         _debugger = new Debugger();
         _debugger.Start(1000, () =>
         {
+            Console.WriteLine($"FPS: {SystemMetrics.HandledFrame}");
             Console.WriteLine($"Session Count: {SystemMetrics.SessionCount} Handled Queue Count: {SystemMetrics.HandledMessageCount} Remain: {SystemMetrics.RemainMessageCount}");
             SystemMetrics.HandledMessageCount = 0;
+            SystemMetrics.HandledFrame = 0;
         });
     }
 
