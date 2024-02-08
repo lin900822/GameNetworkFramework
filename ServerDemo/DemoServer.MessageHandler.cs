@@ -1,5 +1,5 @@
-﻿using Log;
-using Network;
+﻿using Core.Log;
+using Core.Network;
 using Protocol;
 using Server;
 using ServerDemo.PO;

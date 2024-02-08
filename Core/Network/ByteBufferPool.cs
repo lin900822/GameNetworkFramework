@@ -1,6 +1,6 @@
 ﻿using System.Collections.Concurrent;
 
-namespace Network;
+namespace Core.Network;
 
 public class ByteBufferPool
 {

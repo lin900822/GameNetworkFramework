@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
 using System.Reflection;
-using Common;
-using Log;
-using Network;
+using Core.Common;
+using Core.Log;
+using Core.Network;
 using Protocol;
 
 namespace Client;

@@ -1,5 +1,5 @@
-﻿using Dapper;
-using Log;
+﻿using Core.Log;
+using Dapper;
 using Server;
 using Server.Database;
 using Server.Repositories;

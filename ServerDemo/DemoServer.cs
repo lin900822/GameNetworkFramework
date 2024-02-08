@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Timers;
-using Log;
-using Network;
+using Core.Log;
 using Server;
 using ServerDemo.Repositories;
 using Timer = System.Timers.Timer;

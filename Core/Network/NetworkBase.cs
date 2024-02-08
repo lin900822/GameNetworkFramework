@@ -1,8 +1,7 @@
-using System.Buffers;
 using System.Net.Sockets;
-using Log;
+using Core.Log;
 
-namespace Network;
+namespace Core.Network;
 
 /// <summary>
 /// 封裝 NetworkListener NetworkConnector 共用方法

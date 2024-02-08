@@ -1,4 +1,4 @@
-﻿namespace Log;
+﻿namespace Core.Log;
 
 public class ConsoleLog : ILog
 {

@@ -1,7 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using Client;
-using Common;
-using Log;
+using Core.Common;
+using Core.Log;
 
 // 
 ConcurrentQueue<Action> _inputActions = new ConcurrentQueue<Action>();

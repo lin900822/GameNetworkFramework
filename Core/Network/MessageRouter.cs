@@ -1,9 +1,9 @@
 ﻿using System.Buffers;
 using System.Collections.Concurrent;
+using Core.Log;
 using Google.Protobuf;
-using Log;
 
-namespace Network;
+namespace Core.Network;
 
 public struct ReceivedMessageInfo
 {

@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using Client;
-using Log;
-using Network;
+using Core.Log;
+using Core.Network;
 using Protocol;
 using Timer = System.Timers.Timer;
 

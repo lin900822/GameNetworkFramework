@@ -1,4 +1,4 @@
-﻿namespace Network;
+﻿namespace Core.Network;
 
 public class ByteBuffer
 {

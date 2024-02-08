@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-namespace Common;
+namespace Core.Common;
 
 public static class TimeUtils
 {

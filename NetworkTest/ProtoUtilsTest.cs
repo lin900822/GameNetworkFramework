@@ -1,4 +1,4 @@
-﻿using Network;
+﻿using Core.Network;
 using NUnit.Framework;
 
 namespace NetworkTest;

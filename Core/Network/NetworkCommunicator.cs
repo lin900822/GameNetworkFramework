@@ -1,8 +1,7 @@
 ﻿using System.Net.Sockets;
-using System.Text;
-using Log;
+using Core.Log;
 
-namespace Network;
+namespace Core.Network;
 
 public class NetworkCommunicator
 {

@@ -1,8 +1,7 @@
 ﻿using System.Collections.Concurrent;
-using System.Net.Sockets;
-using Log;
+using Core.Log;
 
-namespace Network;
+namespace Core.Network;
 
 public class NetworkSessionPool
 {

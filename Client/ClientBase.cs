@@ -1,7 +1,7 @@
 ﻿using System.Collections.Concurrent;
-using Common;
-using Log;
-using Network;
+using Core.Common;
+using Core.Log;
+using Core.Network;
 
 namespace Client;
 

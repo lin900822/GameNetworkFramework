@@ -1,6 +1,6 @@
 ﻿using System.Collections.Concurrent;
 
-namespace Common;
+namespace Core.Common;
 
 public interface IPoolable
 {

@@ -1,4 +1,4 @@
-﻿namespace Network;
+﻿namespace Core.Network.Legacy;
 
 public class Node<T>
 {

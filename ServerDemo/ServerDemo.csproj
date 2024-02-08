@@ -9,9 +9,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Client\Client.csproj" />
-      <ProjectReference Include="..\Common\Common.csproj" />
-      <ProjectReference Include="..\Log\Log.csproj" />
-      <ProjectReference Include="..\Network\Network.csproj" />
+      <ProjectReference Include="..\Core\Core.csproj" />
       <ProjectReference Include="..\Protocol\Protocol.csproj" />
       <ProjectReference Include="..\Server\Server.csproj" />
     </ItemGroup>

@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 
-namespace Common;
+namespace Core.Common;
 
 public static class TaskExtensions
 {

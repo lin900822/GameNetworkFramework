@@ -11,9 +11,9 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Log\Log.csproj" />
-      <ProjectReference Include="..\Network\Network.csproj" />
       <ProjectReference Include="..\Protocol\Protocol.csproj" />
     </ItemGroup>
+
+
 
 </Project>

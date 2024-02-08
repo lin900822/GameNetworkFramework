@@ -1,7 +1,7 @@
-﻿using Google.Protobuf;
-using Log;
+﻿using Core.Log;
+using Google.Protobuf;
 
-namespace Network;
+namespace Core.Network;
 
 public static class ProtoUtils
 {

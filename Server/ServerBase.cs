@@ -1,9 +1,9 @@
 ﻿using System.Diagnostics;
 using System.Net.Sockets;
 using System.Reflection;
-using Common;
-using Log;
-using Network;
+using Core.Common;
+using Core.Log;
+using Core.Network;
 
 namespace Server;
 

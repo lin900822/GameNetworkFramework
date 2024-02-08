@@ -1,8 +1,8 @@
 ﻿using System.Net;
 using System.Net.Sockets;
-using Log;
+using Core.Log;
 
-namespace Network;
+namespace Core.Network;
 
 public class NetworkConnector
 {
