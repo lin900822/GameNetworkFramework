@@ -4,6 +4,7 @@ using System.Reflection;
 using Core.Common;
 using Core.Log;
 using Core.Network;
+using Protocol;
 
 namespace Server;
 
@@ -70,7 +71,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
                 while (enumerator.MoveNext())
                 {
                     var routeAttribute = enumerator.Current;
-                    _messageRouter.RegisterMessageHandler(routeAttribute.MessageId, action);
+                    _messageRouter.RegisterMessageHandler((uint)routeAttribute.MessageId, action);
                 }
             }
             else if (returnType == typeof(Task))
@@ -85,10 +86,10 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
 
                     void Handler(ReceivedMessageInfo messageInfo)
                     {
-                        func(messageInfo).Await(null, e => { Logger.Error(e.ToString()); });
+                        func(messageInfo).Await(null, e => { Log.Error(e.ToString()); });
                     }
 
-                    _messageRouter.RegisterMessageHandler(routeAttribute.MessageId, Handler);
+                    _messageRouter.RegisterMessageHandler((uint)routeAttribute.MessageId, Handler);
                 }
             }
             else if (returnType == typeof(Response))
@@ -101,7 +102,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
                 {
                     var routeAttribute = enumerator.Current;
 
-                    _messageRouter.RegisterMessageHandler(routeAttribute.MessageId, (messageInfo) =>
+                    _messageRouter.RegisterMessageHandler((uint)routeAttribute.MessageId, (messageInfo) =>
                     {
                         var response = func(messageInfo);
                         if (response.Message == null) return;
@@ -128,10 +129,10 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
                                 if (response.Message == null) return;
                                 _networkListener.Send(messageInfo.Communicator, messageInfo.StateCode, response.Message, response.StateCode);
                             },
-                            e => Logger.Error(e.ToString()));
+                            e => Log.Error(e.ToString()));
                     }
 
-                    _messageRouter.RegisterMessageHandler(routeAttribute.MessageId, Handler);
+                    _messageRouter.RegisterMessageHandler((uint)routeAttribute.MessageId, Handler);
                 }
             }
             else
@@ -156,7 +157,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
 
     public void Start()
     {
-        Logger.Info($"{_settings.ServerName} (Id:{_settings.ServerId}) Init!");
+        Log.Info($"{_settings.ServerName} (Id:{_settings.ServerId}) Init!");
         _networkListener.Listen("0.0.0.0", _settings.Port);
 
         AppDomain.CurrentDomain.ProcessExit += (_, _) => { Deinit(); };
@@ -198,14 +199,14 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
         }
         catch (Exception e)
         {
-            Logger.Error(e.ToString());
+            Log.Error(e.ToString());
         }
     }
 
     private void Deinit()
     {
         OnDeinit();
-        Logger.Info($"Server Deinit!");
+        Log.Info($"Server Deinit!");
     }
 
     protected virtual void OnInit()
@@ -220,7 +221,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
     {
     }
 
-    [MessageRoute(0)]
+    [MessageRoute(MessageId.HeartBeat)]
     public void OnReceivedPing(ReceivedMessageInfo receivedMessageInfo)
     {
         if (receivedMessageInfo.Session.SessionObject is not ClientBase client) return;

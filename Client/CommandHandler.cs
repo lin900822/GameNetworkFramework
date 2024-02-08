@@ -50,7 +50,7 @@ public class CommandHandler
 
             if (!_commandHandlers.TryAdd(commandAttribute.Command, action))
             {
-                Logger.Error($"重複CommandHandler!");
+                Log.Error($"重複CommandHandler!");
             }
         }
     }
@@ -75,33 +75,33 @@ public class CommandHandler
     {
         YieldToMainThread(() =>
         {
-            Logger.Debug($"{Environment.CurrentManagedThreadId} Before SafeWait");
+            Log.Debug($"{Environment.CurrentManagedThreadId} Before SafeWait");
             DoSomethingHeavy().SafeWait();
-            Logger.Debug($"{Environment.CurrentManagedThreadId} After  SafeWait");
+            Log.Debug($"{Environment.CurrentManagedThreadId} After  SafeWait");
         });
     }
 
     [Command("safewaitotherthread")]
     public void TestSafeWaitOtherThread()
     {
-        Logger.Debug($"{Environment.CurrentManagedThreadId} Before SafeWait");
+        Log.Debug($"{Environment.CurrentManagedThreadId} Before SafeWait");
         DoSomethingHeavy().SafeWait();
-        Logger.Debug($"{Environment.CurrentManagedThreadId} After  SafeWait");
+        Log.Debug($"{Environment.CurrentManagedThreadId} After  SafeWait");
     }
 
     private async Task DoSomethingHeavy()
     {
-        Logger.Debug($"{Environment.CurrentManagedThreadId} Before Heavy Work");
+        Log.Debug($"{Environment.CurrentManagedThreadId} Before Heavy Work");
         await Task.Delay(1500);
-        Logger.Debug($"{Environment.CurrentManagedThreadId} After Heavy Work");
+        Log.Debug($"{Environment.CurrentManagedThreadId} After Heavy Work");
     }
 
     [Command("fireandforget")]
     public void TestFireAndForget()
     {
-        Logger.Debug("Before Task");
-        DoSomething().Await(() => { Logger.Info("Completed!"); }, (e) => { Logger.Error($"{e.Message}"); });
-        Logger.Debug("After Task");
+        Log.Debug("Before Task");
+        DoSomething().Await(() => { Log.Info("Completed!"); }, (e) => { Log.Error($"{e.Message}"); });
+        Log.Debug("After Task");
     }
 
     private async Task DoSomething()
@@ -115,9 +115,9 @@ public class CommandHandler
     [Command("await")]
     public async void TestAwait()
     {
-        Logger.Info($"Before await Thread:{Environment.CurrentManagedThreadId}");
+        Log.Info($"Before await Thread:{Environment.CurrentManagedThreadId}");
         await Task.Delay(1);
-        Logger.Info($"After  await Thread:{Environment.CurrentManagedThreadId}");
+        Log.Info($"After  await Thread:{Environment.CurrentManagedThreadId}");
 
         YieldToMainThread(async () => { });
     }
@@ -140,17 +140,17 @@ public class CommandHandler
             
             var hello = new Hello() { Content = randomString };
             var helloData = ProtoUtils.Encode(hello);
-            Logger.Info($"Data Length: {helloData.Length}");
+            Log.Info($"Data Length: {helloData.Length}");
 
-            Logger.Info($"Before await Thread:{Environment.CurrentManagedThreadId}");
+            Log.Info($"Before await Thread:{Environment.CurrentManagedThreadId}");
             var messageInfo = await _clientBase.SendRequest((uint)MessageId.Hello, helloData);
-            Logger.Info($"After  await Thread:{Environment.CurrentManagedThreadId}");
+            Log.Info($"After  await Thread:{Environment.CurrentManagedThreadId}");
 
             if (!messageInfo.TryDecode<Hello>(out var response)) return;
             if(response.Content == hello.Content)
-                Logger.Info("True");
+                Log.Info("True");
             else
-                Logger.Info("False");
+                Log.Info("False");
             //Logger.Info($"StateCode({messageInfo.StateCode}): " + response.Content);
         });
     }
@@ -173,16 +173,16 @@ public class CommandHandler
             var move = new Move() { X = 99 };
             var moveData = ProtoUtils.Encode(move);
 
-            await _clientBase.SendRequest((uint)MessageId.Move, moveData, () => { Logger.Warn($"Time Out!"); });
+            await _clientBase.SendRequest((uint)MessageId.Move, moveData, () => { Log.Warn($"Time Out!"); });
         });
     }
 
     [Command("register")]
     public async void TestRegister()
     {
-        Logger.Info("請輸入用戶名稱:");
+        Log.Info("請輸入用戶名稱:");
         var username = Console.ReadLine();
-        Logger.Info("請輸入密碼:");
+        Log.Info("請輸入密碼:");
         var password = Console.ReadLine();
 
         YieldToMainThread(async () =>
@@ -191,15 +191,15 @@ public class CommandHandler
             var userData = ProtoUtils.Encode(user);
 
             var messageInfo = await _clientBase.SendRequest((uint)MessageId.Register, userData,
-                () => { Logger.Warn($"Time Out"); });
+                () => { Log.Warn($"Time Out"); });
 
             if (messageInfo.StateCode == (uint)StateCode.Success)
             {
-                Logger.Info($"註冊成功!");
+                Log.Info($"註冊成功!");
             }
             else
             {
-                Logger.Info($"{messageInfo.StateCode.ToString()}");
+                Log.Info($"{messageInfo.StateCode.ToString()}");
             }
         });
     }

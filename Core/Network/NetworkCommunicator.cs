@@ -81,7 +81,7 @@ public class NetworkCommunicator
         {
             if (Socket == null)
             {
-                Logger.Error("Receive Failed, client socket is null");
+                Log.Log.Error("Receive Failed, client socket is null");
                 return;
             }
 
@@ -92,7 +92,7 @@ public class NetworkCommunicator
         }
         catch (Exception e)
         {
-            Logger.Error(e.ToString());
+            Log.Log.Error(e.ToString());
         }
     }
 
@@ -151,13 +151,13 @@ public class NetworkCommunicator
     {
         if (Socket == null)
         {
-            Logger.Error("Send Failed, client is null or not connected");
+            Log.Log.Error("Send Failed, client is null or not connected");
             return;
         }
 
         if (!Socket.Connected)
         {
-            Logger.Error("Send Failed, client is null or not connected");
+            Log.Log.Error("Send Failed, client is null or not connected");
             return;
         }
 
@@ -195,7 +195,7 @@ public class NetworkCommunicator
         {
             if (Socket == null)
             {
-                Logger.Error("Send Failed, client socket is null");
+                Log.Log.Error("Send Failed, client socket is null");
                 return;
             }
 
@@ -206,7 +206,7 @@ public class NetworkCommunicator
         }
         catch (Exception e)
         {
-            Logger.Error(e.ToString());
+            Log.Log.Error(e.ToString());
         }
     }
 
@@ -214,13 +214,13 @@ public class NetworkCommunicator
     {
         if (Socket == null)
         {
-            Logger.Error("OnSend Failed, client socket is null");
+            Log.Log.Error("OnSend Failed, client socket is null");
             return;
         }
 
         if (args.SocketError != SocketError.Success)
         {
-            Logger.Error($"OnSend Failed, Socket Error: {args.SocketError}");
+            Log.Log.Error($"OnSend Failed, Socket Error: {args.SocketError}");
             return;
         }
 

@@ -30,7 +30,7 @@ public class NetworkConnector
         try
         {
             _connectFd = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            Logger.Info($"Start Connecting to {ip}...");
+            Log.Log.Info($"Start Connecting to {ip}...");
 
             await _connectFd.ConnectAsync(ipEndPoint);
 
@@ -39,7 +39,7 @@ public class NetworkConnector
                 return;
             }
             
-            Logger.Info("Connected!");
+            Log.Log.Info("Connected!");
 
             _communicator.OnReceivedMessage += OnReceivedMessage;
             _communicator.OnReceivedNothing += OnSessionReceivedNothing;
@@ -49,7 +49,7 @@ public class NetworkConnector
         }
         catch (Exception e)
         {
-            Logger.Error(e.ToString());
+            Log.Log.Error(e.ToString());
         }
     }
 
@@ -78,10 +78,10 @@ public class NetworkConnector
         }
         catch (Exception e)
         {
-            Logger.Error(e.ToString());
+            Log.Log.Error(e.ToString());
         }
         
         _connectFd.Close();
-        Logger.Info("Connection Closed!");
+        Log.Log.Info("Connection Closed!");
     }
 }

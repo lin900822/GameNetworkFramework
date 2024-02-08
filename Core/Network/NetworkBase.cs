@@ -33,7 +33,7 @@ public abstract class NetworkBase
             var socket = args.AcceptSocket;
             if (socket == null)
             {
-                Logger.Error("Receive Failed, client socket is null");
+                Log.Log.Error("Receive Failed, client socket is null");
                 return;
             }
             if (!socket.ReceiveAsync(args))
@@ -43,7 +43,7 @@ public abstract class NetworkBase
         }
         catch (Exception e)
         {
-            Logger.Error(e.ToString());
+            Log.Log.Error(e.ToString());
         }
     }
     
@@ -75,7 +75,7 @@ public abstract class NetworkBase
             var targetSocket = args.AcceptSocket;
             if (targetSocket == null)
             {
-                Logger.Error("Send Failed, client socket is null");
+                Log.Log.Error("Send Failed, client socket is null");
                 return;
             }
             if (!targetSocket.SendAsync(args))
@@ -85,7 +85,7 @@ public abstract class NetworkBase
         }
         catch (Exception e)
         {
-            Logger.Error(e.ToString());
+            Log.Log.Error(e.ToString());
         }
     }
     

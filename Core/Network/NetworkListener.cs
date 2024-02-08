@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 using Core.Log;
+using Core.Metrics;
 
 namespace Core.Network;
 
@@ -41,7 +42,7 @@ public class NetworkListener
         {
             _listenFd.Bind(endPoint);
             _listenFd.Listen(_maxConnectionCount);
-            Logger.Info($"Start Listening at Port: {port}");
+            Log.Log.Info($"Start Listening at Port: {port}");
 
             var acceptEventArg = new SocketAsyncEventArgs(); // 所有Accept共用這個eventArgs
             acceptEventArg.Completed += OnAccept;
@@ -50,7 +51,7 @@ public class NetworkListener
         }
         catch (Exception e)
         {
-            Logger.Error(e.Message);
+            Log.Log.Error(e.Message);
         }
     }
     
@@ -67,7 +68,7 @@ public class NetworkListener
         }
         catch (Exception e)
         {
-            Logger.Error(e.ToString());
+            Log.Log.Error(e.ToString());
         }
     }
 
@@ -81,7 +82,7 @@ public class NetworkListener
             return;
         }
 
-        Logger.Info($"A Client {clientFd.RemoteEndPoint?.ToString()} Connected!");
+        Log.Log.Info($"A Client {clientFd.RemoteEndPoint?.ToString()} Connected!");
 
         // 加入SessionList列表
         var session = _sessionPool.Rent();;
@@ -94,13 +95,15 @@ public class NetworkListener
         else
         {
             session.SetActive(clientFd);
-            session.OnReceivedMessage += OnReceivedMessage;
+            session.OnReceivedMessage += HandleReceivedMessage;
             session.OnReceivedNothing += OnCommunicatorReceivedNothing;
 
             lock (_sessionList)
             {
                 _sessionList.Add(clientFd, session);
             }
+            
+            SystemMetrics.UpdateSessionCount(ConnectionCount);
             
             OnSessionConnected?.Invoke(session);
 
@@ -111,6 +114,12 @@ public class NetworkListener
         // 重置acceptEventArg，並繼續監聽
         acceptEventArg.AcceptSocket = null;
         AcceptAsync(acceptEventArg);
+    }
+
+    private void HandleReceivedMessage(ReceivedMessageInfo receivedMessageInfo)
+    {
+        SystemMetrics.AddReceivedMessageCount();
+        OnReceivedMessage?.Invoke(receivedMessageInfo);
     }
     
     #endregion
@@ -133,7 +142,7 @@ public class NetworkListener
     {
         if (communicator == null)
         {
-            Logger.Error("Send Failed, client is null or not connected");
+            Log.Log.Error("Send Failed, client is null or not connected");
             return;
         }
         
@@ -151,7 +160,7 @@ public class NetworkListener
     {
         if (!_sessionList.TryGetValue(socket, out var session))
         {
-            Logger.Error($"Close Socket Error: Cannot find session");
+            Log.Log.Error($"Close Socket Error: Cannot find session");
             return;
         }
         
@@ -171,7 +180,7 @@ public class NetworkListener
 
         void ReturnSession()
         {
-            session.OnReceivedMessage -= OnReceivedMessage;
+            session.OnReceivedMessage -= HandleReceivedMessage;
             session.OnReceivedNothing -= OnCommunicatorReceivedNothing;
             _sessionPool.Return(session);
         }
@@ -180,7 +189,7 @@ public class NetworkListener
         {
             var socketEndPointStr = socket.RemoteEndPoint?.ToString();
             CloseSocket(socket);
-            Logger.Info($"{socketEndPointStr} Closed!");
+            Log.Log.Info($"{socketEndPointStr} Closed!");
         }
     }
 
@@ -192,7 +201,7 @@ public class NetworkListener
         }
         catch (Exception e)
         {
-            Logger.Error(e.ToString());
+            Log.Log.Error(e.ToString());
         }
 
         socket.Close();

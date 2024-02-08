@@ -40,6 +40,6 @@ public class NetworkSessionPool
 
     public void Debug()
     {
-        Logger.Debug($"Session Pool Count: {_sessionStack.Count}");
+        Log.Log.Debug($"Session Pool Count: {_sessionStack.Count}");
     }
 }

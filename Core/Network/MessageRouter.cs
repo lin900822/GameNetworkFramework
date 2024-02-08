@@ -52,7 +52,7 @@ public struct ReceivedMessageInfo
         }
         catch (Exception e)
         {
-            Logger.Error(e.ToString());
+            Log.Log.Error(e.ToString());
             outMessage = default(T);
             return false;
         }
@@ -119,7 +119,7 @@ public class MessageRouter
         }
         else
         {
-            Logger.Warn($"Message Router: Received Unregistered Message, messageId = {pack.MessageId}");
+            Log.Log.Warn($"Message Router: Received Unregistered Message, messageId = {pack.MessageId}");
         }
         
         pack.Release();
@@ -127,6 +127,6 @@ public class MessageRouter
 
     public void Debug()
     {
-        Logger.Debug($"MessageTaskQueue {_messageInfoQueue.Count}");
+        Log.Log.Debug($"MessageTaskQueue {_messageInfoQueue.Count}");
     }
 }

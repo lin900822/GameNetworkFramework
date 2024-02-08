@@ -1,6 +1,6 @@
 ﻿namespace Core.Log;
 
-public class Logger
+public static class Log
 {
     private static ILog _logger;
 

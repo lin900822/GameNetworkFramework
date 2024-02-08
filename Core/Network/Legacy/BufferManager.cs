@@ -48,7 +48,7 @@ public class BufferManager
     {
         if (_indexPool.Contains(e.Offset))
         {
-            Logger.Error("BufferManager FreeBuffer: _indexPool Contains offset");
+            Log.Log.Error("BufferManager FreeBuffer: _indexPool Contains offset");
             return;
         }
         

@@ -38,8 +38,8 @@ public partial class DemoServer : ServerBase<DemoClient>
         if (_stopwatch.ElapsedMilliseconds >= 1000)
         {
             _stopwatch.Restart();
-            Logger.Info($"{_lastCount}");
-            Logger.Info($"Session: {SessionList.Count}");
+            Log.Info($"{_lastCount}");
+            Log.Info($"Session: {SessionList.Count}");
             _lastCount = 0;
         }
     }

@@ -58,7 +58,7 @@ while (true)
     if (stopWatch.ElapsedMilliseconds >= 1000)
     {
         stopWatch.Restart();
-        Logger.Info($"Response Count: {responseCount}");
+        Log.Info($"Response Count: {responseCount}");
         Interlocked.Exchange(ref responseCount, 0);
     }
 }

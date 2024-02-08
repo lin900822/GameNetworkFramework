@@ -20,7 +20,7 @@ public static class ProtoUtils
         }
         catch (Exception e)
         {
-            Logger.Error(e.ToString());
+            Log.Log.Error(e.ToString());
             outMessage = default(T);
             return false;
         }

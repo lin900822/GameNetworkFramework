@@ -25,5 +25,5 @@ try
 }
 catch (Exception ex)
 {
-    Logger.Error(ex.ToString());
+    Log.Error(ex.ToString());
 }

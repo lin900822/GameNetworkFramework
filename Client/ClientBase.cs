@@ -202,7 +202,7 @@ public class ClientBase
                 }
                 catch(Exception e)
                 {
-                    Logger.Error(e.ToString());
+                    Log.Error(e.ToString());
                 }
             }, 
             onTimeOut);

@@ -5,9 +5,9 @@ namespace Server;
 [AttributeUsage(AttributeTargets.Method)]
 public class MessageRouteAttribute : Attribute
 {
-    public uint MessageId { get; private set; }
+    public MessageId MessageId { get; private set; }
 
-    public MessageRouteAttribute(uint messageId)
+    public MessageRouteAttribute(MessageId messageId)
     {
         MessageId = messageId;
     }

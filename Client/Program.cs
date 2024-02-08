@@ -14,7 +14,7 @@ var synchronizationContext = new GameSynchronizationContext();
 SynchronizationContext.SetSynchronizationContext(synchronizationContext);
 
 // Register Handlers
-clientBase.RegisterMessageHandler(1, (messageInfo) => { Logger.Info("Pong!"); });
+clientBase.RegisterMessageHandler(1, (messageInfo) => { Log.Info("Pong!"); });
 
 // Connect
 clientBase.Connect("127.0.0.1", 10001);

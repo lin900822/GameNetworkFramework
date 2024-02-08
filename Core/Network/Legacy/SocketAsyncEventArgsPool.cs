@@ -55,6 +55,6 @@ public class SocketAsyncEventArgsPool
 
     public void Debug()
     {
-        Logger.Debug($"SocketAsyncEventArgsPool {Count}, BufferManager {_bufferManager.Size}");
+        Log.Log.Debug($"SocketAsyncEventArgsPool {Count}, BufferManager {_bufferManager.Size}");
     }
 }

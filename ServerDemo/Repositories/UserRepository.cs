@@ -77,9 +77,9 @@ public class UserRepository : BaseRepository<UserPO>
         
         using var dbConnection = _dbContext.Connection;
         dbConnection.Open();
-        Logger.Debug($"{Environment.CurrentManagedThreadId}: Before QueryFirstAsync");
+        Log.Debug($"{Environment.CurrentManagedThreadId}: Before QueryFirstAsync");
         var count = await dbConnection.QueryFirstAsync<int>(sql, new { Username = username });
-        Logger.Debug($"{Environment.CurrentManagedThreadId}: After QueryFirstAsync");
+        Log.Debug($"{Environment.CurrentManagedThreadId}: After QueryFirstAsync");
         return count >= 1;
     }
 }
