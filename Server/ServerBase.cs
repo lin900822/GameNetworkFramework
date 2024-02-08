@@ -173,6 +173,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
         {
             Update();
             synchronizationContext.ProcessQueue();
+            Thread.Sleep(1);
         }
     }
 
