@@ -108,20 +108,26 @@ public class MessageRouter
 
     public void OnUpdateLogic()
     {
-        if (!_messageInfoQueue.TryDequeue(out var pack))
+        // 每次處理10個Message
+        for (var i = 0; i < 10; i++)
         {
-            return;
-        }
+            if (_messageInfoQueue.Count <= 0) return;
+            
+            if (!_messageInfoQueue.TryDequeue(out var pack))
+            {
+                return;
+            }
 
-        if (_routeTable.TryGetValue(pack.MessageId, out var handler))
-        {
-            handler?.Invoke(pack);
-        }
-        else
-        {
-            Log.Log.Warn($"Message Router: Received Unregistered Message, messageId = {pack.MessageId}");
-        }
+            if (_routeTable.TryGetValue(pack.MessageId, out var handler))
+            {
+                handler?.Invoke(pack);
+            }
+            else
+            {
+                Log.Log.Warn($"Message Router: Received Unregistered Message, messageId = {pack.MessageId}");
+            }
         
-        pack.Release();
+            pack.Release();
+        }
     }
 }
