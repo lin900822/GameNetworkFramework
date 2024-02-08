@@ -1,6 +1,7 @@
 ﻿using System.Buffers;
 using System.Collections.Concurrent;
 using Core.Log;
+using Core.Metrics;
 using Google.Protobuf;
 
 namespace Core.Network;
@@ -108,8 +109,9 @@ public class MessageRouter
 
     public void OnUpdateLogic()
     {
-        // 每次處理10個Message
-        for (var i = 0; i < 10; i++)
+        SystemMetrics.RemainMessageCount = _messageInfoQueue.Count;
+        // 每次處理100個Message
+        for (var i = 0; i < 100; i++)
         {
             if (_messageInfoQueue.Count <= 0) return;
             
@@ -128,6 +130,7 @@ public class MessageRouter
             }
         
             pack.Release();
+            SystemMetrics.HandledMessageCount++;
         }
     }
 }

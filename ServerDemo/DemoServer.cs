@@ -29,9 +29,8 @@ public partial class DemoServer : ServerBase<DemoClient>
         _debugger = new Debugger();
         _debugger.Start(1000, () =>
         {
-            Log.Debug($"Received Message Count: {SystemMetrics.ReceivedMessageCount}");
-            Log.Debug($"Session Count: {SystemMetrics.SessionCount}");
-            SystemMetrics.ResetReceivedMessageCount();
+            Console.WriteLine($"Session Count: {SystemMetrics.SessionCount} Handled Queue Count: {SystemMetrics.HandledMessageCount} Remain: {SystemMetrics.RemainMessageCount}");
+            SystemMetrics.HandledMessageCount = 0;
         });
     }
 

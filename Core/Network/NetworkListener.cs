@@ -118,7 +118,6 @@ public class NetworkListener
 
     private void HandleReceivedMessage(ReceivedMessageInfo receivedMessageInfo)
     {
-        SystemMetrics.AddReceivedMessageCount();
         OnReceivedMessage?.Invoke(receivedMessageInfo);
     }
     
