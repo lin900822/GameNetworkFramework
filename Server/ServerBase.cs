@@ -65,6 +65,8 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
         _messageRouter.ReceiveMessage(receivedMessageInfo);
     }
 
+    #region - Message Route -
+
     private void RegisterMessageHandlers()
     {
         var methodInfos = GetType().GetMethods();
@@ -162,6 +164,8 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
         }
     }
 
+    #endregion
+    
     public void SendMessage(NetworkCommunicator session, uint messageId, byte[] message)
     {
         _networkListener.Send(session, messageId, message);

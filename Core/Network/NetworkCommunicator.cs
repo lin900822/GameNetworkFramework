@@ -229,6 +229,8 @@ public class NetworkCommunicator
 
     private void CheckSendQueue()
     {
+        if(_sendQueue.Count <= 0) return;
+        
         var count = _sendArgs.BytesTransferred;
 
         ByteBuffer byteBuffer;

@@ -17,7 +17,7 @@ SynchronizationContext.SetSynchronizationContext(synchronizationContext);
 clientBase.RegisterMessageHandler(1, (messageInfo) => { Log.Info("Pong!"); });
 
 // Connect
-clientBase.Connect("127.0.0.1", 10001);
+clientBase.Connect("192.168.0.108", 10001);
 
 Thread.Sleep(100);
 

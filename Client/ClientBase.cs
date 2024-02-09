@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Net.Sockets;
 using Core.Common;
 using Core.Log;
 using Core.Network;
@@ -45,10 +46,9 @@ public class ClientBase
 
     private long _lastCheckRequestTimeOutTime;
 
-    private const int _checkReconnectSeconds = 5;
+    private const int _checkReconnectSeconds = 10;
 
     private long   _lastCheckReconnectTime;
-    private bool   _isNeedReconnect = false;
     private string _cacheIp;
     private int    _cachePort;
 
@@ -64,6 +64,18 @@ public class ClientBase
         _requestPool = new ConcurrentPool<RequestInfo>();
 
         _connector.OnReceivedMessage += OnReceivedMessage;
+        _connector.OnClosed += OnClosed;
+    }
+
+    ~ClientBase()
+    {
+        _connector.OnReceivedMessage -= OnReceivedMessage;
+        _connector.OnClosed -= OnClosed;
+    }
+
+    private void OnClosed(Socket socket)
+    {
+        _lastCheckReconnectTime = TimeUtils.GetTimeStamp();
     }
 
     private void OnReceivedMessage(ReceivedMessageInfo receivedMessageInfo)
@@ -167,8 +179,7 @@ public class ClientBase
 
     private void Reconnect()
     {
-        if (_connector.IsConnected) return;
-        if (!_isNeedReconnect) return;
+        if (_connector.ConnectState != ConnectState.Disconnected) return;
 
         Connect(_cacheIp, _cachePort);
     }
@@ -177,7 +188,6 @@ public class ClientBase
     {
         _cacheIp                = ip;
         _cachePort              = port;
-        _isNeedReconnect        = true;
         _lastCheckReconnectTime = TimeUtils.GetTimeStamp();
         
         _connector.Connect(ip, port);
@@ -195,14 +205,14 @@ public class ClientBase
 
     public void SendMessage(uint messageId, byte[] message)
     {
-        if (!_connector.IsConnected) return;
+        if (_connector.ConnectState != ConnectState.Connected) return;
         _connector.Send(messageId, message);
     }
 
     public void SendRequest(uint messageId, byte[] request, Action<ReceivedMessageInfo> onCompleted,
         Action                   onTimeOut = null)
     {
-        if (!_connector.IsConnected) return;
+        if (_connector.ConnectState != ConnectState.Connected) return;
 
         var requestId = Interlocked.Increment(ref _requestSerialId);
 

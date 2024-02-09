@@ -25,15 +25,15 @@ for (int i = 0; i < 25; i++)
 {
     Task.Run(() =>
     {
-        var bots = new ClientBase[80];
-        for (int j = 0; j < 80; j++)
+        var bots = new ClientBase[40];
+        for (int j = 0; j < 40; j++)
         {
             bots[j] = new ClientBase();
         }
 
         foreach (var bot in bots)
         {
-            bot.Connect("127.0.0.1", 10001);
+            bot.Connect("192.168.0.108", 10001);
             Thread.Sleep(100);
         }
 
@@ -41,14 +41,15 @@ for (int i = 0; i < 25; i++)
         {
             foreach (var bot in bots)
             {
-                for (var j = 0; j < 5; j++)
+                for (var j = 0; j < 1; j++)
                 {
                     bot.SendMessage((uint)MessageId.Move, moveData);
                 }
 
                 bot.Update();
-                Thread.Sleep(1);
+                
             }
+            Thread.Sleep(16);
         }
     });
 }
@@ -58,7 +59,7 @@ while (true)
     if (stopWatch.ElapsedMilliseconds >= 1000)
     {
         stopWatch.Restart();
-        Log.Info($"Response Count: {responseCount}");
+        //Log.Info($"Response Count: {responseCount}");
         Interlocked.Exchange(ref responseCount, 0);
     }
 }

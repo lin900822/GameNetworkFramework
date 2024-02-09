@@ -12,19 +12,21 @@ public class NetworkConnector
 
     public Action<Socket> OnClosed;
     
-    public bool IsConnected => _connectFd.Connected;
-    
     private Socket            _connectFd;
+
+    public ConnectState ConnectState { get; private set; }
 
     private NetworkCommunicator _communicator;
     
     public NetworkConnector()
     {
         _communicator = new NetworkCommunicator(new ByteBufferPool(), NetworkConfig.BufferSize);
+        ConnectState = ConnectState.None;
     }
 
     public async void Connect(string ip, int port)
     {
+        ConnectState = ConnectState.Connecting;
         var ipAddress = IPAddress.Parse(ip);
         var ipEndPoint = new IPEndPoint(ipAddress, port);
         try
@@ -38,7 +40,8 @@ public class NetworkConnector
             {
                 return;
             }
-            
+
+            ConnectState = ConnectState.Connected;
             Log.Log.Info("Connected!");
 
             _communicator.OnReceivedMessage += OnReceivedMessage;
@@ -50,6 +53,7 @@ public class NetworkConnector
         catch (Exception e)
         {
             Log.Log.Error(e.ToString());
+            ConnectState = ConnectState.Disconnected;
         }
     }
 
@@ -64,6 +68,8 @@ public class NetworkConnector
     {
         _communicator.OnReceivedMessage -= OnReceivedMessage;
         _communicator.OnReceivedNothing -= OnSessionReceivedNothing;
+        
+        ConnectState = ConnectState.Disconnected;
         
         Close();
     } 
