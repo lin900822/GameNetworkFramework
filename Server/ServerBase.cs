@@ -57,11 +57,10 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
     
     private void OnReceivedMessage(ReceivedMessageInfo receivedMessageInfo)
     {
-        var clientBase = receivedMessageInfo.Session.SessionObject as ClientBase;
-        if (clientBase != null)
-        {
-            clientBase.LastPingTime = TimeUtils.GetTimeStamp();
-        }
+        // if (receivedMessageInfo.Session.SessionObject is ClientBase clientBase)
+        // {
+        //     clientBase.LastPingTime = TimeUtils.GetTimeStamp();
+        // }
         
         _messageRouter.ReceiveMessage(receivedMessageInfo);
     }
