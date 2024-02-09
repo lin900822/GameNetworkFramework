@@ -36,15 +36,34 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
         _messageRouter = new MessageRouter();
         _networkListener = new NetworkListener(settings.MaxSessionCount);
 
-        _networkListener.OnSessionConnected += (session) =>
-        {
-            var client = new TClient();
-
-            client.LastPingTime = TimeUtils.GetTimeStamp();
-            session.SessionObject = client;
-        };
-        _networkListener.OnReceivedMessage += _messageRouter.ReceiveMessage;
+        _networkListener.OnSessionConnected += OnSessionConnected;
+        _networkListener.OnReceivedMessage  += OnReceivedMessage;
         RegisterMessageHandlers();
+    }
+
+    ~ServerBase()
+    {
+        _networkListener.OnSessionConnected -= OnSessionConnected;
+        _networkListener.OnReceivedMessage  -= OnReceivedMessage;
+    }
+
+    private void OnSessionConnected(NetworkSession session)
+    {
+        var client = new TClient();
+
+        client.LastPingTime   = TimeUtils.GetTimeStamp();
+        session.SessionObject = client;
+    }
+    
+    private void OnReceivedMessage(ReceivedMessageInfo receivedMessageInfo)
+    {
+        var clientBase = receivedMessageInfo.Session.SessionObject as ClientBase;
+        if (clientBase != null)
+        {
+            clientBase.LastPingTime = TimeUtils.GetTimeStamp();
+        }
+        
+        _messageRouter.ReceiveMessage(receivedMessageInfo);
     }
 
     private void RegisterMessageHandlers()
