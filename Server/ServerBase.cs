@@ -149,14 +149,6 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
         _networkListener.Send(session, messageId, message);
     }
 
-    public void Close(NetworkCommunicator session)
-    {
-        if (session == null) return;
-        if (session.Socket == null) return;
-
-        _networkListener.Close(session.Socket);
-    }
-
     public void Start()
     {
         Log.Info($"{_settings.ServerName} (Id:{_settings.ServerId}) Init!");
@@ -249,7 +241,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
 
                 if (currentTime - client.LastPingTime >= _settings.HeartBeat)
                 {
-                    Close(session);
+                    _networkListener.Close(session.Socket);
                 }
             }
         }
