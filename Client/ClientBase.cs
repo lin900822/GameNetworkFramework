@@ -45,6 +45,13 @@ public class ClientBase
 
     private long _lastCheckRequestTimeOutTime;
 
+    private const int _checkReconnectSeconds = 5;
+
+    private long   _lastCheckReconnectTime;
+    private bool   _isNeedReconnect = false;
+    private string _cacheIp;
+    private int    _cachePort;
+
     public ClientBase()
     {
         _messageRouter = new MessageRouter();
@@ -108,6 +115,7 @@ public class ClientBase
         }
 
         CheckRequestTimeOut();
+        CheckReconnect();
     }
 
     private void CheckRequestTimeOut()
@@ -144,12 +152,34 @@ public class ClientBase
             {
                 request.OnTimeOut?.Invoke();
             }
+
             _requestPool.Return(request);
         }
     }
 
+    private void CheckReconnect()
+    {
+        if (TimeUtils.GetTimeStamp() - _lastCheckReconnectTime < _checkReconnectSeconds) return;
+        
+        _lastCheckReconnectTime = TimeUtils.GetTimeStamp();
+        Reconnect();
+    }
+
+    private void Reconnect()
+    {
+        if (_connector.IsConnected) return;
+        if (!_isNeedReconnect) return;
+
+        Connect(_cacheIp, _cachePort);
+    }
+
     public void Connect(string ip, int port)
     {
+        _cacheIp                = ip;
+        _cachePort              = port;
+        _isNeedReconnect        = true;
+        _lastCheckReconnectTime = TimeUtils.GetTimeStamp();
+        
         _connector.Connect(ip, port);
     }
 
@@ -165,12 +195,15 @@ public class ClientBase
 
     public void SendMessage(uint messageId, byte[] message)
     {
+        if (!_connector.IsConnected) return;
         _connector.Send(messageId, message);
     }
 
     public void SendRequest(uint messageId, byte[] request, Action<ReceivedMessageInfo> onCompleted,
         Action                   onTimeOut = null)
     {
+        if (!_connector.IsConnected) return;
+
         var requestId = Interlocked.Increment(ref _requestSerialId);
 
         var requestPack = _requestPool.Rent();
@@ -190,27 +223,29 @@ public class ClientBase
 
     public Task<ReceivedMessageInfo> SendRequest(uint messageId, byte[] request, Action onTimeOut = null)
     {
-        var taskCompletionSource = new TaskCompletionSource<ReceivedMessageInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var taskCompletionSource =
+            new TaskCompletionSource<ReceivedMessageInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
         try
         {
-            SendRequest(messageId, request, 
-            (info) => 
-            {
-                try
+            SendRequest(messageId, request,
+                (info) =>
                 {
-                    taskCompletionSource.SetResult(info);
-                }
-                catch(Exception e)
-                {
-                    Log.Error(e.ToString());
-                }
-            }, 
-            onTimeOut);
+                    try
+                    {
+                        taskCompletionSource.SetResult(info);
+                    }
+                    catch (Exception e)
+                    {
+                        Log.Error(e.ToString());
+                    }
+                },
+                onTimeOut);
         }
         catch (Exception ex)
         {
             taskCompletionSource.SetException(ex);
         }
+
         return taskCompletionSource.Task;
     }
 }
