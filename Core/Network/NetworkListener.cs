@@ -103,8 +103,6 @@ public class NetworkListener
                 _sessionList.Add(clientFd, session);
             }
             
-            SystemMetrics.UpdateSessionCount(ConnectionCount);
-            
             OnSessionConnected?.Invoke(session);
 
             // 開始接收clientFd傳來的訊息
@@ -153,7 +151,6 @@ public class NetworkListener
     private void OnCommunicatorReceivedNothing(NetworkCommunicator _communicator)
     {
         Close(_communicator.Socket);
-        SystemMetrics.UpdateSessionCount(ConnectionCount);
     }
     
     public void Close(Socket socket)
