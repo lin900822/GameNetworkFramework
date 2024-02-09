@@ -47,7 +47,7 @@ public partial class DemoServer
         if (!receivedMessageInfo.TryDecode<Move>(out var move)) return;
         //Log.Debug($"({move.X},{move.Y},{move.Z})");
         var sum = 0;
-        for (int i = 0; i < 6000; i++)
+        for (int i = 0; i < 1000; i++)
         {
             sum++;
         }
