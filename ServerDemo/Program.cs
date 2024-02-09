@@ -22,7 +22,7 @@ try
         ServerName      = "DemoServer",
         Port            = 10001,
         MaxSessionCount = 2000,
-        HeartBeat       = 10,
+        HeartBeat       = 150,
     });
     serviceCollection.AddSingleton<DemoServer>();
 
