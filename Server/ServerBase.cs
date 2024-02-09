@@ -260,6 +260,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
 
                 if (currentTime - client.LastPingTime >= _settings.HeartBeat)
                 {
+                    Log.Info($"{session.Socket.RemoteEndPoint} Heart Beat Time Out!");
                     _networkListener.Close(session.Socket);
                 }
             }
