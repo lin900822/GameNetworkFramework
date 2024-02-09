@@ -30,7 +30,6 @@ public partial class DemoServer : ServerBase<DemoClient>
         _debugger = new Debugger();
         _debugger.Start(1000, () =>
         {
-            Console.WriteLine($"FPS: {SystemMetrics.FPS:0.0}");
             Console.WriteLine($"Session Count: {SessionList.Count} Handled Queue Count: {SystemMetrics.HandledMessageCount} Remain: {SystemMetrics.RemainMessageCount}");
             SystemMetrics.HandledMessageCount = 0;
         });

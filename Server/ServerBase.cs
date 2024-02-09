@@ -57,10 +57,10 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
     
     private void OnReceivedMessage(ReceivedMessageInfo receivedMessageInfo)
     {
-        // if (receivedMessageInfo.Session.SessionObject is ClientBase clientBase)
-        // {
-        //     clientBase.LastPingTime = TimeUtils.GetTimeStamp();
-        // }
+        if (receivedMessageInfo.Session.SessionObject is ClientBase clientBase)
+        {
+            clientBase.LastPingTime = TimeUtils.GetTimeStamp();
+        }
         
         _messageRouter.ReceiveMessage(receivedMessageInfo);
     }
@@ -212,6 +212,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
                 
                 var deltaTime = (TimeUtils.MilliSecondsSinceStart - _lastFrameMilliseconds) / 1000f;
                 SystemMetrics.FPS = 1f / deltaTime;
+                Console.WriteLine($"FPS: {SystemMetrics.FPS:0.0}");
                 _lastFrameMilliseconds = TimeUtils.MilliSecondsSinceStart;
             }
         }
