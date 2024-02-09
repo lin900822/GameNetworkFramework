@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using Core.Common;
 using Core.Log;
 using Core.Metrics;
 using Server;
@@ -29,17 +30,15 @@ public partial class DemoServer : ServerBase<DemoClient>
         _debugger = new Debugger();
         _debugger.Start(1000, () =>
         {
-            Console.WriteLine($"FPS: {SystemMetrics.HandledFrame}");
+            Console.WriteLine($"FPS: {SystemMetrics.FPS:0.0}");
             Console.WriteLine($"Session Count: {SystemMetrics.SessionCount} Handled Queue Count: {SystemMetrics.HandledMessageCount} Remain: {SystemMetrics.RemainMessageCount}");
             SystemMetrics.HandledMessageCount = 0;
-            SystemMetrics.HandledFrame = 0;
         });
     }
 
     protected override void OnUpdate()
     {
         //_connectorClient.Update();
-        _debugger.Update();
     }
 
     protected override void OnDeinit()

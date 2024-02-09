@@ -19,7 +19,8 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
     private MessageRouter _messageRouter;
     private NetworkListener _networkListener;
 
-    private Stopwatch _updateStopwatch;
+    private long _startMilliseconds;
+    private long _lastFrameMilliseconds;
 
     protected int _targetFps = 15;
     protected int _millisecondsPerFrame;
@@ -163,7 +164,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
 
         AppDomain.CurrentDomain.ProcessExit += (_, _) => { Deinit(); };
 
-        _updateStopwatch = Stopwatch.StartNew();
+        _startMilliseconds = TimeUtils.MilliSecondsSinceStart;
 
         Init();
 
@@ -190,14 +191,18 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
         try
         {
             _messageRouter.OnUpdateLogic();
+            
+            _millisecondsPassed = TimeUtils.MilliSecondsSinceStart - _startMilliseconds;
 
-            _millisecondsPassed = _updateStopwatch.ElapsedMilliseconds;
             while (_millisecondsPassed - _frameCount * _millisecondsPerFrame >= _millisecondsPerFrame)
             {
-                ++_frameCount;
                 OnUpdate();
-                SystemMetrics.HandledFrame++;
+                ++_frameCount;
                 CheckHeartBeat();
+                
+                var deltaTime = (TimeUtils.MilliSecondsSinceStart - _lastFrameMilliseconds) / 1000f;
+                SystemMetrics.FPS = 1f / deltaTime;
+                _lastFrameMilliseconds = TimeUtils.MilliSecondsSinceStart;
             }
         }
         catch (Exception e)

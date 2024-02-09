@@ -1,4 +1,5 @@
-﻿using Core.Log;
+﻿using Core.Common;
+using Core.Log;
 using Core.Network;
 using Protocol;
 using Server;
@@ -19,9 +20,9 @@ public partial class DemoServer
         var helloData = ProtoUtils.Encode(hello);
 
         //Log.Debug($"Before await Thread: {Environment.CurrentManagedThreadId}");
-        await Task.Delay(100);
+        //await Task.Delay(100);
         //Log.Debug($"After await Thread: {Environment.CurrentManagedThreadId}");
-
+        
         // var response = await _connectorClient.SendRequest((uint)MessageId.Hello, helloData);
         //
         // if (!response.TryDecode<Hello>(out hello))
@@ -39,6 +40,11 @@ public partial class DemoServer
     {
         if (!receivedMessageInfo.TryDecode<Move>(out var move)) return;
         //Log.Debug($"({move.X},{move.Y},{move.Z})");
+        var sum = 0;
+        for (int i = 0; i < 6000; i++)
+        {
+            sum++;
+        }
     }
     
     [MessageRoute(MessageId.Register)]

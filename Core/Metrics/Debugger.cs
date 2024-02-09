@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Timers;
+using Timer = System.Timers.Timer;
 
 namespace Core.Metrics;
 
@@ -6,6 +8,7 @@ public class Debugger
 {
     private int _logIntervalMilliSeconds = 1000;
     private Action _onInterval;
+    private Timer _timer;
     private Stopwatch _stopwatch;
 
     public Debugger()
@@ -17,16 +20,15 @@ public class Debugger
     {
         _logIntervalMilliSeconds = interval;
         _onInterval = action;
-        _stopwatch.Reset();
-        _stopwatch.Start();
+        
+        _timer = new Timer(_logIntervalMilliSeconds);
+        _timer.Elapsed += OnTimedEvent;
+        _timer.AutoReset = true;
+        _timer.Enabled = true;
     }
-
-    public void Update()
+    
+    private void OnTimedEvent(object source, ElapsedEventArgs e)
     {
-        if (_stopwatch.ElapsedMilliseconds >= _logIntervalMilliSeconds)
-        {
-            _stopwatch.Restart();
-            _onInterval?.Invoke();
-        }
+        _onInterval?.Invoke();
     }
 }
