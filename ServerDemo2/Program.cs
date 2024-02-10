@@ -9,18 +9,18 @@ try
 
     serviceCollection.AddSingleton(new ServerSettings()
     {
-        ServerId        = 2,
-        ServerName      = "DemoServer2",
-        Port            = 10002,
+        ServerId = 2,
+        ServerName = "DemoServer2",
+        Port = 10002,
         MaxSessionCount = 2000,
-        HeartBeat       = 300000,
+        HeartBeatInterval = 300_000,
     });
     serviceCollection.AddSingleton<DemoServer>();
 
     var serviceProvider = serviceCollection.BuildServiceProvider();
 
     var server = serviceProvider.GetRequiredService<DemoServer>();
-    
+
     server.Start();
 }
 catch (Exception ex)

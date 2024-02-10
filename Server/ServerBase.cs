@@ -187,7 +187,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
 
         AppDomain.CurrentDomain.ProcessExit += (_, _) => { Deinit(); };
 
-        _startTimeMs = TimeUtils.MilliSecondsSinceStart;
+        _startTimeMs = TimeUtils.TimeSinceAppStart;
 
         var synchronizationContext = new GameSynchronizationContext();
         SynchronizationContext.SetSynchronizationContext(synchronizationContext);
@@ -216,7 +216,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
         {
             _messageRouter.OnUpdateLogic();
             
-            _millisecondsPassed = TimeUtils.MilliSecondsSinceStart - _startTimeMs;
+            _millisecondsPassed = TimeUtils.TimeSinceAppStart - _startTimeMs;
 
             while (_millisecondsPassed - _frameCount * _millisecondsPerFrame >= _millisecondsPerFrame)
             {
@@ -225,10 +225,10 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
                 CheckHeartBeat();
                 SyncPrometheus();
                 
-                var deltaTime = (TimeUtils.MilliSecondsSinceStart - _lastFrameTimeMs) / 1000f;
+                var deltaTime = (TimeUtils.TimeSinceAppStart - _lastFrameTimeMs) / 1000f;
                 SystemMetrics.FPS = 1f / deltaTime;
                 _prometheusService.UpdateFPS(SystemMetrics.FPS);
-                _lastFrameTimeMs = TimeUtils.MilliSecondsSinceStart;
+                _lastFrameTimeMs = TimeUtils.TimeSinceAppStart;
             }
         }
         catch (Exception e)
@@ -273,7 +273,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
             {
                 if (session.SessionObject is not ClientBase client) continue;
 
-                if (currentTime - client.LastPingTime >= _settings.HeartBeat)
+                if (currentTime - client.LastPingTime >= _settings.HeartBeatInterval)
                 {
                     Log.Info($"{session.Socket.RemoteEndPoint} Heart Beat Time Out!");
                     _networkListener.Close(session.Socket);
@@ -284,8 +284,8 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
 
     private void SyncPrometheus()
     {
-        if(TimeUtils.MilliSecondsSinceStart - _lastSyncPrometheusTimeMs < SyncPrometheusInterval) return;
-        _lastSyncPrometheusTimeMs = TimeUtils.MilliSecondsSinceStart;
+        if(TimeUtils.TimeSinceAppStart - _lastSyncPrometheusTimeMs < SyncPrometheusInterval) return;
+        _lastSyncPrometheusTimeMs = TimeUtils.TimeSinceAppStart;
 
         _prometheusService.UpdateSessionCount(_networkListener.ConnectionCount);
         _prometheusService.UpdateRemainMessageCount(SystemMetrics.RemainMessageCount);

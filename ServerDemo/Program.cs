@@ -12,17 +12,17 @@ try
         .AddJsonFile("appsettings.json")
         .Build();
 
-    var connectionString  = configuration.GetConnectionString("DefaultConnection");
-    
+    var connectionString = configuration.GetConnectionString("DefaultConnection");
+
     var serviceCollection = new ServiceCollection();
 
     serviceCollection.AddSingleton(new ServerSettings()
     {
-        ServerId        = 1,
-        ServerName      = "DemoServer",
-        Port            = 10001,
+        ServerId = 1,
+        ServerName = "DemoServer",
+        Port = 10001,
         MaxSessionCount = 2000,
-        HeartBeat       = 150,
+        HeartBeatInterval = 10_000,
     });
     serviceCollection.AddSingleton<DemoServer>();
 
@@ -32,7 +32,7 @@ try
     var serviceProvider = serviceCollection.BuildServiceProvider();
 
     var server = serviceProvider.GetRequiredService<DemoServer>();
-    
+
     server.Start();
 }
 catch (Exception ex)

@@ -49,7 +49,7 @@ public class NetworkClient
 
     private long _lastCheckRequestTimeOutTime;
 
-    private const int _checkReconnectSeconds = 10;
+    private const int _checkReconnectIntervalMs = 10_000;
 
     private long   _lastCheckReconnectTime;
     private string _cacheIp;
@@ -135,10 +135,10 @@ public class NetworkClient
 
     private void CheckRequestTimeOut()
     {
-        if (TimeUtils.MilliSecondsSinceStart - _lastCheckRequestTimeOutTime <
+        if (TimeUtils.TimeSinceAppStart - _lastCheckRequestTimeOutTime <
             CHECK_REQUEST_TIME_OUT_MILLISECONDS) return;
 
-        _lastCheckRequestTimeOutTime = TimeUtils.MilliSecondsSinceStart;
+        _lastCheckRequestTimeOutTime = TimeUtils.TimeSinceAppStart;
 
         _timeOutRequests.Clear();
 
@@ -149,7 +149,7 @@ public class NetworkClient
             {
                 var current = enumerator.Current;
 
-                if (TimeUtils.MilliSecondsSinceStart - current.RequestTime >= REQUEST_TIME_OUT_MILLISECONDS)
+                if (TimeUtils.TimeSinceAppStart - current.RequestTime >= REQUEST_TIME_OUT_MILLISECONDS)
                 {
                     _timeOutRequests.Enqueue(current);
                 }
@@ -174,7 +174,7 @@ public class NetworkClient
 
     private void CheckReconnect()
     {
-        if (TimeUtils.GetTimeStamp() - _lastCheckReconnectTime < _checkReconnectSeconds) return;
+        if (TimeUtils.GetTimeStamp() - _lastCheckReconnectTime < _checkReconnectIntervalMs) return;
         
         _lastCheckReconnectTime = TimeUtils.GetTimeStamp();
         Reconnect();
@@ -224,7 +224,7 @@ public class NetworkClient
         requestPack.RequestId   = requestId;
         requestPack.OnCompleted = onCompleted;
         requestPack.OnTimeOut   = onTimeOut;
-        requestPack.RequestTime = TimeUtils.MilliSecondsSinceStart;
+        requestPack.RequestTime = TimeUtils.TimeSinceAppStart;
 
         lock (_requestPacks)
         {
