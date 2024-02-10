@@ -33,7 +33,7 @@ public partial class DemoServer
         // helloData = ProtoUtils.Encode(hello);
         
         var sum = 0;
-        for (int i = 0; i < 10_000_000; i++)
+        for (int i = 0; i < 1000_000_000; i++)
         {
             sum++;
         }
