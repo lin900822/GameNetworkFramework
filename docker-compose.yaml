@@ -6,6 +6,7 @@ services:
     container_name: game-server
     ports:
       - "10001:10001"
+      - "19001:19001"
     depends_on:
       - mysql
     

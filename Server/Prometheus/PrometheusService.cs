@@ -8,7 +8,7 @@ public class PrometheusService
     private Gauge _sessionCountGauge = Metrics.CreateGauge("session_count", "Session Count");
     
     private MetricServer _metricServer;
-    private const int _port = 9020;
+    private const int _port = 19001;
     
     public void Start()
     {
