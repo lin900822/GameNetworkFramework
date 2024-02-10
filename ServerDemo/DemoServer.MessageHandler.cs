@@ -32,11 +32,9 @@ public partial class DemoServer
         //
         // helloData = ProtoUtils.Encode(hello);
         
-        var sum = 0;
-        for (int i = 0; i < 1000_000_000; i++)
-        {
-            sum++;
-        }
+        Log.Debug($"Before heavy job Thread: {Environment.CurrentManagedThreadId}");
+        Task.Delay(5000).SafeWait();
+        Log.Debug($"After heavy job Thread: {Environment.CurrentManagedThreadId}");
 
         return Response.Create(helloData);
     }
