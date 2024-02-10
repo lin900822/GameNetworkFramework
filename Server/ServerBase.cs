@@ -21,7 +21,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
 
     private PrometheusService _prometheusService;
     private long _lastSyncPrometheusTimeMs;
-    private const int SyncPrometheusInterval = 1;
+    private const int SyncPrometheusInterval = 1000;
 
     private long _startTimeMs;
     private long _lastFrameTimeMs;
