@@ -2,6 +2,7 @@
 using Client;
 using Core.Common;
 using Core.Log;
+using Protocol;
 
 // 
 ConcurrentQueue<Action> _inputActions = new ConcurrentQueue<Action>();
@@ -15,6 +16,11 @@ SynchronizationContext.SetSynchronizationContext(synchronizationContext);
 
 // Register Handlers
 networkClient.RegisterMessageHandler(1, (messageInfo) => { Log.Info("Pong!"); });
+networkClient.RegisterMessageHandler((uint)MessageId.Move, (messageInfo) =>
+{
+    if (messageInfo.TryDecode<Move>(out var move))
+        Log.Info($"{move.X}");
+});
 
 // Connect
 networkClient.Connect("192.168.0.108", 10001);
@@ -42,6 +48,3 @@ while (true)
         action?.Invoke();
     }
 }
-
-
-

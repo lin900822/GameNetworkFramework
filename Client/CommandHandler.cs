@@ -173,7 +173,7 @@ public class CommandHandler
             var move = new Move() { X = 99 };
             var moveData = ProtoUtils.Encode(move);
 
-            await _networkClient.SendRequest((uint)MessageId.Move, moveData, () => { Log.Warn($"Time Out!"); });
+            _networkClient.SendMessage((uint)MessageId.Move, moveData);
         });
     }
 

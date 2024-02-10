@@ -33,7 +33,7 @@ public class RequestInfo : IPoolable
 /// </summary>
 public class NetworkClient
 {
-    private static readonly long REQUEST_TIME_OUT_MILLISECONDS = 5 * 1000;
+    private static readonly long REQUEST_TIME_OUT_MILLISECONDS = 10 * 1000;
     private static readonly long CHECK_REQUEST_TIME_OUT_MILLISECONDS = 1 * 1000;
 
     private MessageRouter _messageRouter;

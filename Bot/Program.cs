@@ -30,8 +30,8 @@ for (int i = 0; i < 25; i++)
             bots[j] = new NetworkClient();
             bots[j].RegisterMessageHandler((uint)MessageId.Move, (receivedMessageInfo) =>
             {
-                if(receivedMessageInfo.TryDecode<Move>(out move))
-                Log.Info($"{move.X}");
+                // if(receivedMessageInfo.TryDecode<Move>(out move))
+                // Log.Info($"{move.X}");
             });
         }
 
@@ -61,7 +61,7 @@ for (int i = 0; i < 25; i++)
                 bot.Update();
                 
             }
-            Thread.Sleep(16);
+            Thread.Sleep(40);
         }
     });
 }
