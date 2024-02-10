@@ -12,8 +12,6 @@ public partial class DemoServer : ServerBase<DemoClient>
 {
     private UserRepository _userRepository;
     //private ClientBase _connectorClient;
-
-    private Debugger _debugger;
     
     public DemoServer(UserRepository userRepository, ServerSettings settings) : base(settings)
     {
@@ -26,13 +24,6 @@ public partial class DemoServer : ServerBase<DemoClient>
     {
         //InitDebug();
         //_connectorClient.Connect("127.0.0.1", 10002);
-
-        _debugger = new Debugger();
-        _debugger.Start(1000, () =>
-        {
-            Console.WriteLine($"Session Count: {SessionList.Count} Handled Queue Count: {SystemMetrics.HandledMessageCount} Remain: {SystemMetrics.RemainMessageCount}");
-            SystemMetrics.HandledMessageCount = 0;
-        });
     }
 
     protected override void OnUpdate()

@@ -227,6 +227,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
                 
                 var deltaTime = (TimeUtils.MilliSecondsSinceStart - _lastFrameTimeMs) / 1000f;
                 SystemMetrics.FPS = 1f / deltaTime;
+                _prometheusService.UpdateFPS(SystemMetrics.FPS);
                 _lastFrameTimeMs = TimeUtils.MilliSecondsSinceStart;
             }
         }
@@ -287,6 +288,8 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
         _lastSyncPrometheusTimeMs = TimeUtils.MilliSecondsSinceStart;
 
         _prometheusService.UpdateSessionCount(_networkListener.ConnectionCount);
+        _prometheusService.UpdateRemainMessageCount(SystemMetrics.RemainMessageCount);
         _prometheusService.UpdateHandledMessagePerSecond(SystemMetrics.HandledMessageCount);
+        SystemMetrics.HandledMessageCount = 0;
     }
 }

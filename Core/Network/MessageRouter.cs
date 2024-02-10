@@ -108,15 +108,14 @@ public class MessageRouter
 
     public void OnUpdateLogic()
     {
-        SystemMetrics.RemainMessageCount = _messageInfoQueue.Count;
         // 每次處理500個Message
         for (var i = 0; i < 500; i++)
         {
-            if (_messageInfoQueue.Count <= 0) return;
+            if (_messageInfoQueue.Count <= 0) break;
             
             if (!_messageInfoQueue.TryDequeue(out var pack))
             {
-                return;
+                break;
             }
 
             if (_routeTable.TryGetValue(pack.MessageId, out var handler))
@@ -131,5 +130,7 @@ public class MessageRouter
             pack.Release();
             SystemMetrics.HandledMessageCount++;
         }
+        
+        SystemMetrics.RemainMessageCount = _messageInfoQueue.Count;
     }
 }

@@ -4,17 +4,21 @@ namespace Server.Prometheus;
 
 public class PrometheusService
 {
-    private Gauge _handledMessagePerSecondGauge = Metrics.CreateGauge("handled_messages_per_second", "Messages Handles per Second");
+    private Gauge _handledMessagePerSecondGauge =
+        Metrics.CreateGauge("handled_messages_per_second", "Messages Handles per Second");
+
+    private Gauge _remainMessageCountGauge = Metrics.CreateGauge("remain_message_count", "Remain Message Count");
     private Gauge _sessionCountGauge = Metrics.CreateGauge("session_count", "Session Count");
-    
+    private Gauge _fpsGauge = Metrics.CreateGauge("fps", "FPS");
+
     private MetricServer _metricServer;
     private const int _port = 19001;
-    
+
     public void Start()
     {
         // 初始化 Prometheus 库
         Metrics.SuppressDefaultMetrics();
-        
+
         // 这里可以添加其他初始化代码
 
         // 启动 Web 服务器，用于暴露 Prometheus metrics
@@ -33,8 +37,18 @@ public class PrometheusService
         _handledMessagePerSecondGauge.Set(value);
     }
 
+    public void UpdateRemainMessageCount(int value)
+    {
+        _remainMessageCountGauge.Set(value);
+    }
+
     public void UpdateSessionCount(int value)
     {
         _sessionCountGauge.Set(value);
+    }
+
+    public void UpdateFPS(float value)
+    {
+        _fpsGauge.Set(value);
     }
 }
