@@ -10,13 +10,14 @@ namespace ServerDemo;
 public partial class DemoServer
 {
     [MessageRoute(MessageId.Hello)]
-    public async Task<Response> OnReceiveHello(ReceivedMessageInfo receivedMessageInfo)
+    public Response OnReceiveHello(ReceivedMessageInfo receivedMessageInfo)
     {
         if (!receivedMessageInfo.TryDecode<Hello>(out var hello))
         {
             return Response.None;
         }
 
+        hello.Content = "Server Response: " + hello.Content;
         var helloData = ProtoUtils.Encode(hello);
 
         //Log.Debug($"Before await Thread: {Environment.CurrentManagedThreadId}");
@@ -31,10 +32,6 @@ public partial class DemoServer
         // }
         //
         // helloData = ProtoUtils.Encode(hello);
-        
-        Log.Debug($"Before heavy job Thread: {Environment.CurrentManagedThreadId}");
-        Task.Delay(5000).SafeWait();
-        Log.Debug($"After heavy job Thread: {Environment.CurrentManagedThreadId}");
 
         return Response.Create(helloData);
     }
@@ -43,7 +40,7 @@ public partial class DemoServer
     public void OnReceiveMove(ReceivedMessageInfo receivedMessageInfo)
     {
         if (!receivedMessageInfo.TryDecode<Move>(out var move)) return;
-        //Log.Debug($"({move.X},{move.Y},{move.Z})");
+        Log.Debug($"({move.X},{move.Y},{move.Z})");
         var sum = 0;
         for (int i = 0; i < 1000; i++)
         {

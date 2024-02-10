@@ -8,23 +8,23 @@ namespace Client;
 
 public class RequestInfo : IPoolable
 {
-    public ReceivedMessageInfo         ReceivedMessageInfo;
-    public uint                        MessageId;
-    public uint                        RequestId;
+    public ReceivedMessageInfo ReceivedMessageInfo;
+    public uint MessageId;
+    public uint RequestId;
     public Action<ReceivedMessageInfo> OnCompleted;
-    public Action                      OnTimeOut;
-    public long                        RequestTime;
-    public bool                        IsCompleted;
+    public Action OnTimeOut;
+    public long RequestTime;
+    public bool IsCompleted;
 
     public void Reset()
     {
         ReceivedMessageInfo = default;
-        MessageId           = 0;
-        RequestId           = 0;
-        OnCompleted         = null;
-        OnTimeOut           = null;
-        RequestTime         = 0;
-        IsCompleted         = false;
+        MessageId = 0;
+        RequestId = 0;
+        OnCompleted = null;
+        OnTimeOut = null;
+        RequestTime = 0;
+        IsCompleted = false;
     }
 }
 
@@ -33,15 +33,15 @@ public class RequestInfo : IPoolable
 /// </summary>
 public class NetworkClient
 {
-    private static readonly long REQUEST_TIME_OUT_MILLISECONDS       = 5 * 1000;
+    private static readonly long REQUEST_TIME_OUT_MILLISECONDS = 5 * 1000;
     private static readonly long CHECK_REQUEST_TIME_OUT_MILLISECONDS = 1 * 1000;
 
-    private MessageRouter    _messageRouter;
+    private MessageRouter _messageRouter;
     private NetworkConnector _connector;
 
-    private LinkedList<RequestInfo>      _requestPacks;
+    private LinkedList<RequestInfo> _requestPacks;
     private ConcurrentQueue<RequestInfo> _responseQueue;
-    private Queue<RequestInfo>           _timeOutRequests;
+    private Queue<RequestInfo> _timeOutRequests;
 
     private ConcurrentPool<RequestInfo> _requestPool;
 
@@ -51,71 +51,18 @@ public class NetworkClient
 
     private const int _checkReconnectIntervalMs = 10_000;
 
-    private long   _lastCheckReconnectTime;
+    private long _lastCheckReconnectTime;
     private string _cacheIp;
-    private int    _cachePort;
+    private int _cachePort;
 
     public NetworkClient()
     {
         _messageRouter = new MessageRouter();
-        _connector     = new NetworkConnector();
-
-        _requestPacks    = new LinkedList<RequestInfo>();
-        _responseQueue   = new ConcurrentQueue<RequestInfo>();
+        _requestPacks = new LinkedList<RequestInfo>();
+        _responseQueue = new ConcurrentQueue<RequestInfo>();
         _timeOutRequests = new Queue<RequestInfo>();
 
         _requestPool = new ConcurrentPool<RequestInfo>();
-
-        _connector.OnReceivedMessage += OnReceivedMessage;
-        _connector.OnClosed += OnClosed;
-    }
-
-    ~NetworkClient()
-    {
-        _connector.OnReceivedMessage -= OnReceivedMessage;
-        _connector.OnClosed -= OnClosed;
-    }
-
-    private void OnClosed(Socket socket)
-    {
-        _lastCheckReconnectTime = TimeUtils.GetTimeStamp();
-    }
-
-    private void OnReceivedMessage(ReceivedMessageInfo receivedMessageInfo)
-    {
-        // 普通的Message: MessageId = 0 ~ int.MaxValue
-        // 請求 Request: MessageId = int.MaxValue ~ uint.MaxValue
-        if (receivedMessageInfo.MessageId >= (uint)(int.MaxValue) + 1)
-        {
-            lock (_requestPacks)
-            {
-                if (TryGetRequestInfo(receivedMessageInfo.MessageId, out var requestPack))
-                {
-                    requestPack.ReceivedMessageInfo = receivedMessageInfo;
-                    _responseQueue.Enqueue(requestPack);
-                }
-            }
-        }
-        else
-        {
-            _messageRouter.ReceiveMessage(receivedMessageInfo);
-        }
-    }
-
-    private bool TryGetRequestInfo(uint requestId, out RequestInfo outRequestInfo)
-    {
-        var enumerator = _requestPacks.GetEnumerator();
-        while (enumerator.MoveNext())
-        {
-            var current = enumerator.Current;
-            if (current.RequestId != requestId) continue;
-
-            outRequestInfo = current;
-            return true;
-        }
-
-        outRequestInfo = default;
-        return false;
     }
 
     public void Update()
@@ -175,7 +122,7 @@ public class NetworkClient
     private void CheckReconnect()
     {
         if (TimeUtils.GetTimeStamp() - _lastCheckReconnectTime < _checkReconnectIntervalMs) return;
-        
+
         _lastCheckReconnectTime = TimeUtils.GetTimeStamp();
         Reconnect();
     }
@@ -189,13 +136,68 @@ public class NetworkClient
 
     public void Connect(string ip, int port)
     {
-        _cacheIp                = ip;
-        _cachePort              = port;
+        _cacheIp = ip;
+        _cachePort = port;
         _lastCheckReconnectTime = TimeUtils.GetTimeStamp();
+
+        _connector = new NetworkConnector();
+        _connector.OnReceivedMessage += OnReceivedMessage;
+        _connector.OnClosed += OnClosed;
         
         _connector.Connect(ip, port);
     }
+    
+    private void OnReceivedMessage(ReceivedMessageInfo receivedMessageInfo)
+    {
+        // 普通的Message: MessageId = 0 ~ int.MaxValue
+        // 請求 Request: MessageId = int.MaxValue ~ uint.MaxValue
+        if (receivedMessageInfo.MessageId >= (uint)(int.MaxValue) + 1)
+        {
+            lock (_requestPacks)
+            {
+                if (TryGetRequestInfo(receivedMessageInfo.MessageId, out var requestPack))
+                {
+                    requestPack.ReceivedMessageInfo = receivedMessageInfo;
+                    _responseQueue.Enqueue(requestPack);
+                }
+            }
+        }
+        else
+        {
+            _messageRouter.ReceiveMessage(receivedMessageInfo);
+        }
+    }
+    
+    private void OnClosed(Socket socket)
+    {
+        _requestPacks.Clear();
+        _responseQueue.Clear();
+        _timeOutRequests.Clear();
+        
+        _connector.OnReceivedMessage -= OnReceivedMessage;
+        _connector.OnClosed -= OnClosed;
+        
+        _lastCheckReconnectTime = TimeUtils.GetTimeStamp();
+    }
+    
+    private bool TryGetRequestInfo(uint requestId, out RequestInfo outRequestInfo)
+    {
+        var enumerator = _requestPacks.GetEnumerator();
+        while (enumerator.MoveNext())
+        {
+            var current = enumerator.Current;
+            if (current.RequestId != requestId) continue;
 
+            outRequestInfo = current;
+            return true;
+        }
+
+        outRequestInfo = default;
+        return false;
+    }
+
+    #region - Public Methods -
+    
     public void RegisterMessageHandler(uint messageId, Action<ReceivedMessageInfo> handler)
     {
         _messageRouter.RegisterMessageHandler(messageId, handler);
@@ -213,17 +215,17 @@ public class NetworkClient
     }
 
     public void SendRequest(uint messageId, byte[] request, Action<ReceivedMessageInfo> onCompleted,
-        Action                   onTimeOut = null)
+        Action onTimeOut = null)
     {
         if (_connector.ConnectState != ConnectState.Connected) return;
 
         var requestId = Interlocked.Increment(ref _requestSerialId);
 
         var requestPack = _requestPool.Rent();
-        requestPack.MessageId   = messageId;
-        requestPack.RequestId   = requestId;
+        requestPack.MessageId = messageId;
+        requestPack.RequestId = requestId;
         requestPack.OnCompleted = onCompleted;
-        requestPack.OnTimeOut   = onTimeOut;
+        requestPack.OnTimeOut = onTimeOut;
         requestPack.RequestTime = TimeUtils.TimeSinceAppStart;
 
         lock (_requestPacks)
@@ -261,4 +263,6 @@ public class NetworkClient
 
         return taskCompletionSource.Task;
     }
+    
+    #endregion
 }

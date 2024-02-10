@@ -74,7 +74,7 @@ public class NetworkConnector
         Close();
     } 
 
-    public void Close()
+    private void Close()
     {
         OnClosed?.Invoke(_connectFd);
         

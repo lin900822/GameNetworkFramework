@@ -13,7 +13,7 @@ int length = 256;
 byte[] randomBytes = GenerateRandomBytes(length);
 string randomString = Convert.ToBase64String(randomBytes);
 
-var hello = new Hello() { Content = randomString };
+var hello = new Hello() { Content = "Username Password Email Data Query MySQL Server" };
 var helloData = ProtoUtils.Encode(hello);
 
 var responseCount = 0;
@@ -43,7 +43,12 @@ for (int i = 0; i < 25; i++)
             {
                 for (var j = 0; j < 1; j++)
                 {
-                    bot.SendMessage((uint)MessageId.Move, moveData);
+                    bot.SendRequest((uint)MessageId.Hello, helloData, (receivedMessageInfo) =>
+                    {
+                        if (!receivedMessageInfo.TryDecode<Hello>(out var hello)) return;
+                        
+                        Log.Info($"{hello.Content}");
+                    });
                 }
 
                 bot.Update();
