@@ -40,12 +40,16 @@ public partial class DemoServer
     public void OnReceiveMove(ReceivedMessageInfo receivedMessageInfo)
     {
         if (!receivedMessageInfo.TryDecode<Move>(out var move)) return;
-        Log.Debug($"({move.X},{move.Y},{move.Z})");
+        //Log.Debug($"({move.X},{move.Y},{move.Z})");
         var sum = 0;
         for (int i = 0; i < 1000; i++)
         {
             sum++;
         }
+
+        move.X += sum;
+        var moveData = ProtoUtils.Encode(move);
+        receivedMessageInfo.Session.Send((uint)MessageId.Move, moveData);
     }
     
     [MessageRoute(MessageId.Register)]

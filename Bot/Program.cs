@@ -3,7 +3,6 @@ using Client;
 using Core.Log;
 using Core.Network;
 using Protocol;
-using Timer = System.Timers.Timer;
 
 var move = new Move();
 move.X = 10;
@@ -29,6 +28,11 @@ for (int i = 0; i < 25; i++)
         for (int j = 0; j < 40; j++)
         {
             bots[j] = new NetworkClient();
+            bots[j].RegisterMessageHandler((uint)MessageId.Move, (receivedMessageInfo) =>
+            {
+                if(receivedMessageInfo.TryDecode<Move>(out move))
+                Log.Info($"{move.X}");
+            });
         }
 
         foreach (var bot in bots)
@@ -43,12 +47,15 @@ for (int i = 0; i < 25; i++)
             {
                 for (var j = 0; j < 1; j++)
                 {
-                    bot.SendRequest((uint)MessageId.Hello, helloData, (receivedMessageInfo) =>
-                    {
-                        if (!receivedMessageInfo.TryDecode<Hello>(out var hello)) return;
-                        
-                        Log.Info($"{hello.Content}");
-                    });
+                    //Log.Info("SendRequest");
+                    // bot.SendRequest((uint)MessageId.Hello, helloData, (receivedMessageInfo) =>
+                    // {
+                    //     if (receivedMessageInfo.TryDecode<Hello>(out var hello))
+                    //     {
+                    //         Log.Info($"{hello.Content}");
+                    //     }
+                    // });
+                    bot.SendMessage((uint)MessageId.Move, moveData);
                 }
 
                 bot.Update();

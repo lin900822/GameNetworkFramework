@@ -1,5 +1,6 @@
 ﻿using System.Net.Sockets;
 using Core.Log;
+using Protocol;
 
 namespace Core.Network;
 
