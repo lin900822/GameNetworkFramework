@@ -7,17 +7,17 @@ using Core.Log;
 ConcurrentQueue<Action> _inputActions = new ConcurrentQueue<Action>();
 
 // Init
-ClientBase clientBase = new ClientBase();
-CommandHandler commandHandler = new CommandHandler(clientBase, _inputActions);
+NetworkClient networkClient = new NetworkClient();
+CommandHandler commandHandler = new CommandHandler(networkClient, _inputActions);
 
 var synchronizationContext = new GameSynchronizationContext();
 SynchronizationContext.SetSynchronizationContext(synchronizationContext);
 
 // Register Handlers
-clientBase.RegisterMessageHandler(1, (messageInfo) => { Log.Info("Pong!"); });
+networkClient.RegisterMessageHandler(1, (messageInfo) => { Log.Info("Pong!"); });
 
 // Connect
-clientBase.Connect("192.168.0.108", 10001);
+networkClient.Connect("192.168.0.108", 10001);
 
 Thread.Sleep(100);
 
@@ -34,7 +34,7 @@ inputThread.Start();
 // Main Loop
 while (true)
 {
-    clientBase.Update();
+    networkClient.Update();
     synchronizationContext.ProcessQueue();
 
     if (_inputActions.TryDequeue(out var action))

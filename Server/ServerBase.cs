@@ -1,11 +1,11 @@
-﻿using System.Diagnostics;
-using System.Net.Sockets;
+﻿using System.Net.Sockets;
 using System.Reflection;
 using Core.Common;
 using Core.Log;
 using Core.Metrics;
 using Core.Network;
 using Protocol;
+using Server.Prometheus;
 
 namespace Server;
 
@@ -19,8 +19,12 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
     private MessageRouter _messageRouter;
     private NetworkListener _networkListener;
 
-    private long _startMilliseconds;
-    private long _lastFrameMilliseconds;
+    private PrometheusService _prometheusService;
+    private long _lastSyncPrometheusTimeMs;
+    private const int SyncPrometheusInterval = 1;
+
+    private long _startTimeMs;
+    private long _lastFrameTimeMs;
 
     protected int _targetFps = 15;
     protected int _millisecondsPerFrame;
@@ -36,6 +40,9 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
         _messageRouter = new MessageRouter();
         _networkListener = new NetworkListener(settings.MaxSessionCount);
 
+        _prometheusService = new PrometheusService();
+        _prometheusService.Start();
+
         _networkListener.OnSessionConnected += OnSessionConnected;
         _networkListener.OnReceivedMessage  += OnReceivedMessage;
         RegisterMessageHandlers();
@@ -45,6 +52,8 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
     {
         _networkListener.OnSessionConnected -= OnSessionConnected;
         _networkListener.OnReceivedMessage  -= OnReceivedMessage;
+        
+        _prometheusService.Stop();
     }
 
     private void OnSessionConnected(NetworkSession session)
@@ -178,13 +187,14 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
 
         AppDomain.CurrentDomain.ProcessExit += (_, _) => { Deinit(); };
 
-        _startMilliseconds = TimeUtils.MilliSecondsSinceStart;
-
-        Init();
+        _startTimeMs = TimeUtils.MilliSecondsSinceStart;
 
         var synchronizationContext = new GameSynchronizationContext();
         SynchronizationContext.SetSynchronizationContext(synchronizationContext);
 
+        // Start Life Cycle
+        Init();
+        
         while (true)
         {
             Update();
@@ -206,18 +216,18 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
         {
             _messageRouter.OnUpdateLogic();
             
-            _millisecondsPassed = TimeUtils.MilliSecondsSinceStart - _startMilliseconds;
+            _millisecondsPassed = TimeUtils.MilliSecondsSinceStart - _startTimeMs;
 
             while (_millisecondsPassed - _frameCount * _millisecondsPerFrame >= _millisecondsPerFrame)
             {
                 OnUpdate();
                 ++_frameCount;
                 CheckHeartBeat();
+                SyncPrometheus();
                 
-                var deltaTime = (TimeUtils.MilliSecondsSinceStart - _lastFrameMilliseconds) / 1000f;
+                var deltaTime = (TimeUtils.MilliSecondsSinceStart - _lastFrameTimeMs) / 1000f;
                 SystemMetrics.FPS = 1f / deltaTime;
-                //Console.WriteLine($"FPS: {SystemMetrics.FPS:0.0}");
-                _lastFrameMilliseconds = TimeUtils.MilliSecondsSinceStart;
+                _lastFrameTimeMs = TimeUtils.MilliSecondsSinceStart;
             }
         }
         catch (Exception e)
@@ -269,5 +279,14 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
                 }
             }
         }
+    }
+
+    private void SyncPrometheus()
+    {
+        if(TimeUtils.MilliSecondsSinceStart - _lastSyncPrometheusTimeMs < SyncPrometheusInterval) return;
+        _lastSyncPrometheusTimeMs = TimeUtils.MilliSecondsSinceStart;
+
+        _prometheusService.UpdateSessionCount(_networkListener.ConnectionCount);
+        _prometheusService.UpdateHandledMessagePerSecond(SystemMetrics.HandledMessageCount);
     }
 }

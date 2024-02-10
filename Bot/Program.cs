@@ -25,10 +25,10 @@ for (int i = 0; i < 25; i++)
 {
     Task.Run(() =>
     {
-        var bots = new ClientBase[40];
+        var bots = new NetworkClient[40];
         for (int j = 0; j < 40; j++)
         {
-            bots[j] = new ClientBase();
+            bots[j] = new NetworkClient();
         }
 
         foreach (var bot in bots)

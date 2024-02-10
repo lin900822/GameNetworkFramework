@@ -28,7 +28,10 @@ public class RequestInfo : IPoolable
     }
 }
 
-public class ClientBase
+/// <summary>
+/// 實作發Request, 斷線重連
+/// </summary>
+public class NetworkClient
 {
     private static readonly long REQUEST_TIME_OUT_MILLISECONDS       = 5 * 1000;
     private static readonly long CHECK_REQUEST_TIME_OUT_MILLISECONDS = 1 * 1000;
@@ -52,7 +55,7 @@ public class ClientBase
     private string _cacheIp;
     private int    _cachePort;
 
-    public ClientBase()
+    public NetworkClient()
     {
         _messageRouter = new MessageRouter();
         _connector     = new NetworkConnector();
@@ -67,7 +70,7 @@ public class ClientBase
         _connector.OnClosed += OnClosed;
     }
 
-    ~ClientBase()
+    ~NetworkClient()
     {
         _connector.OnReceivedMessage -= OnReceivedMessage;
         _connector.OnClosed -= OnClosed;

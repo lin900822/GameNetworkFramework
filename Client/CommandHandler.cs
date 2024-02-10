@@ -22,14 +22,14 @@ public class CommandHandler
 {
     #region - Inner Logic -
 
-    private ClientBase _clientBase;
+    private NetworkClient _networkClient;
 
     private ConcurrentQueue<Action> _inputActions;
     private Dictionary<string, Action> _commandHandlers;
 
-    public CommandHandler(ClientBase clientBase, ConcurrentQueue<Action> inputActions)
+    public CommandHandler(NetworkClient networkClient, ConcurrentQueue<Action> inputActions)
     {
-        _clientBase = clientBase;
+        _networkClient = networkClient;
         _inputActions = inputActions;
 
         _commandHandlers = new Dictionary<string, Action>();
@@ -143,7 +143,7 @@ public class CommandHandler
             Log.Info($"Data Length: {helloData.Length}");
 
             Log.Info($"Before await Thread:{Environment.CurrentManagedThreadId}");
-            var messageInfo = await _clientBase.SendRequest((uint)MessageId.Hello, helloData);
+            var messageInfo = await _networkClient.SendRequest((uint)MessageId.Hello, helloData);
             Log.Info($"After  await Thread:{Environment.CurrentManagedThreadId}");
 
             if (!messageInfo.TryDecode<Hello>(out var response)) return;
@@ -173,7 +173,7 @@ public class CommandHandler
             var move = new Move() { X = 99 };
             var moveData = ProtoUtils.Encode(move);
 
-            await _clientBase.SendRequest((uint)MessageId.Move, moveData, () => { Log.Warn($"Time Out!"); });
+            await _networkClient.SendRequest((uint)MessageId.Move, moveData, () => { Log.Warn($"Time Out!"); });
         });
     }
 
@@ -190,7 +190,7 @@ public class CommandHandler
             var user = new User() { Username = username, Password = password };
             var userData = ProtoUtils.Encode(user);
 
-            var messageInfo = await _clientBase.SendRequest((uint)MessageId.Register, userData,
+            var messageInfo = await _networkClient.SendRequest((uint)MessageId.Register, userData,
                 () => { Log.Warn($"Time Out"); });
 
             if (messageInfo.StateCode == (uint)StateCode.Success)

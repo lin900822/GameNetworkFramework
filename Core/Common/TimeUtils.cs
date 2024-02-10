@@ -5,6 +5,7 @@ namespace Core.Common;
 public static class TimeUtils
 {
     private static Stopwatch _stopwatch;
+    private static readonly DateTime UnixTime = new DateTime(1970, 1, 1, 0, 0, 0, 0);
 
     static TimeUtils()
     {
@@ -18,7 +19,7 @@ public static class TimeUtils
     
     public static long GetTimeStamp()
     {
-        TimeSpan timeSpan = DateTime.UtcNow - new DateTime(1970, 1, 1, 0, 0, 0, 0);
+        TimeSpan timeSpan = DateTime.UtcNow - UnixTime;
         return Convert.ToInt64(timeSpan.TotalSeconds);
     }
 }
