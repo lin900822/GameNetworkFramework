@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using Client;
+using Core.Logger;
 using Core.Network;
 using Protocol;
 
@@ -19,12 +20,15 @@ var responseCount = 0;
 var stopWatch = new Stopwatch();
 stopWatch.Start();
 
-for (int i = 0; i < 25; i++)
+var threadCount = 24;
+var botCount = 41;
+
+for (int i = 0; i < threadCount; i++)
 {
     Task.Run(() =>
     {
-        var bots = new NetworkClient[40];
-        for (int j = 0; j < 40; j++)
+        var bots = new NetworkClient[botCount];
+        for (int j = 0; j < botCount; j++)
         {
             bots[j] = new NetworkClient();
             bots[j].RegisterMessageHandler((ushort)MessageId.Move, (receivedMessageInfo) =>
@@ -46,21 +50,20 @@ for (int i = 0; i < 25; i++)
             {
                 for (var j = 0; j < 1; j++)
                 {
-                    //Log.Info("SendRequest");
-                    // bot.SendRequest((uint)MessageId.Hello, helloData, (receivedMessageInfo) =>
-                    // {
-                    //     if (receivedMessageInfo.TryDecode<Hello>(out var hello))
-                    //     {
-                    //         Log.Info($"{hello.Content}");
-                    //     }
-                    // });
+                     // bot.SendRequest((ushort)MessageId.Hello, helloData, (receivedMessageInfo) =>
+                     // {
+                     //     if (receivedMessageInfo.TryDecode<Hello>(out var hello))
+                     //     {
+                     //         Log.Info("Get Response");
+                     //     }
+                     // });
                     bot.SendMessage((ushort)MessageId.Move, moveData);
                 }
 
                 bot.Update();
                 
             }
-            Thread.Sleep(40);
+            Thread.Sleep(16);
         }
     });
 }

@@ -2,80 +2,8 @@
 using System.Collections.Concurrent;
 using Core.Logger;
 using Core.Metrics;
-using Google.Protobuf;
 
 namespace Core.Network;
-
-public struct ReceivedMessageInfo
-{
-    /// <summary>
-    /// 僅伺服器使用
-    /// </summary>
-    public NetworkCommunicator Communicator;
-
-    public NetworkSession Session
-    {
-        get
-        {
-            if (Communicator == null) return null;
-            if (Communicator is NetworkSession session) return session;
-            return null;
-        }
-    }
-
-    /// <summary>
-    /// 訊息Id
-    /// </summary>
-    public ushort MessageId;
-
-    /// <summary>
-    /// 狀態碼，預設0為成功
-    /// </summary>
-    //public uint StateCode;
-
-    public bool IsRequest;
-    
-    /// <summary>
-    /// 請求Id
-    /// </summary>
-    public ushort RequestId;
-
-    /// <summary>
-    /// 有意義的訊息長度
-    /// </summary>
-    public int MessageLength;
-
-    /// <summary>
-    /// 訊息本體
-    /// </summary>
-    public byte[] Message;
-
-    public bool TryDecode<T>(out T outMessage) where T : IMessage, new()
-    {
-        try
-        { 
-            outMessage = new T();
-            outMessage.MergeFrom(Message, 0, MessageLength);
-            return true;
-        }
-        catch (Exception e)
-        {
-            Log.Error(e.ToString());
-            outMessage = default(T);
-            return false;
-        }
-    }
-
-    public void Allocate(int size)
-    {
-        Message = ArrayPool<byte>.Shared.Rent(size);
-    }
-
-    public void Release()
-    {
-        ArrayPool<byte>.Shared.Return(Message);
-    }
-}
 
 public class MessageRouter
 {
@@ -121,21 +49,21 @@ public class MessageRouter
         {
             if (_messageInfoQueue.Count <= 0) break;
             
-            if (!_messageInfoQueue.TryDequeue(out var pack))
+            if (!_messageInfoQueue.TryDequeue(out var messageInfo))
             {
                 break;
             }
 
-            if (_routeTable.TryGetValue(pack.MessageId, out var handler))
+            if (_routeTable.TryGetValue(messageInfo.MessageId, out var handler))
             {
-                handler?.Invoke(pack);
+                handler?.Invoke(messageInfo);
             }
             else
             {
-                Log.Warn($"Message Router: Received Unregistered Message, messageId = {pack.MessageId}");
+                Log.Warn($"Message Router: Received Unregistered Message, messageId = {messageInfo.MessageId}");
             }
         
-            pack.Release();
+            messageInfo.Release();
             SystemMetrics.HandledMessageCount++;
         }
         
