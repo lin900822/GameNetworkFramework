@@ -30,7 +30,14 @@ public struct ReceivedMessageInfo
     /// <summary>
     /// 狀態碼，預設0為成功
     /// </summary>
-    public uint StateCode;
+    //public uint StateCode;
+
+    public bool IsRequest;
+    
+    /// <summary>
+    /// 請求Id
+    /// </summary>
+    public ushort RequestId;
 
     /// <summary>
     /// 有意義的訊息長度

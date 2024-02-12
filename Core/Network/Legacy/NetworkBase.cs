@@ -179,7 +179,7 @@ public abstract class NetworkBase
         
         receivedMessageInfo.MessageLength = bodyLength;
         receivedMessageInfo.MessageId     = byteBuffer.ReadUInt32();
-        receivedMessageInfo.StateCode     = byteBuffer.ReadUInt32();
+        //receivedMessageInfo.StateCode     = byteBuffer.ReadUInt32();
         receivedMessageInfo.Allocate(totalLength);
         byteBuffer.Read(receivedMessageInfo.Message, 0, bodyLength);
 

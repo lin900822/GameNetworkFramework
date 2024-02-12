@@ -193,14 +193,14 @@ public class CommandHandler
             var messageInfo = await _networkClient.SendRequest((uint)MessageId.Register, userData,
                 () => { Log.Warn($"Time Out"); });
 
-            if (messageInfo.StateCode == (uint)StateCode.Success)
-            {
-                Log.Info($"註冊成功!");
-            }
-            else
-            {
-                Log.Info($"{messageInfo.StateCode.ToString()}");
-            }
+            // if (messageInfo.StateCode == (uint)StateCode.Success)
+            // {
+            //     Log.Info($"註冊成功!");
+            // }
+            // else
+            // {
+            //     Log.Info($"{messageInfo.StateCode.ToString()}");
+            // }
         });
     }
 }

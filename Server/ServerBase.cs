@@ -137,8 +137,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
                     {
                         var response = func(messageInfo);
                         if (response.Message == null) return;
-                        _networkListener.Send(messageInfo.Communicator, messageInfo.StateCode, response.Message,
-                            response.StateCode);
+                        messageInfo.Communicator.Send((uint)routeAttribute.MessageId, response.Message, true, messageInfo.RequestId);
                     });
                 }
             }
@@ -158,7 +157,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
                             response =>
                             {
                                 if (response.Message == null) return;
-                                _networkListener.Send(messageInfo.Communicator, messageInfo.StateCode, response.Message, response.StateCode);
+                                messageInfo.Communicator.Send((uint)routeAttribute.MessageId, response.Message, true, messageInfo.RequestId);
                             },
                             e => Log.Error(e.ToString()));
                     }

@@ -17,7 +17,6 @@ public partial class DemoServer
             return Response.None;
         }
 
-        hello.Content = "Server Response: " + hello.Content;
         var helloData = ProtoUtils.Encode(hello);
 
         //Log.Debug($"Before await Thread: {Environment.CurrentManagedThreadId}");

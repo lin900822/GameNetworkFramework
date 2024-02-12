@@ -7,10 +7,10 @@ namespace Core.Network;
 public class NetworkCommunicator
 {
     public Socket Socket { get; private set; }
-    
+
     public Action<ReceivedMessageInfo> OnReceivedMessage;
     public Action<NetworkCommunicator> OnReceivedNothing;
-    
+
     private readonly ByteBuffer _receiveBuffer;
     private readonly Queue<ByteBuffer> _sendQueue;
 
@@ -19,19 +19,25 @@ public class NetworkCommunicator
 
     // Dependencies
     private ByteBufferPool _byteBufferPool;
-    
+
     // Const
     private const int ShortPacketLength = 2;
-    private const int LongPacketLength  = 4;
+    private const int LongPacketLength = 4;
+    private const int MessageIdLength = 4;
+    private const int RequestIdLength = 2;
+
+    private const int WarningPacketSize = 1024 * 4;
+    private const int MaxPacketSize = (int)(uint.MaxValue >> 2);
+
     private const uint LongPacketFlag = 0b_00000000_00000000_10000000_00000000;
-    private const uint RequestFlag    = 0b_01000000_00000000_00000000_00000000;
+    private const uint RequestFlag = 0b_00000000_00000000_01000000_00000000;
 
     public NetworkCommunicator(ByteBufferPool pool, int bufferSize)
     {
         _byteBufferPool = pool;
-        
+
         var receiveArg = new SocketAsyncEventArgs();
-        var sendArg    = new SocketAsyncEventArgs();
+        var sendArg = new SocketAsyncEventArgs();
         receiveArg.SetBuffer(new byte[bufferSize], 0, bufferSize);
         sendArg.SetBuffer(new byte[bufferSize], 0, bufferSize);
 
@@ -55,8 +61,8 @@ public class NetworkCommunicator
     {
         Socket = null;
         _receiveArgs.AcceptSocket = null;
-        _sendArgs.AcceptSocket    = null;
-        
+        _sendArgs.AcceptSocket = null;
+
         _receiveBuffer.SetReadIndex(0);
         _receiveBuffer.SetWriteIndex(0);
 
@@ -69,7 +75,7 @@ public class NetworkCommunicator
                 _byteBufferPool.Return(item);
             }
         }
-        
+
         _receiveArgs.Completed -= OnReceive;
         _sendArgs.Completed -= OnSend;
     }
@@ -148,7 +154,7 @@ public class NetworkCommunicator
 
     #region - Send -
 
-    public void Send(uint messageId, byte[] message, uint stateCode = 0)
+    public void Send(uint messageId, byte[] message, bool isRequest = false, ushort requestId = 0)
     {
         if (Socket == null)
         {
@@ -162,14 +168,15 @@ public class NetworkCommunicator
             return;
         }
 
-        AddMessageToSendQueue(messageId, stateCode, message);
+        AddMessageToSendQueue(messageId, message, isRequest, requestId);
     }
 
-    private void AddMessageToSendQueue(uint messageId, uint stateCode, byte[] message)
+    private void AddMessageToSendQueue(uint messageId, byte[] message, bool isRequest = false, ushort requestId = 0)
     {
         // 打包資料
-        var byteBuffer = _byteBufferPool.Rent(2 + 4 + 4 + message.Length);
-        PackMessage(byteBuffer, messageId, stateCode, message);
+        var packetLength = (message.Length > short.MaxValue) ? ShortPacketLength : LongPacketLength;
+        var byteBuffer = _byteBufferPool.Rent(packetLength + MessageIdLength + message.Length);
+        PackMessage(byteBuffer, messageId, message, isRequest, requestId);
 
         // 透過 SendQueue處理發送不完整問題
         int count = 0;
@@ -230,8 +237,8 @@ public class NetworkCommunicator
 
     private void CheckSendQueue()
     {
-        if(_sendQueue.Count <= 0) return;
-        
+        if (_sendQueue.Count <= 0) return;
+
         var count = _sendArgs.BytesTransferred;
 
         ByteBuffer byteBuffer;
@@ -273,7 +280,7 @@ public class NetworkCommunicator
     }
 
     #endregion
-    
+
     /// <summary>
     /// | 總長度 2 Byte | MessageId 4 Byte | State Code 4 Byte | 資料內容 x Byte |
     /// </summary>
@@ -286,33 +293,47 @@ public class NetworkCommunicator
 
         // 檢查是否是長封包
         var isLongPacket = false;
+        var isRequest = false;
         var totalLength = (int)byteBuffer.CheckUInt16();
         if (HasLongPacketFlag(totalLength))
         {
             if (byteBuffer.Length < LongPacketLength) return false;
 
             isLongPacket = true;
-            totalLength = (int)(((totalLength & ~LongPacketFlag) << 16) | byteBuffer.CheckUInt16(2));
+            isRequest = HasRequestFlag(totalLength);
+
+            totalLength = (int)(totalLength & ~LongPacketFlag);
+            totalLength = (int)(totalLength & ~RequestFlag);
+            totalLength = (totalLength << 16) | byteBuffer.CheckUInt16(2);
         }
-        
+
         // 資料不完整
         if (byteBuffer.Length < totalLength) return false;
 
         // 資料完整，開始解析
         if (isLongPacket)
         {
-            totalLength = (int)(((byteBuffer.ReadUInt16() & ~LongPacketFlag) << 16) | byteBuffer.ReadUInt16());
+            totalLength = (int)(byteBuffer.ReadUInt16() & ~LongPacketFlag);
+            totalLength = (int)(totalLength & ~RequestFlag);
+            totalLength = (totalLength << 16) | byteBuffer.ReadUInt16();
         }
         else
         {
             totalLength = byteBuffer.ReadUInt16();
         }
-        
-        var bodyLength = totalLength - (isLongPacket ? LongPacketLength : ShortPacketLength) - 4 - 4;
-        
+
+        var bodyLength = totalLength - (isLongPacket ? LongPacketLength : ShortPacketLength) - MessageIdLength;
+
+        if (isRequest)
+        {
+            receivedMessageInfo.IsRequest = true;
+            receivedMessageInfo.RequestId = byteBuffer.ReadUInt16();
+            
+            bodyLength -= RequestIdLength;
+        }
+
         receivedMessageInfo.MessageLength = bodyLength;
         receivedMessageInfo.MessageId = byteBuffer.ReadUInt32();
-        receivedMessageInfo.StateCode = byteBuffer.ReadUInt32();
         receivedMessageInfo.Allocate(totalLength);
         byteBuffer.Read(receivedMessageInfo.Message, 0, bodyLength);
 
@@ -324,28 +345,54 @@ public class NetworkCommunicator
     /// </summary>
     private static bool HasLongPacketFlag(int value) => value > short.MaxValue;
 
-    private static void PackMessage(ByteBuffer byteBuffer, uint messageId, uint stateCode, byte[] message)
+    private static bool HasRequestFlag(int value) => (value & RequestFlag) > 0;
+
+    private static void PackMessage(ByteBuffer byteBuffer, uint messageId, byte[] message,
+        bool isRequest = false, ushort requestId = 0)
     {
-        var length = message.Length;
-        if (length >= 1024 * 4)
-        {
-            //Logger.Warn($"MessageId({messageId}) length({length}) is too big.");
-        }
+        var bodyLength = message.Length;
+        if (bodyLength >= MaxPacketSize)
+            throw new Exception($"MessageId({messageId}) length({bodyLength}) is over size.");
+        if (bodyLength >= WarningPacketSize)
+            Log.Log.Warn($"MessageId({messageId}) length({bodyLength}) is too big.");
         
-        if (length > short.MaxValue)
+        int totalLength;
+
+        if (bodyLength > short.MaxValue || isRequest)
         {
-            var totalLength = length + LongPacketLength + 4 + 4;
-            byteBuffer.WriteUInt16((ushort)((totalLength >> 16) | LongPacketFlag));
-            byteBuffer.WriteUInt16((ushort)totalLength);
+            ushort upperTwoByte;
+            ushort lowerTwoByte;
+
+            if (isRequest)
+            {
+                totalLength = LongPacketLength + MessageIdLength + RequestIdLength + bodyLength;
+
+                upperTwoByte = (ushort)((totalLength >> 16) | LongPacketFlag);
+                upperTwoByte = (ushort)(upperTwoByte | RequestFlag);
+                lowerTwoByte = (ushort)totalLength;
+
+                byteBuffer.WriteUInt16(upperTwoByte);
+                byteBuffer.WriteUInt16(lowerTwoByte);
+                byteBuffer.WriteUInt16(requestId);
+            }
+            else
+            {
+                totalLength = LongPacketLength + MessageIdLength + bodyLength;
+
+                upperTwoByte = (ushort)((totalLength >> 16) | LongPacketFlag);
+                lowerTwoByte = (ushort)totalLength;
+
+                byteBuffer.WriteUInt16(upperTwoByte);
+                byteBuffer.WriteUInt16(lowerTwoByte);
+            }
         }
         else
         {
-            var totalLength = length + ShortPacketLength + 4 + 4;
+            totalLength = ShortPacketLength + MessageIdLength + bodyLength;
             byteBuffer.WriteUInt16((ushort)totalLength);
         }
-        
+
         byteBuffer.WriteUInt32(messageId);
-        byteBuffer.WriteUInt32(stateCode);
-        byteBuffer.Write(message, 0, length);
+        byteBuffer.Write(message, 0, bodyLength);
     }
 }

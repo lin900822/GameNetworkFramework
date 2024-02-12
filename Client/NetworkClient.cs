@@ -10,7 +10,7 @@ public class RequestInfo : IPoolable
 {
     public ReceivedMessageInfo ReceivedMessageInfo;
     public uint MessageId;
-    public uint RequestId;
+    public ushort RequestId;
     public Action<ReceivedMessageInfo> OnCompleted;
     public Action OnTimeOut;
     public long RequestTime;
@@ -45,7 +45,7 @@ public class NetworkClient
 
     private ConcurrentPool<RequestInfo> _requestPool;
 
-    private uint _requestSerialId = (uint)(int.MaxValue) + 1;
+    private ushort _requestSerialId = 0;
 
     private long _lastCheckRequestTimeOutTime;
 
@@ -149,13 +149,11 @@ public class NetworkClient
     
     private void OnReceivedMessage(ReceivedMessageInfo receivedMessageInfo)
     {
-        // 普通的Message: MessageId = 0 ~ int.MaxValue
-        // 請求 Request: MessageId = int.MaxValue ~ uint.MaxValue
-        if (receivedMessageInfo.MessageId >= (uint)(int.MaxValue) + 1)
+        if (receivedMessageInfo.IsRequest)
         {
             lock (_requestPacks)
             {
-                if (TryGetRequestInfo(receivedMessageInfo.MessageId, out var requestPack))
+                if (TryGetRequestInfo(receivedMessageInfo.RequestId, out var requestPack))
                 {
                     requestPack.ReceivedMessageInfo = receivedMessageInfo;
                     _responseQueue.Enqueue(requestPack);
@@ -219,11 +217,14 @@ public class NetworkClient
     {
         if (_connector.ConnectState != ConnectState.Connected) return;
 
-        var requestId = Interlocked.Increment(ref _requestSerialId);
+        lock (this)
+        {
+            ++_requestSerialId;
+        }
 
         var requestPack = _requestPool.Rent();
         requestPack.MessageId = messageId;
-        requestPack.RequestId = requestId;
+        requestPack.RequestId = _requestSerialId;
         requestPack.OnCompleted = onCompleted;
         requestPack.OnTimeOut = onTimeOut;
         requestPack.RequestTime = TimeUtils.TimeSinceAppStart;
@@ -233,7 +234,7 @@ public class NetworkClient
             _requestPacks.AddLast(requestPack);
         }
 
-        _connector.Send(messageId, request, requestId);
+        _connector.Send(messageId, request, true, _requestSerialId);
     }
 
     public Task<ReceivedMessageInfo> SendRequest(uint messageId, byte[] request, Action onTimeOut = null)

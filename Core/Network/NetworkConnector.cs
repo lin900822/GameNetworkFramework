@@ -57,11 +57,11 @@ public class NetworkConnector
         }
     }
 
-    public void Send(uint messageId, byte[] message, uint stateCode = 0)
+    public void Send(uint messageId, byte[] message, bool isRequest = false, ushort requestId = 0)
     {
         if (_communicator == null) return;
         
-        _communicator.Send(messageId, message, stateCode);
+        _communicator.Send(messageId, message, isRequest, requestId);
     }
     
     private void OnSessionReceivedNothing(NetworkCommunicator session)

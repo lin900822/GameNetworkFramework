@@ -123,19 +123,19 @@ public class NetworkListener
     
     #region - Send -
 
-    public void SendAll(uint messageId, byte[] message, uint stateCode = 0)
+    public void SendAll(uint messageId, byte[] message)
     {
         lock (_sessionList)
         {
             using var enumerator = _sessionList.GetEnumerator();
             while (enumerator.MoveNext())
             {
-                Send(enumerator.Current.Value, messageId, message, stateCode);
+                Send(enumerator.Current.Value, messageId, message);
             }
         }
     }
 
-    public void Send(NetworkCommunicator communicator, uint messageId, byte[] message, uint stateCode = 0)
+    public void Send(NetworkCommunicator communicator, uint messageId, byte[] message)
     {
         if (communicator == null)
         {
@@ -143,7 +143,7 @@ public class NetworkListener
             return;
         }
         
-        communicator.Send(messageId, message, stateCode);
+        communicator.Send(messageId, message);
     }
     
     #endregion

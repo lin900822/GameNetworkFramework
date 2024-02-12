@@ -23,7 +23,7 @@ networkClient.RegisterMessageHandler((uint)MessageId.Move, (messageInfo) =>
 });
 
 // Connect
-networkClient.Connect("192.168.0.108", 10001);
+networkClient.Connect("127.0.0.1", 10001);
 
 Thread.Sleep(100);
 
