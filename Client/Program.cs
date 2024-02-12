@@ -16,7 +16,7 @@ SynchronizationContext.SetSynchronizationContext(synchronizationContext);
 
 // Register Handlers
 networkClient.RegisterMessageHandler(1, (messageInfo) => { Log.Info("Pong!"); });
-networkClient.RegisterMessageHandler((uint)MessageId.Move, (messageInfo) =>
+networkClient.RegisterMessageHandler((ushort)MessageId.Move, (messageInfo) =>
 {
     if (messageInfo.TryDecode<Move>(out var move))
         Log.Info($"{move.X}");

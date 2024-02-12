@@ -102,7 +102,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
                 while (enumerator.MoveNext())
                 {
                     var routeAttribute = enumerator.Current;
-                    _messageRouter.RegisterMessageHandler((uint)routeAttribute.MessageId, action);
+                    _messageRouter.RegisterMessageHandler((ushort)routeAttribute.MessageId, action);
                 }
             }
             else if (returnType == typeof(Task))
@@ -120,7 +120,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
                         func(messageInfo).Await(null, e => { Log.Error(e.ToString()); });
                     }
 
-                    _messageRouter.RegisterMessageHandler((uint)routeAttribute.MessageId, Handler);
+                    _messageRouter.RegisterMessageHandler((ushort)routeAttribute.MessageId, Handler);
                 }
             }
             else if (returnType == typeof(Response))
@@ -133,11 +133,11 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
                 {
                     var routeAttribute = enumerator.Current;
 
-                    _messageRouter.RegisterMessageHandler((uint)routeAttribute.MessageId, (messageInfo) =>
+                    _messageRouter.RegisterMessageHandler((ushort)routeAttribute.MessageId, (messageInfo) =>
                     {
                         var response = func(messageInfo);
                         if (response.Message == null) return;
-                        messageInfo.Communicator.Send((uint)routeAttribute.MessageId, response.Message, true, messageInfo.RequestId);
+                        messageInfo.Communicator.Send((ushort)routeAttribute.MessageId, response.Message, true, messageInfo.RequestId);
                     });
                 }
             }
@@ -157,12 +157,12 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
                             response =>
                             {
                                 if (response.Message == null) return;
-                                messageInfo.Communicator.Send((uint)routeAttribute.MessageId, response.Message, true, messageInfo.RequestId);
+                                messageInfo.Communicator.Send((ushort)routeAttribute.MessageId, response.Message, true, messageInfo.RequestId);
                             },
                             e => Log.Error(e.ToString()));
                     }
 
-                    _messageRouter.RegisterMessageHandler((uint)routeAttribute.MessageId, Handler);
+                    _messageRouter.RegisterMessageHandler((ushort)routeAttribute.MessageId, Handler);
                 }
             }
             else
@@ -174,7 +174,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
 
     #endregion
     
-    public void SendMessage(NetworkCommunicator session, uint messageId, byte[] message)
+    public void SendMessage(NetworkCommunicator session, ushort messageId, byte[] message)
     {
         _networkListener.Send(session, messageId, message);
     }

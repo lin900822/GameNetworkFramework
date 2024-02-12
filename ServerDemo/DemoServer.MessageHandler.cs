@@ -48,7 +48,7 @@ public partial class DemoServer
 
         move.X += sum;
         var moveData = ProtoUtils.Encode(move);
-        receivedMessageInfo.Session.Send((uint)MessageId.Move, moveData);
+        receivedMessageInfo.Session.Send((ushort)MessageId.Move, moveData);
     }
     
     [MessageRoute(MessageId.Register)]

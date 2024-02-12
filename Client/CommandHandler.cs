@@ -143,7 +143,7 @@ public class CommandHandler
             Log.Info($"Data Length: {helloData.Length}");
 
             Log.Info($"Before await Thread:{Environment.CurrentManagedThreadId}");
-            var messageInfo = await _networkClient.SendRequest((uint)MessageId.Hello, helloData);
+            var messageInfo = await _networkClient.SendRequest((ushort)MessageId.Hello, helloData);
             Log.Info($"After  await Thread:{Environment.CurrentManagedThreadId}");
 
             if (!messageInfo.TryDecode<Hello>(out var response)) return;
@@ -173,7 +173,7 @@ public class CommandHandler
             var move = new Move() { X = 99 };
             var moveData = ProtoUtils.Encode(move);
 
-            _networkClient.SendMessage((uint)MessageId.Move, moveData);
+            _networkClient.SendMessage((ushort)MessageId.Move, moveData);
         });
     }
 
@@ -190,7 +190,7 @@ public class CommandHandler
             var user = new User() { Username = username, Password = password };
             var userData = ProtoUtils.Encode(user);
 
-            var messageInfo = await _networkClient.SendRequest((uint)MessageId.Register, userData,
+            var messageInfo = await _networkClient.SendRequest((ushort)MessageId.Register, userData,
                 () => { Log.Warn($"Time Out"); });
 
             // if (messageInfo.StateCode == (uint)StateCode.Success)

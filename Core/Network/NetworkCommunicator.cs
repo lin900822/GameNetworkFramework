@@ -1,6 +1,4 @@
 ﻿using System.Net.Sockets;
-using Core.Log;
-using Protocol;
 
 namespace Core.Network;
 
@@ -23,7 +21,7 @@ public class NetworkCommunicator
     // Const
     private const int ShortPacketLength = 2;
     private const int LongPacketLength = 4;
-    private const int MessageIdLength = 4;
+    private const int MessageIdLength = 2;
     private const int RequestIdLength = 2;
 
     private const int WarningPacketSize = 1024 * 4;
@@ -154,7 +152,7 @@ public class NetworkCommunicator
 
     #region - Send -
 
-    public void Send(uint messageId, byte[] message, bool isRequest = false, ushort requestId = 0)
+    public void Send(ushort messageId, byte[] message, bool isRequest = false, ushort requestId = 0)
     {
         if (Socket == null)
         {
@@ -171,7 +169,7 @@ public class NetworkCommunicator
         AddMessageToSendQueue(messageId, message, isRequest, requestId);
     }
 
-    private void AddMessageToSendQueue(uint messageId, byte[] message, bool isRequest = false, ushort requestId = 0)
+    private void AddMessageToSendQueue(ushort messageId, byte[] message, bool isRequest = false, ushort requestId = 0)
     {
         // 打包資料
         var packetLength = (message.Length > short.MaxValue) ? ShortPacketLength : LongPacketLength;
@@ -282,7 +280,14 @@ public class NetworkCommunicator
     #endregion
 
     /// <summary>
-    /// | 總長度 2 Byte | MessageId 4 Byte | State Code 4 Byte | 資料內容 x Byte |
+    /// 短封包:
+    /// | 總長度 2 Byte | MessageId 4 Byte | 資料內容 x Byte |
+    /// 
+    /// 長封包:
+    /// | 總長度 4 Byte | MessageId 4 Byte | 資料內容 x Byte |
+    /// 
+    /// Request:
+    /// | 總長度 4 Byte | MessageId 4 Byte | RequestId 2 Byte | 資料內容 x Byte |
     /// </summary>
     private static bool TryUnpackMessage(ByteBuffer byteBuffer, out ReceivedMessageInfo receivedMessageInfo)
     {
@@ -333,7 +338,7 @@ public class NetworkCommunicator
         }
 
         receivedMessageInfo.MessageLength = bodyLength;
-        receivedMessageInfo.MessageId = byteBuffer.ReadUInt32();
+        receivedMessageInfo.MessageId = byteBuffer.ReadUInt16();
         receivedMessageInfo.Allocate(totalLength);
         byteBuffer.Read(receivedMessageInfo.Message, 0, bodyLength);
 
@@ -345,9 +350,12 @@ public class NetworkCommunicator
     /// </summary>
     private static bool HasLongPacketFlag(int value) => value > short.MaxValue;
 
+    /// <summary>
+    /// 01000000 00000000 => 定義第二個Bit如果是1的話代表是Request, 0代表普通的Message
+    /// </summary>
     private static bool HasRequestFlag(int value) => (value & RequestFlag) > 0;
 
-    private static void PackMessage(ByteBuffer byteBuffer, uint messageId, byte[] message,
+    private static void PackMessage(ByteBuffer byteBuffer, ushort messageId, byte[] message,
         bool isRequest = false, ushort requestId = 0)
     {
         var bodyLength = message.Length;
@@ -392,7 +400,7 @@ public class NetworkCommunicator
             byteBuffer.WriteUInt16((ushort)totalLength);
         }
 
-        byteBuffer.WriteUInt32(messageId);
+        byteBuffer.WriteUInt16(messageId);
         byteBuffer.Write(message, 0, bodyLength);
     }
 }

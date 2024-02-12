@@ -196,23 +196,23 @@ public class NetworkClient
 
     #region - Public Methods -
     
-    public void RegisterMessageHandler(uint messageId, Action<ReceivedMessageInfo> handler)
+    public void RegisterMessageHandler(ushort messageId, Action<ReceivedMessageInfo> handler)
     {
         _messageRouter.RegisterMessageHandler(messageId, handler);
     }
 
-    public void UnregisterMessageHandler(uint messageId, Action<ReceivedMessageInfo> handler)
+    public void UnregisterMessageHandler(ushort messageId, Action<ReceivedMessageInfo> handler)
     {
         _messageRouter.UnregisterMessageHandler(messageId, handler);
     }
 
-    public void SendMessage(uint messageId, byte[] message)
+    public void SendMessage(ushort messageId, byte[] message)
     {
         if (_connector.ConnectState != ConnectState.Connected) return;
         _connector.Send(messageId, message);
     }
 
-    public void SendRequest(uint messageId, byte[] request, Action<ReceivedMessageInfo> onCompleted,
+    public void SendRequest(ushort messageId, byte[] request, Action<ReceivedMessageInfo> onCompleted,
         Action onTimeOut = null)
     {
         if (_connector.ConnectState != ConnectState.Connected) return;
@@ -237,7 +237,7 @@ public class NetworkClient
         _connector.Send(messageId, request, true, _requestSerialId);
     }
 
-    public Task<ReceivedMessageInfo> SendRequest(uint messageId, byte[] request, Action onTimeOut = null)
+    public Task<ReceivedMessageInfo> SendRequest(ushort messageId, byte[] request, Action onTimeOut = null)
     {
         var taskCompletionSource =
             new TaskCompletionSource<ReceivedMessageInfo>(TaskCreationOptions.RunContinuationsAsynchronously);

@@ -57,7 +57,7 @@ public class NetworkConnector
         }
     }
 
-    public void Send(uint messageId, byte[] message, bool isRequest = false, ushort requestId = 0)
+    public void Send(ushort messageId, byte[] message, bool isRequest = false, ushort requestId = 0)
     {
         if (_communicator == null) return;
         

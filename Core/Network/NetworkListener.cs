@@ -123,7 +123,7 @@ public class NetworkListener
     
     #region - Send -
 
-    public void SendAll(uint messageId, byte[] message)
+    public void SendAll(ushort messageId, byte[] message)
     {
         lock (_sessionList)
         {
@@ -135,7 +135,7 @@ public class NetworkListener
         }
     }
 
-    public void Send(NetworkCommunicator communicator, uint messageId, byte[] message)
+    public void Send(NetworkCommunicator communicator, ushort messageId, byte[] message)
     {
         if (communicator == null)
         {

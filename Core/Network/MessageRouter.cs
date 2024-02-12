@@ -25,7 +25,7 @@ public struct ReceivedMessageInfo
     /// <summary>
     /// 訊息Id
     /// </summary>
-    public uint MessageId;
+    public ushort MessageId;
 
     /// <summary>
     /// 狀態碼，預設0為成功
@@ -88,7 +88,7 @@ public class MessageRouter
         _messageInfoQueue = new ConcurrentQueue<ReceivedMessageInfo>();
     }
 
-    public void RegisterMessageHandler(uint messageId, Action<ReceivedMessageInfo> handler)
+    public void RegisterMessageHandler(ushort messageId, Action<ReceivedMessageInfo> handler)
     {
         if (_routeTable.TryGetValue(messageId, out var handlers))
         {
@@ -100,7 +100,7 @@ public class MessageRouter
         }
     }
 
-    public void UnregisterMessageHandler(uint messageId, Action<ReceivedMessageInfo> handler)
+    public void UnregisterMessageHandler(ushort messageId, Action<ReceivedMessageInfo> handler)
     {
         if (_routeTable.TryGetValue(messageId, out var handlers))
         {
