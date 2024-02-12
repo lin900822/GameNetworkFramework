@@ -1,4 +1,5 @@
 ﻿using System.Net.Sockets;
+using Core.Logger;
 
 namespace Core.Network;
 
@@ -86,7 +87,7 @@ public class NetworkCommunicator
         {
             if (Socket == null)
             {
-                Log.Log.Error("Receive Failed, client socket is null");
+                Log.Error("Receive Failed, client socket is null");
                 return;
             }
 
@@ -97,7 +98,7 @@ public class NetworkCommunicator
         }
         catch (Exception e)
         {
-            Log.Log.Error(e.ToString());
+            Log.Error(e.ToString());
         }
     }
 
@@ -156,13 +157,13 @@ public class NetworkCommunicator
     {
         if (Socket == null)
         {
-            Log.Log.Error("Send Failed, client is null or not connected");
+            Log.Error("Send Failed, client is null or not connected");
             return;
         }
 
         if (!Socket.Connected)
         {
-            Log.Log.Error("Send Failed, client is null or not connected");
+            Log.Error("Send Failed, client is null or not connected");
             return;
         }
 
@@ -201,7 +202,7 @@ public class NetworkCommunicator
         {
             if (Socket == null)
             {
-                Log.Log.Error("Send Failed, client socket is null");
+                Log.Error("Send Failed, client socket is null");
                 return;
             }
 
@@ -212,7 +213,7 @@ public class NetworkCommunicator
         }
         catch (Exception e)
         {
-            Log.Log.Error(e.ToString());
+            Log.Error(e.ToString());
         }
     }
 
@@ -220,13 +221,13 @@ public class NetworkCommunicator
     {
         if (Socket == null)
         {
-            Log.Log.Error("OnSend Failed, client socket is null");
+            Log.Error("OnSend Failed, client socket is null");
             return;
         }
 
         if (args.SocketError != SocketError.Success)
         {
-            Log.Log.Error($"OnSend Failed, Socket Error: {args.SocketError}");
+            Log.Error($"OnSend Failed, Socket Error: {args.SocketError}");
             return;
         }
 
@@ -362,7 +363,7 @@ public class NetworkCommunicator
         if (bodyLength >= MaxPacketSize)
             throw new Exception($"MessageId({messageId}) length({bodyLength}) is over size.");
         if (bodyLength >= WarningPacketSize)
-            Log.Log.Warn($"MessageId({messageId}) length({bodyLength}) is too big.");
+            Log.Warn($"MessageId({messageId}) length({bodyLength}) is too big.");
         
         int totalLength;
 

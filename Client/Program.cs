@@ -1,7 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using Client;
 using Core.Common;
-using Core.Log;
+using Core.Logger;
 using Protocol;
 
 // 

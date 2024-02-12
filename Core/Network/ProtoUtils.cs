@@ -1,5 +1,4 @@
-﻿using Core.Log;
-using Google.Protobuf;
+﻿using Google.Protobuf;
 
 namespace Core.Network;
 
@@ -20,7 +19,7 @@ public static class ProtoUtils
         }
         catch (Exception e)
         {
-            Log.Log.Error(e.ToString());
+            Logger.Log.Error(e.ToString());
             outMessage = default(T);
             return false;
         }

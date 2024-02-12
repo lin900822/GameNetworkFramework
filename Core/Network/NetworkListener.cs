@@ -1,7 +1,6 @@
 ﻿using System.Net;
 using System.Net.Sockets;
-using Core.Log;
-using Core.Metrics;
+using Core.Logger;
 
 namespace Core.Network;
 
@@ -42,7 +41,7 @@ public class NetworkListener
         {
             _listenFd.Bind(endPoint);
             _listenFd.Listen(_maxConnectionCount);
-            Log.Log.Info($"Start Listening at Port: {port}");
+            Log.Info($"Start Listening at Port: {port}");
 
             var acceptEventArg = new SocketAsyncEventArgs(); // 所有Accept共用這個eventArgs
             acceptEventArg.Completed += OnAccept;
@@ -51,7 +50,7 @@ public class NetworkListener
         }
         catch (Exception e)
         {
-            Log.Log.Error(e.Message);
+            Log.Error(e.Message);
         }
     }
     
@@ -68,7 +67,7 @@ public class NetworkListener
         }
         catch (Exception e)
         {
-            Log.Log.Error(e.ToString());
+            Log.Error(e.ToString());
         }
     }
 
@@ -82,7 +81,7 @@ public class NetworkListener
             return;
         }
 
-        Log.Log.Info($"A Client {clientFd.RemoteEndPoint?.ToString()} Connected!");
+        Log.Info($"A Client {clientFd.RemoteEndPoint?.ToString()} Connected!");
 
         // 加入SessionList列表
         var session = _sessionPool.Rent();;
@@ -139,7 +138,7 @@ public class NetworkListener
     {
         if (communicator == null)
         {
-            Log.Log.Error("Send Failed, client is null or not connected");
+            Log.Error("Send Failed, client is null or not connected");
             return;
         }
         
@@ -157,7 +156,7 @@ public class NetworkListener
     {
         if (!_sessionList.TryGetValue(socket, out var session))
         {
-            Log.Log.Error($"Close Socket Error: Cannot find session");
+            Log.Error($"Close Socket Error: Cannot find session");
             return;
         }
         
@@ -186,7 +185,7 @@ public class NetworkListener
         {
             var socketEndPointStr = socket.RemoteEndPoint?.ToString();
             CloseSocket(socket);
-            Log.Log.Info($"{socketEndPointStr} Closed!");
+            Log.Info($"{socketEndPointStr} Closed!");
         }
     }
 
@@ -198,7 +197,7 @@ public class NetworkListener
         }
         catch (Exception e)
         {
-            Log.Log.Error(e.ToString());
+            Log.Error(e.ToString());
         }
 
         socket.Close();

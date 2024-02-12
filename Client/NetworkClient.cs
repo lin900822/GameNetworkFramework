@@ -1,7 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Net.Sockets;
 using Core.Common;
-using Core.Log;
+using Core.Logger;
 using Core.Network;
 
 namespace Client;

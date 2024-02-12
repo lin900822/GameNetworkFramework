@@ -1,5 +1,6 @@
 ﻿using System.Buffers;
 using System.Collections.Concurrent;
+using Core.Logger;
 using Core.Metrics;
 using Google.Protobuf;
 
@@ -59,7 +60,7 @@ public struct ReceivedMessageInfo
         }
         catch (Exception e)
         {
-            Log.Log.Error(e.ToString());
+            Log.Error(e.ToString());
             outMessage = default(T);
             return false;
         }
@@ -131,7 +132,7 @@ public class MessageRouter
             }
             else
             {
-                Log.Log.Warn($"Message Router: Received Unregistered Message, messageId = {pack.MessageId}");
+                Log.Warn($"Message Router: Received Unregistered Message, messageId = {pack.MessageId}");
             }
         
             pack.Release();

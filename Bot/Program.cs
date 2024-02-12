@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using Client;
-using Core.Log;
 using Core.Network;
 using Protocol;
 
@@ -37,7 +36,7 @@ for (int i = 0; i < 25; i++)
 
         foreach (var bot in bots)
         {
-            bot.Connect("192.168.0.108", 10001);
+            bot.Connect("127.0.0.1", 10001);
             Thread.Sleep(100);
         }
 

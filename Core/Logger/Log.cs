@@ -1,4 +1,4 @@
-﻿namespace Core.Log;
+﻿namespace Core.Logger;
 
 public static class Log
 {

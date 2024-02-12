@@ -1,4 +1,4 @@
-﻿using Core.Log;
+﻿using Core.Logger;
 using Dapper;
 using Server;
 using Server.Database;

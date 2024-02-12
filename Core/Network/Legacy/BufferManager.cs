@@ -1,5 +1,4 @@
 ﻿using System.Net.Sockets;
-using Core.Log;
 
 namespace Core.Network.Legacy;
 
@@ -48,7 +47,7 @@ public class BufferManager
     {
         if (_indexPool.Contains(e.Offset))
         {
-            Log.Log.Error("BufferManager FreeBuffer: _indexPool Contains offset");
+            Logger.Log.Error("BufferManager FreeBuffer: _indexPool Contains offset");
             return;
         }
         

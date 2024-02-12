@@ -1,5 +1,4 @@
 using System.Net.Sockets;
-using Core.Log;
 
 namespace Core.Network;
 
@@ -33,7 +32,7 @@ public abstract class NetworkBase
             var socket = args.AcceptSocket;
             if (socket == null)
             {
-                Log.Log.Error("Receive Failed, client socket is null");
+                Logger.Log.Error("Receive Failed, client socket is null");
                 return;
             }
             if (!socket.ReceiveAsync(args))
@@ -43,7 +42,7 @@ public abstract class NetworkBase
         }
         catch (Exception e)
         {
-            Log.Log.Error(e.ToString());
+            Logger.Log.Error(e.ToString());
         }
     }
     
@@ -75,7 +74,7 @@ public abstract class NetworkBase
             var targetSocket = args.AcceptSocket;
             if (targetSocket == null)
             {
-                Log.Log.Error("Send Failed, client socket is null");
+                Logger.Log.Error("Send Failed, client socket is null");
                 return;
             }
             if (!targetSocket.SendAsync(args))
@@ -85,7 +84,7 @@ public abstract class NetworkBase
         }
         catch (Exception e)
         {
-            Log.Log.Error(e.ToString());
+            Logger.Log.Error(e.ToString());
         }
     }
     

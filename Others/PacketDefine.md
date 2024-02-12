@@ -7,7 +7,7 @@
 | 總長度 4 Byte | MessageId 4 Byte | 資料內容 x Byte |
 
 ### Request:
-| 總長度 4 Byte | MessageId 4 Byte | RequestId 2 Byte | 資料內容 x Byte |
+| 總長度 4 Byte | RequestId 2 Byte | MessageId 4 Byte | 資料內容 x Byte |
 
 ### 說明:
 - 長短封包由總長度的第一個Bit定義       1XXXXXXX XXXXXXXX

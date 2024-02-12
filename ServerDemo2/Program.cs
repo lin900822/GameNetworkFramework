@@ -1,4 +1,4 @@
-﻿using Core.Log;
+﻿using Core.Logger;
 using Microsoft.Extensions.DependencyInjection;
 using Server;
 using ServerDemo2;
