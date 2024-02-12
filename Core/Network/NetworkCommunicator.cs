@@ -29,7 +29,7 @@ public class NetworkCommunicator
     private const int MaxPacketSize = (int)(uint.MaxValue >> 2);
 
     private const uint LongPacketFlag = 0b_00000000_00000000_10000000_00000000;
-    private const uint RequestFlag = 0b_00000000_00000000_01000000_00000000;
+    private const uint RequestFlag    = 0b_00000000_00000000_01000000_00000000;
 
     public NetworkCommunicator(ByteBufferPool pool, int bufferSize)
     {
@@ -62,8 +62,11 @@ public class NetworkCommunicator
         _receiveArgs.AcceptSocket = null;
         _sendArgs.AcceptSocket = null;
 
-        _receiveBuffer.SetReadIndex(0);
-        _receiveBuffer.SetWriteIndex(0);
+        lock (_receiveBuffer)
+        {
+            _receiveBuffer.SetReadIndex(0);
+            _receiveBuffer.SetWriteIndex(0);
+        }
 
         lock (_sendQueue)
         {
@@ -104,7 +107,7 @@ public class NetworkCommunicator
 
     private void OnReceive(object sender, SocketAsyncEventArgs args)
     {
-        if (!ReadDataToBuffer(args, _receiveBuffer))
+        if (!ReadDataToReceiveBuffer(args))
         {
             // 收到 0個 Byte代表 Client已關閉
             OnReceivedNothing?.Invoke(this);
@@ -115,7 +118,7 @@ public class NetworkCommunicator
         ReceiveAsync();
     }
 
-    private bool ReadDataToBuffer(SocketAsyncEventArgs args, ByteBuffer readBuffer)
+    private bool ReadDataToReceiveBuffer(SocketAsyncEventArgs args)
     {
         var receiveCount = args.BytesTransferred;
         var isNotSuccess = args.SocketError != SocketError.Success;
@@ -125,14 +128,17 @@ public class NetworkCommunicator
             return false;
         }
 
-        readBuffer.Write(args.Buffer, args.Offset, receiveCount);
+        lock (_receiveBuffer)
+        {
+            _receiveBuffer.Write(args.Buffer, args.Offset, receiveCount);
+        }
 
         return true;
     }
 
     private void ParseReceivedData()
     {
-        if (!TryUnpackMessage(_receiveBuffer, out var messageInfo))
+        if (!TryUnpackMessage(out var messageInfo))
         {
             return;
         }
@@ -280,6 +286,8 @@ public class NetworkCommunicator
 
     #endregion
 
+    #region - Handle Packet -
+
     /// <summary>
     /// 短封包:
     /// | 總長度 2 Byte | MessageId 4 Byte | 資料內容 x Byte |
@@ -290,59 +298,62 @@ public class NetworkCommunicator
     /// Request:
     /// | 總長度 4 Byte | MessageId 4 Byte | RequestId 2 Byte | 資料內容 x Byte |
     /// </summary>
-    private static bool TryUnpackMessage(ByteBuffer byteBuffer, out ReceivedMessageInfo receivedMessageInfo)
+    private bool TryUnpackMessage(out ReceivedMessageInfo receivedMessageInfo)
     {
         receivedMessageInfo = new ReceivedMessageInfo();
 
         // 連表示總長度的 2 Byte都沒收到
-        if (byteBuffer.Length < ShortPacketLength) return false;
+        if (_receiveBuffer.Length < ShortPacketLength) return false;
 
         // 檢查是否是長封包
         var isLongPacket = false;
         var isRequest = false;
-        var totalLength = (int)byteBuffer.CheckUInt16();
+        var totalLength = (int)_receiveBuffer.CheckUInt16();
         if (HasLongPacketFlag(totalLength))
         {
-            if (byteBuffer.Length < LongPacketLength) return false;
+            if (_receiveBuffer.Length < LongPacketLength) return false;
 
             isLongPacket = true;
             isRequest = HasRequestFlag(totalLength);
 
             totalLength = (int)(totalLength & ~LongPacketFlag);
             totalLength = (int)(totalLength & ~RequestFlag);
-            totalLength = (totalLength << 16) | byteBuffer.CheckUInt16(2);
+            totalLength = (totalLength << 16) | _receiveBuffer.CheckUInt16(2);
         }
 
         // 資料不完整
-        if (byteBuffer.Length < totalLength) return false;
+        if (_receiveBuffer.Length < totalLength) return false;
 
         // 資料完整，開始解析
-        if (isLongPacket)
+        lock (_receiveBuffer)
         {
-            totalLength = (int)(byteBuffer.ReadUInt16() & ~LongPacketFlag);
-            totalLength = (int)(totalLength & ~RequestFlag);
-            totalLength = (totalLength << 16) | byteBuffer.ReadUInt16();
-        }
-        else
-        {
-            totalLength = byteBuffer.ReadUInt16();
-        }
+            if (isLongPacket)
+            {
+                totalLength = (int)(_receiveBuffer.ReadUInt16() & ~LongPacketFlag);
+                totalLength = (int)(totalLength & ~RequestFlag);
+                totalLength = (totalLength << 16) | _receiveBuffer.ReadUInt16();
+            }
+            else
+            {
+                totalLength = _receiveBuffer.ReadUInt16();
+            }
 
-        var bodyLength = totalLength - (isLongPacket ? LongPacketLength : ShortPacketLength) - MessageIdLength;
+            var bodyLength = totalLength - (isLongPacket ? LongPacketLength : ShortPacketLength) - MessageIdLength;
 
-        if (isRequest)
-        {
-            receivedMessageInfo.IsRequest = true;
-            receivedMessageInfo.RequestId = byteBuffer.ReadUInt16();
+            if (isRequest)
+            {
+                receivedMessageInfo.IsRequest = true;
+                receivedMessageInfo.RequestId = _receiveBuffer.ReadUInt16();
             
-            bodyLength -= RequestIdLength;
+                bodyLength -= RequestIdLength;
+            }
+
+            receivedMessageInfo.MessageLength = bodyLength;
+            receivedMessageInfo.MessageId = _receiveBuffer.ReadUInt16();
+            receivedMessageInfo.Allocate(totalLength);
+            _receiveBuffer.Read(receivedMessageInfo.Message, 0, bodyLength);
         }
-
-        receivedMessageInfo.MessageLength = bodyLength;
-        receivedMessageInfo.MessageId = byteBuffer.ReadUInt16();
-        receivedMessageInfo.Allocate(totalLength);
-        byteBuffer.Read(receivedMessageInfo.Message, 0, bodyLength);
-
+        
         return true;
     }
 
@@ -404,4 +415,6 @@ public class NetworkCommunicator
         byteBuffer.WriteUInt16(messageId);
         byteBuffer.Write(message, 0, bodyLength);
     }
+
+    #endregion
 }

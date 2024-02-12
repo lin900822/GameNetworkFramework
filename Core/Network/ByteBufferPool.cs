@@ -6,6 +6,10 @@ public class ByteBufferPool
 {
     private ConcurrentQueue<ByteBuffer> _byteBufferQueue = new ConcurrentQueue<ByteBuffer>();
 
+    public ByteBufferPool()
+    {
+    }
+    
     public ByteBuffer Rent(int size)
     {
         if (_byteBufferQueue.TryDequeue(out var byteBuffer))
