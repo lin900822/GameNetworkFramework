@@ -24,7 +24,7 @@ public class NetworkCommunicator
     private ByteBufferPool _byteBufferPool;
 
     // Const
-    private const int MaxReceivedCountPerSecond = 100;
+    private const int MaxReceivedCountPerSecond = 100000000;
     private const int OneSecond                 = 1000;
 
 
