@@ -1,16 +1,20 @@
 ﻿using System.Net.Sockets;
+using Core.Common;
 using Core.Logger;
 
 namespace Core.Network;
 
 public class NetworkCommunicator
 {
+    private int  _receivedCount              = 0;
+    private long _lastResetReceivedCountTime = 0;
+
     public Socket Socket { get; private set; }
 
     public Action<ReceivedMessageInfo> OnReceivedMessage;
     public Action<NetworkCommunicator> OnReceivedNothing;
 
-    private readonly ByteBuffer _receiveBuffer;
+    private readonly ByteBuffer        _receiveBuffer;
     private readonly Queue<ByteBuffer> _sendQueue;
 
     private readonly SocketAsyncEventArgs _receiveArgs;
@@ -20,13 +24,17 @@ public class NetworkCommunicator
     private ByteBufferPool _byteBufferPool;
 
     // Const
+    private const int MaxReceivedCountPerSecond = 100;
+    private const int OneSecond                 = 1000;
+
+
     private const int ShortPacketLength = 2;
-    private const int LongPacketLength = 4;
-    private const int MessageIdLength = 2;
-    private const int RequestIdLength = 2;
+    private const int LongPacketLength  = 4;
+    private const int MessageIdLength   = 2;
+    private const int RequestIdLength   = 2;
 
     private const int WarningPacketSize = 1024 * 4;
-    private const int MaxPacketSize = (int)(uint.MaxValue >> 2);
+    private const int MaxPacketSize     = (int)(uint.MaxValue >> 2);
 
     private const uint LongPacketFlag = 0b_00000000_00000000_10000000_00000000;
     private const uint RequestFlag    = 0b_00000000_00000000_01000000_00000000;
@@ -36,31 +44,31 @@ public class NetworkCommunicator
         _byteBufferPool = pool;
 
         var receiveArg = new SocketAsyncEventArgs();
-        var sendArg = new SocketAsyncEventArgs();
+        var sendArg    = new SocketAsyncEventArgs();
         receiveArg.SetBuffer(new byte[bufferSize], 0, bufferSize);
         sendArg.SetBuffer(new byte[bufferSize], 0, bufferSize);
 
         _receiveBuffer = new ByteBuffer(bufferSize);
-        _sendQueue = new Queue<ByteBuffer>();
-        _receiveArgs = receiveArg;
-        _sendArgs = sendArg;
+        _sendQueue     = new Queue<ByteBuffer>();
+        _receiveArgs   = receiveArg;
+        _sendArgs      = sendArg;
     }
 
     public virtual void SetActive(Socket socket)
     {
-        Socket = socket;
+        Socket                    = socket;
         _receiveArgs.AcceptSocket = socket;
-        _sendArgs.AcceptSocket = socket;
+        _sendArgs.AcceptSocket    = socket;
 
         _receiveArgs.Completed += OnReceive;
-        _sendArgs.Completed += OnSend;
+        _sendArgs.Completed    += OnSend;
     }
 
     public virtual void SetInactive()
     {
-        Socket = null;
+        Socket                    = null;
         _receiveArgs.AcceptSocket = null;
-        _sendArgs.AcceptSocket = null;
+        _sendArgs.AcceptSocket    = null;
 
         lock (_receiveBuffer)
         {
@@ -79,7 +87,7 @@ public class NetworkCommunicator
         }
 
         _receiveArgs.Completed -= OnReceive;
-        _sendArgs.Completed -= OnSend;
+        _sendArgs.Completed    -= OnSend;
     }
 
     #region - Receive -
@@ -148,6 +156,26 @@ public class NetworkCommunicator
         // 分發收到的 Message
         OnReceivedMessage?.Invoke(messageInfo);
 
+        var isOverReceived = false;
+        lock (this)
+        {
+            ++_receivedCount;
+            if (_receivedCount >= MaxReceivedCountPerSecond)
+            {
+                isOverReceived = TimeUtils.GetTimeStamp() - _lastResetReceivedCountTime < OneSecond;
+
+                _receivedCount              = 0;
+                _lastResetReceivedCountTime = TimeUtils.GetTimeStamp();
+            }
+        }
+
+        if (isOverReceived)
+        {
+            Log.Warn($"{Socket.RemoteEndPoint} Sent Too Much Packets.");
+            OnReceivedNothing?.Invoke(this);
+            return;
+        }
+
         // 繼續解析 readBuffer
         if (_receiveBuffer.Length > 2)
         {
@@ -180,7 +208,7 @@ public class NetworkCommunicator
     {
         // 打包資料
         var packetLength = (message.Length > short.MaxValue) ? ShortPacketLength : LongPacketLength;
-        var byteBuffer = _byteBufferPool.Rent(packetLength + MessageIdLength + message.Length);
+        var byteBuffer   = _byteBufferPool.Rent(packetLength + MessageIdLength + message.Length);
         PackMessage(byteBuffer, messageId, message, isRequest, requestId);
 
         // 透過 SendQueue處理發送不完整問題
@@ -307,14 +335,14 @@ public class NetworkCommunicator
 
         // 檢查是否是長封包
         var isLongPacket = false;
-        var isRequest = false;
-        var totalLength = (int)_receiveBuffer.CheckUInt16();
+        var isRequest    = false;
+        var totalLength  = (int)_receiveBuffer.CheckUInt16();
         if (HasLongPacketFlag(totalLength))
         {
             if (_receiveBuffer.Length < LongPacketLength) return false;
 
             isLongPacket = true;
-            isRequest = HasRequestFlag(totalLength);
+            isRequest    = HasRequestFlag(totalLength);
 
             totalLength = (int)(totalLength & ~LongPacketFlag);
             totalLength = (int)(totalLength & ~RequestFlag);
@@ -344,16 +372,16 @@ public class NetworkCommunicator
             {
                 receivedMessageInfo.IsRequest = true;
                 receivedMessageInfo.RequestId = _receiveBuffer.ReadUInt16();
-            
+
                 bodyLength -= RequestIdLength;
             }
 
             receivedMessageInfo.MessageLength = bodyLength;
-            receivedMessageInfo.MessageId = _receiveBuffer.ReadUInt16();
+            receivedMessageInfo.MessageId     = _receiveBuffer.ReadUInt16();
             receivedMessageInfo.Allocate(totalLength);
             _receiveBuffer.Read(receivedMessageInfo.Message, 0, bodyLength);
         }
-        
+
         return true;
     }
 
@@ -367,15 +395,15 @@ public class NetworkCommunicator
     /// </summary>
     private static bool HasRequestFlag(int value) => (value & RequestFlag) > 0;
 
-    private static void PackMessage(ByteBuffer byteBuffer, ushort messageId, byte[] message,
-        bool isRequest = false, ushort requestId = 0)
+    private static void PackMessage(ByteBuffer byteBuffer,        ushort messageId, byte[] message,
+        bool                                   isRequest = false, ushort requestId = 0)
     {
         var bodyLength = message.Length;
         if (bodyLength >= MaxPacketSize)
             throw new Exception($"MessageId({messageId}) length({bodyLength}) is over size.");
         if (bodyLength >= WarningPacketSize)
             Log.Warn($"MessageId({messageId}) length({bodyLength}) is too big.");
-        
+
         int totalLength;
 
         if (bodyLength > short.MaxValue || isRequest)
