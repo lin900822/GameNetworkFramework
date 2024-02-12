@@ -164,6 +164,13 @@ public class CommandHandler
 
         return randomBytes;
     }
+    
+    [Command("ping")]
+    public async void TestPing()
+    {
+        TestData.PingTime = TimeUtils.GetTimeStamp();
+        _networkClient.SendMessage((ushort)MessageId.HeartBeat, Array.Empty<byte>());
+    }
 
     [Command("move")]
     public async void TestMove()

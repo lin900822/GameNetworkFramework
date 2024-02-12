@@ -15,7 +15,10 @@ var synchronizationContext = new GameSynchronizationContext();
 SynchronizationContext.SetSynchronizationContext(synchronizationContext);
 
 // Register Handlers
-networkClient.RegisterMessageHandler(1, (messageInfo) => { Log.Info("Pong!"); });
+networkClient.RegisterMessageHandler(1, (messageInfo) =>
+{
+    Log.Info($"Pong! {TimeUtils.GetTimeStamp() - TestData.PingTime}ms");
+});
 networkClient.RegisterMessageHandler((ushort)MessageId.Move, (messageInfo) =>
 {
     if (messageInfo.TryDecode<Move>(out var move))

@@ -62,7 +62,7 @@ for (int i = 0; i < threadCount; i++)
                      //         Log.Info("Get Response");
                      //     }
                      // });
-                    bot.SendMessage((ushort)MessageId.HeartBeat, Array.Empty<byte>());
+                    bot.SendMessage((ushort)MessageId.Move, moveData);
                 }
 
                 bot.Update();
