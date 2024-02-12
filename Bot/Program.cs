@@ -28,7 +28,7 @@ for (int i = 0; i < 25; i++)
         for (int j = 0; j < 40; j++)
         {
             bots[j] = new NetworkClient();
-            bots[j].RegisterMessageHandler((uint)MessageId.Move, (receivedMessageInfo) =>
+            bots[j].RegisterMessageHandler((ushort)MessageId.Move, (receivedMessageInfo) =>
             {
                 // if(receivedMessageInfo.TryDecode<Move>(out move))
                 // Log.Info($"{move.X}");
@@ -55,7 +55,7 @@ for (int i = 0; i < 25; i++)
                     //         Log.Info($"{hello.Content}");
                     //     }
                     // });
-                    bot.SendMessage((uint)MessageId.Move, moveData);
+                    bot.SendMessage((ushort)MessageId.Move, moveData);
                 }
 
                 bot.Update();
