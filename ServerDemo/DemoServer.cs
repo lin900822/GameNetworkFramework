@@ -25,7 +25,7 @@ public partial class DemoServer : ServerBase<DemoClient>
         //_connectorClient.Connect("127.0.0.1", 10002);
     }
 
-    protected override void OnUpdate()
+    protected override void OnFixedUpdate()
     {
         //_connectorClient.Update();
     }

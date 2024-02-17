@@ -16,7 +16,7 @@ public partial class DemoServer : ServerBase<DemoClient>
         //InitDebug();
     }
 
-    protected override void OnUpdate()
+    protected override void OnFixedUpdate()
     {
         
     }

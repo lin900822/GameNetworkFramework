@@ -1,4 +1,5 @@
-﻿using System.Net.Sockets;
+﻿using System.Collections.Concurrent;
+using System.Net.Sockets;
 using Core.Common;
 using Core.Logger;
 
@@ -17,6 +18,8 @@ public class NetworkCommunicator
 
     private readonly ByteBuffer        _receiveBuffer;
     private readonly Queue<ByteBuffer> _sendQueue;
+
+    private readonly ConcurrentQueue<ReceivedMessageInfo> _receivedMessageInfos;
 
     private readonly SocketAsyncEventArgs _receiveArgs;
     private readonly SocketAsyncEventArgs _sendArgs;
@@ -51,8 +54,11 @@ public class NetworkCommunicator
 
         _receiveBuffer = new ByteBuffer(bufferSize);
         _sendQueue     = new Queue<ByteBuffer>();
-        _receiveArgs   = receiveArg;
-        _sendArgs      = sendArg;
+
+        _receivedMessageInfos = new ConcurrentQueue<ReceivedMessageInfo>();
+
+        _receiveArgs = receiveArg;
+        _sendArgs    = sendArg;
     }
 
     public virtual void Init(Socket socket, bool isNeedCheckOverReceived = false)
@@ -93,6 +99,15 @@ public class NetworkCommunicator
 
         _receiveArgs.Completed -= OnReceive;
         _sendArgs.Completed    -= OnSend;
+    }
+
+    public void Update()
+    {
+        if (_receivedMessageInfos.Count <= 0) return;
+        if (!_receivedMessageInfos.TryDequeue(out var messageInfo)) return;
+        
+        // 分發收到的 Message
+        OnReceivedMessage?.Invoke(messageInfo);
     }
 
     #region - Receive -
@@ -158,8 +173,7 @@ public class NetworkCommunicator
 
         messageInfo.Communicator = this;
 
-        // 分發收到的 Message
-        OnReceivedMessage?.Invoke(messageInfo);
+        _receivedMessageInfos.Enqueue(messageInfo);
 
         if (IsOverReceived())
         {

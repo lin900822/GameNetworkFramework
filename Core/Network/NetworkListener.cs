@@ -53,6 +53,21 @@ public class NetworkListener
             Log.Error(e.Message);
         }
     }
+
+    public void Update()
+    {
+        try
+        {
+            foreach (var session in SessionList.Values)
+            {
+                session.Update();
+            }
+        }
+        catch (Exception ex)
+        {
+            // ignored
+        }
+    }
     
     #region - Accept -
 

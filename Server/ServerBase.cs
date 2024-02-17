@@ -213,13 +213,14 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
     {
         try
         {
+            _networkListener.Update();
             _messageRouter.OnUpdateLogic();
             
             _millisecondsPassed = TimeUtils.TimeSinceAppStart - _startTimeMs;
 
             while (_millisecondsPassed - _frameCount * _millisecondsPerFrame >= _millisecondsPerFrame)
             {
-                OnUpdate();
+                OnFixedUpdate();
                 ++_frameCount;
                 CheckHeartBeat();
                 SyncPrometheus();
@@ -246,7 +247,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
     {
     }
 
-    protected virtual void OnUpdate()
+    protected virtual void OnFixedUpdate()
     {
     }
 

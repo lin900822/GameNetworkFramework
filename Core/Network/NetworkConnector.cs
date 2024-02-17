@@ -58,6 +58,11 @@ public class NetworkConnector
         }
     }
 
+    public void Update()
+    {
+        _communicator.Update();
+    }
+
     public void Send(ushort messageId, byte[] message, bool isRequest = false, ushort requestId = 0)
     {
         if (_communicator == null) return;
