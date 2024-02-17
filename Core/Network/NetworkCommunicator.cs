@@ -101,11 +101,14 @@ public class NetworkCommunicator
 
     public void Update()
     {
-        if (_receivedMessageInfos.Count <= 0) return;
-        if (!_receivedMessageInfos.TryDequeue(out var messageInfo)) return;
+        for (var i = 0; i < 10; i++)
+        {
+            if (_receivedMessageInfos.Count <= 0) return;
+            if (!_receivedMessageInfos.TryDequeue(out var messageInfo)) return;
         
-        // 分發收到的 Message
-        OnReceivedMessage?.Invoke(messageInfo);
+            // 分發收到的 Message
+            OnReceivedMessage?.Invoke(messageInfo);
+        }
     }
 
     #region - Receive -
