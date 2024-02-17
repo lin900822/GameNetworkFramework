@@ -26,7 +26,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
     private long _startTimeMs;
     private long _lastFrameTimeMs;
 
-    protected int _targetFps = 15;
+    protected int _targetFps = 20;
     protected int _millisecondsPerFrame;
     protected long _millisecondsPassed;
     protected long _frameCount = 0;

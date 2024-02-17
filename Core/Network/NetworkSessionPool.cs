@@ -33,7 +33,7 @@ public class NetworkSessionPool
 
     public void Return(NetworkSession session)
     {
-        session.SetInactive();
+        session.Release();
         _sessionStack.Push(session);
     }
 }

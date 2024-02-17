@@ -6,6 +6,7 @@ namespace Core.Network;
 
 public class NetworkCommunicator
 {
+    private bool _isNeedCheckOverReceived    = false;
     private int  _receivedCount              = 0;
     private long _lastResetReceivedCountTime = 0;
 
@@ -24,7 +25,7 @@ public class NetworkCommunicator
     private ByteBufferPool _byteBufferPool;
 
     // Const
-    private const int MaxReceivedCountPerSecond = 100000000;
+    private const int MaxReceivedCountPerSecond = 100;
     private const int OneSecond                 = 1000;
 
 
@@ -54,21 +55,25 @@ public class NetworkCommunicator
         _sendArgs      = sendArg;
     }
 
-    public virtual void SetActive(Socket socket)
+    public virtual void Init(Socket socket, bool isNeedCheckOverReceived = false)
     {
         Socket                    = socket;
         _receiveArgs.AcceptSocket = socket;
         _sendArgs.AcceptSocket    = socket;
 
+        _isNeedCheckOverReceived = isNeedCheckOverReceived;
+
         _receiveArgs.Completed += OnReceive;
         _sendArgs.Completed    += OnSend;
     }
 
-    public virtual void SetInactive()
+    public virtual void Release()
     {
         Socket                    = null;
         _receiveArgs.AcceptSocket = null;
         _sendArgs.AcceptSocket    = null;
+
+        _isNeedCheckOverReceived = false;
 
         lock (_receiveBuffer)
         {
@@ -156,6 +161,22 @@ public class NetworkCommunicator
         // 分發收到的 Message
         OnReceivedMessage?.Invoke(messageInfo);
 
+        if (IsOverReceived())
+        {
+            return;
+        }
+
+        // 繼續解析 readBuffer
+        if (_receiveBuffer.Length > 2)
+        {
+            ParseReceivedData();
+        }
+    }
+
+    private bool IsOverReceived()
+    {
+        if (!_isNeedCheckOverReceived) return false;
+
         var isOverReceived = false;
         lock (this)
         {
@@ -169,18 +190,11 @@ public class NetworkCommunicator
             }
         }
 
-        if (isOverReceived)
-        {
-            Log.Warn($"{Socket.RemoteEndPoint} Sent Too Much Packets.");
-            OnReceivedNothing?.Invoke(this);
-            return;
-        }
+        if (!isOverReceived) return false;
 
-        // 繼續解析 readBuffer
-        if (_receiveBuffer.Length > 2)
-        {
-            ParseReceivedData();
-        }
+        Log.Warn($"{Socket.RemoteEndPoint} Sent Too Much Packets.");
+        OnReceivedNothing?.Invoke(this);
+        return true;
     }
 
     #endregion

@@ -8,9 +8,9 @@ public class NetworkSession : NetworkCommunicator
     {
     }
 
-    public override void SetInactive()
+    public override void Release()
     {
-        base.SetInactive();
+        base.Release();
         SessionObject = null;
     }
 }

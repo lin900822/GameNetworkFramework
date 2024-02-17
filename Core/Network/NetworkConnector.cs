@@ -48,7 +48,7 @@ public class NetworkConnector
             _communicator.OnReceivedMessage += OnReceivedMessage;
             _communicator.OnReceivedNothing += OnSessionReceivedNothing;
 
-            _communicator.SetActive(_connectFd);
+            _communicator.Init(_connectFd);
             _communicator.ReceiveAsync();
         }
         catch (Exception e)

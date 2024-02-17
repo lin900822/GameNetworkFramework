@@ -93,7 +93,7 @@ public class NetworkListener
         }
         else
         {
-            session.SetActive(clientFd);
+            session.Init(clientFd, true);
             session.OnReceivedMessage += HandleReceivedMessage;
             session.OnReceivedNothing += OnCommunicatorReceivedNothing;
 
