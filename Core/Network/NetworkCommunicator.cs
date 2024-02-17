@@ -8,8 +8,6 @@ namespace Core.Network;
 public class NetworkCommunicator
 {
     private bool _isNeedCheckOverReceived    = false;
-    private int  _receivedCount              = 0;
-    private long _lastResetReceivedCountTime = 0;
 
     public Socket Socket { get; private set; }
 
@@ -28,9 +26,7 @@ public class NetworkCommunicator
     private ByteBufferPool _byteBufferPool;
 
     // Const
-    private const int MaxReceivedCountPerSecond = 1_000;
-    private const int OneSecond                 = 10_000;
-
+    private const int MaxReceivedCount = 100;
 
     private const int ShortPacketLength = 2;
     private const int LongPacketLength  = 4;
@@ -96,6 +92,8 @@ public class NetworkCommunicator
                 _byteBufferPool.Return(item);
             }
         }
+        
+        _receivedMessageInfos.Clear();
 
         _receiveArgs.Completed -= OnReceive;
         _sendArgs.Completed    -= OnSend;
@@ -191,20 +189,7 @@ public class NetworkCommunicator
     {
         if (!_isNeedCheckOverReceived) return false;
 
-        var isOverReceived = false;
-        lock (this)
-        {
-            ++_receivedCount;
-            if (_receivedCount >= MaxReceivedCountPerSecond)
-            {
-                isOverReceived = TimeUtils.GetTimeStamp() - _lastResetReceivedCountTime < OneSecond;
-
-                _receivedCount              = 0;
-                _lastResetReceivedCountTime = TimeUtils.GetTimeStamp();
-            }
-        }
-
-        if (!isOverReceived) return false;
+        if (_receivedMessageInfos.Count < MaxReceivedCount) return false;
 
         Log.Warn($"{Socket.RemoteEndPoint} Sent Too Much Packets.");
         OnReceivedNothing?.Invoke(this);
