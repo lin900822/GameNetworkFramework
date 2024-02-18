@@ -1,13 +1,16 @@
 ﻿using System.Diagnostics;
+using System.Text;
 using Client;
 using Core.Logger;
 using Core.Network;
 using Protocol;
 
+// Move
 var move = new Move();
 move.X = 10;
 var moveData = ProtoUtils.Encode(move);
 
+// Hello
 int length = 256;
 byte[] randomBytes = GenerateRandomBytes(length);
 string randomString = Convert.ToBase64String(randomBytes);
@@ -15,11 +18,22 @@ string randomString = Convert.ToBase64String(randomBytes);
 var hello = new Hello() { Content = "Username Password Email Data Query MySQL Server" };
 var helloData = ProtoUtils.Encode(hello);
 
+// Raw Byte
+var byteBuffer = ByteBufferPool.Shared.Rent(12);
+byteBuffer.WriteUInt32(24);
+byteBuffer.WriteUInt32(65);
+byteBuffer.WriteUInt32(98);
+
+byte[] rawByteData = new byte[byteBuffer.Length];
+byteBuffer.Read(rawByteData, 0, byteBuffer.Length);
+
+// Other
 var responseCount = 0;
 
 var stopWatch = new Stopwatch();
 stopWatch.Start();
 
+// Start
 var threadCount = 40;
 var botCount = 25;
 
@@ -45,7 +59,7 @@ for (int i = 0; i < threadCount; i++)
 
         foreach (var bot in bots)
         {
-            bot.Connect("192.168.0.108", 10001);
+            bot.Connect("127.0.0.1", 10001);
             Thread.Sleep(100);
         }
 
@@ -62,13 +76,13 @@ for (int i = 0; i < threadCount; i++)
                      //         Log.Info("Get Response");
                      //     }
                      // });
-                    bot.SendMessage((ushort)MessageId.Move, moveData);
+                    bot.SendMessage((ushort)MessageId.RawByte, rawByteData);
                 }
 
                 bot.Update();
                 
             }
-            Thread.Sleep(50);
+            Thread.Sleep(16);
         }
     });
 }

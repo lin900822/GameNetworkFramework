@@ -74,6 +74,7 @@ public class ByteBufferTest
         var string1 = "ReadByteBufferTest";
         var data1   = Encoding.UTF8.GetBytes(string1); 
         buffer1.Write(data1, 0, data1.Length);
+        buffer2.Write(data1, 0, data1.Length);
 
         // Act
         buffer1.Read(buffer2);
@@ -83,6 +84,6 @@ public class ByteBufferTest
         buffer2.Read(data2, 0, buffer2.Length);
         var string2 = Encoding.UTF8.GetString(data2);
 
-        Assert.AreEqual(string1, string2);
+        Assert.AreEqual($"{string1}{string1}", string2);
     }
 }
