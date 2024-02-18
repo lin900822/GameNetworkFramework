@@ -376,9 +376,13 @@ public class NetworkCommunicator
             {
                 totalLength = _receiveBuffer.ReadUInt16();
             }
+        }
 
-            var bodyLength = totalLength - (isLongPacket ? LongPacketLength : ShortPacketLength) - MessageIdLength;
-
+        var bodyLength = totalLength - (isLongPacket ? LongPacketLength : ShortPacketLength) - MessageIdLength;
+        receivedMessageInfo.Allocate(bodyLength);
+        
+        lock (_receiveBuffer)
+        {
             if (isRequest)
             {
                 receivedMessageInfo.IsRequest = true;
@@ -389,7 +393,6 @@ public class NetworkCommunicator
 
             receivedMessageInfo.MessageId     = _receiveBuffer.ReadUInt16();
             receivedMessageInfo.MessageLength = bodyLength;
-            receivedMessageInfo.Allocate(bodyLength);
             _receiveBuffer.Read(receivedMessageInfo.Message);
         }
 
