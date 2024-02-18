@@ -33,17 +33,19 @@ public struct ReceivedMessageInfo
     /// </summary>
     public ushort RequestId;
 
+    public int MessageLength;
+    
     /// <summary>
     /// 訊息本體
     /// </summary>
-    public ByteBuffer Message;
+    public byte[] Message;
 
     public bool TryDecode<T>(out T outMessage) where T : IMessage, new()
     {
         try
         { 
             outMessage = new T();
-            outMessage.MergeFrom(Message.RawData, 0, Message.Length);
+            outMessage.MergeFrom(Message, 0, MessageLength);
             return true;
         }
         catch (Exception e)
@@ -56,11 +58,13 @@ public struct ReceivedMessageInfo
 
     public void Allocate(int size)
     {
-        Message = ByteBufferPool.Shared.Rent(size);
+        //Message = ByteBufferPool.Shared.Rent(size);
+        Message = ArrayPool<byte>.Shared.Rent(size);
     }
 
     public void Release()
     {
-        ByteBufferPool.Shared.Return(Message);
+        //ByteBufferPool.Shared.Return(Message);
+        ArrayPool<byte>.Shared.Return(Message);
     }
 }

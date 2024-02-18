@@ -59,7 +59,7 @@ for (int i = 0; i < threadCount; i++)
 
         foreach (var bot in bots)
         {
-            bot.Connect("127.0.0.1", 10001);
+            bot.Connect("192.168.0.108", 10001);
             Thread.Sleep(100);
         }
 
@@ -76,7 +76,7 @@ for (int i = 0; i < threadCount; i++)
                      //         Log.Info("Get Response");
                      //     }
                      // });
-                    bot.SendMessage((ushort)MessageId.RawByte, rawByteData);
+                    bot.SendMessage((ushort)MessageId.Move, moveData);
                 }
 
                 bot.Update();

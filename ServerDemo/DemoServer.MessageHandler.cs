@@ -83,10 +83,10 @@ public partial class DemoServer
     [MessageRoute(MessageId.RawByte)]
     public void OnReceiveRawByte(ReceivedMessageInfo receivedMessageInfo)
     {
-        var x = receivedMessageInfo.Message.ReadUInt32();
-        var y = receivedMessageInfo.Message.ReadUInt32();
-        var z = receivedMessageInfo.Message.ReadUInt32();
-        
-        Log.Info($"({x},{y},{z})");
+        // var x = receivedMessageInfo.Message.ReadUInt32();
+        // var y = receivedMessageInfo.Message.ReadUInt32();
+        // var z = receivedMessageInfo.Message.ReadUInt32();
+        //
+        // Log.Info($"({x},{y},{z})");
     }
 }

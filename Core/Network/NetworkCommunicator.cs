@@ -7,7 +7,7 @@ namespace Core.Network;
 
 public class NetworkCommunicator
 {
-    private bool _isNeedCheckOverReceived    = false;
+    private bool _isNeedCheckOverReceived = false;
 
     public Socket Socket { get; private set; }
 
@@ -87,7 +87,7 @@ public class NetworkCommunicator
                 ByteBufferPool.Shared.Return(item);
             }
         }
-        
+
         _receivedMessageInfos.Clear();
 
         _receiveArgs.Completed -= OnReceive;
@@ -100,7 +100,7 @@ public class NetworkCommunicator
         {
             if (_receivedMessageInfos.Count <= 0) return;
             if (!_receivedMessageInfos.TryDequeue(out var messageInfo)) return;
-        
+
             // 分發收到的 Message
             OnReceivedMessage?.Invoke(messageInfo);
         }
@@ -388,8 +388,9 @@ public class NetworkCommunicator
             }
 
             receivedMessageInfo.MessageId     = _receiveBuffer.ReadUInt16();
+            receivedMessageInfo.MessageLength = bodyLength;
             receivedMessageInfo.Allocate(totalLength);
-            _receiveBuffer.Read(receivedMessageInfo.Message);
+            _receiveBuffer.Read(receivedMessageInfo.Message, 0, bodyLength);
         }
 
         return true;
