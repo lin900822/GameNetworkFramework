@@ -290,5 +290,6 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
         _prometheusService.UpdateRemainMessageCount(SystemMetrics.RemainMessageCount);
         _prometheusService.UpdateHandledMessagePerSecond(SystemMetrics.HandledMessageCount);
         SystemMetrics.HandledMessageCount = 0;
+        SystemMetrics.RemainMessageCount  = 0;
     }
 }
