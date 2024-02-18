@@ -68,7 +68,6 @@ public class NetworkClient
     public void Update()
     {
         _connector.Update();
-        _messageRouter.OnUpdateLogic();
 
         if (_responseQueue.TryDequeue(out var requestPack))
         {

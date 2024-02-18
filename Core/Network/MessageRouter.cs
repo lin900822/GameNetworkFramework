@@ -9,12 +9,9 @@ public class MessageRouter
 {
     private Dictionary<uint, Action<ReceivedMessageInfo>> _routeTable;
 
-    private ConcurrentQueue<ReceivedMessageInfo> _messageInfoQueue;
-
     public MessageRouter()
     {
         _routeTable       = new Dictionary<uint, Action<ReceivedMessageInfo>>();
-        _messageInfoQueue = new ConcurrentQueue<ReceivedMessageInfo>();
     }
 
     public void RegisterMessageHandler(ushort messageId, Action<ReceivedMessageInfo> handler)
@@ -39,34 +36,16 @@ public class MessageRouter
 
     public void ReceiveMessage(ReceivedMessageInfo receivedMessageInfo)
     {
-        _messageInfoQueue.Enqueue(receivedMessageInfo);
-    }
-
-    public void OnUpdateLogic()
-    {
-        // 每次處理500個Message
-        for (var i = 0; i < 500; i++)
+        if (_routeTable.TryGetValue(receivedMessageInfo.MessageId, out var handler))
         {
-            if (_messageInfoQueue.Count <= 0) break;
-            
-            if (!_messageInfoQueue.TryDequeue(out var messageInfo))
-            {
-                break;
-            }
-
-            if (_routeTable.TryGetValue(messageInfo.MessageId, out var handler))
-            {
-                handler?.Invoke(messageInfo);
-            }
-            else
-            {
-                Log.Warn($"Message Router: Received Unregistered Message, messageId = {messageInfo.MessageId}");
-            }
-        
-            messageInfo.Release();
-            SystemMetrics.HandledMessageCount++;
+            handler?.Invoke(receivedMessageInfo);
+        }
+        else
+        {
+            Log.Warn($"Message Router: Received Unregistered Message, messageId = {receivedMessageInfo.MessageId}");
         }
         
-        SystemMetrics.RemainMessageCount = _messageInfoQueue.Count;
+        receivedMessageInfo.Release();
+        SystemMetrics.HandledMessageCount++;
     }
 }

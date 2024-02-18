@@ -214,7 +214,6 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
         try
         {
             _networkListener.Update();
-            _messageRouter.OnUpdateLogic();
             
             _millisecondsPassed = TimeUtils.TimeSinceAppStart - _startTimeMs;
 

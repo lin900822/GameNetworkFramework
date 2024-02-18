@@ -2,6 +2,7 @@
 using System.Net.Sockets;
 using Core.Common;
 using Core.Logger;
+using Core.Metrics;
 
 namespace Core.Network;
 
@@ -104,6 +105,8 @@ public class NetworkCommunicator
             // 分發收到的 Message
             OnReceivedMessage?.Invoke(messageInfo);
         }
+
+        SystemMetrics.RemainMessageCount += _receivedMessageInfos.Count;
     }
 
     #region - Receive -
@@ -173,6 +176,8 @@ public class NetworkCommunicator
 
         if (IsOverReceived())
         {
+            Log.Warn($"{Socket.RemoteEndPoint} Sent Too Much Packets.");
+            OnReceivedNothing?.Invoke(this);
             return;
         }
 
@@ -187,11 +192,7 @@ public class NetworkCommunicator
     {
         if (!_isNeedCheckOverReceived) return false;
 
-        if (_receivedMessageInfos.Count < MaxReceivedCount) return false;
-
-        Log.Warn($"{Socket.RemoteEndPoint} Sent Too Much Packets.");
-        OnReceivedNothing?.Invoke(this);
-        return true;
+        return _receivedMessageInfos.Count >= MaxReceivedCount;
     }
 
     #endregion
