@@ -5,20 +5,16 @@ namespace Core.Network;
 public class NetworkSessionPool
 {
     private ConcurrentStack<NetworkSession> _sessionStack;
-    
-    private ByteBufferPool _byteBufferPool; 
 
     public NetworkSessionPool(int maxSessionCount)
     {
-        _byteBufferPool = new ByteBufferPool();
-        
         var bufferSize = NetworkConfig.BufferSize;
         
         _sessionStack = new ConcurrentStack<NetworkSession>();
         
         for (int i = 0; i < maxSessionCount; i++)
         {
-            var session = new NetworkSession(_byteBufferPool, bufferSize);
+            var session = new NetworkSession(bufferSize);
 
             _sessionStack.Push(session);
         }

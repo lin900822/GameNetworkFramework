@@ -20,7 +20,7 @@ public class NetworkConnector
 
     public NetworkConnector()
     {
-        _communicator = new NetworkCommunicator(new ByteBufferPool(), NetworkConfig.BufferSize);
+        _communicator = new NetworkCommunicator(NetworkConfig.BufferSize);
         ConnectState = ConnectState.None;
     }
 

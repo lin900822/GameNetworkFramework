@@ -1,4 +1,5 @@
-﻿using Core.Network;
+﻿using System.Text;
+using Core.Network;
 using NUnit.Framework;
 
 namespace NetworkTest;
@@ -61,5 +62,27 @@ public class ByteBufferTest
 
         // Assert
         Assert.AreEqual(buffer.RawData.Length, 1024);
+    }
+
+    [Test]
+    public void ReadToAnotherByteBuffer()
+    {
+        // Arrange
+        ByteBuffer buffer1 = new ByteBuffer();
+        ByteBuffer buffer2 = new ByteBuffer();
+
+        var string1 = "ReadByteBufferTest";
+        var data1   = Encoding.UTF8.GetBytes(string1); 
+        buffer1.Write(data1, 0, data1.Length);
+
+        // Act
+        buffer1.Read(buffer2);
+
+        // Assert
+        byte[] data2 = new byte[buffer2.Length];
+        buffer2.Read(data2, 0, buffer2.Length);
+        var string2 = Encoding.UTF8.GetString(data2);
+
+        Assert.AreEqual(string1, string2);
     }
 }

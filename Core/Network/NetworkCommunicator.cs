@@ -22,9 +22,6 @@ public class NetworkCommunicator
     private readonly SocketAsyncEventArgs _receiveArgs;
     private readonly SocketAsyncEventArgs _sendArgs;
 
-    // Dependencies
-    private ByteBufferPool _byteBufferPool;
-
     // Const
     private const int MaxReceivedCount = 300;
 
@@ -39,10 +36,8 @@ public class NetworkCommunicator
     private const uint LongPacketFlag = 0b_00000000_00000000_10000000_00000000;
     private const uint RequestFlag    = 0b_00000000_00000000_01000000_00000000;
 
-    public NetworkCommunicator(ByteBufferPool pool, int bufferSize)
+    public NetworkCommunicator(int bufferSize)
     {
-        _byteBufferPool = pool;
-
         var receiveArg = new SocketAsyncEventArgs();
         var sendArg    = new SocketAsyncEventArgs();
         receiveArg.SetBuffer(new byte[bufferSize], 0, bufferSize);
@@ -89,7 +84,7 @@ public class NetworkCommunicator
             for (int i = 0; i < sendQueueCount; i++)
             {
                 var item = _sendQueue.Dequeue();
-                _byteBufferPool.Return(item);
+                ByteBufferPool.Shared.Return(item);
             }
         }
         
@@ -224,7 +219,7 @@ public class NetworkCommunicator
     {
         // 打包資料
         var packetLength = (message.Length > short.MaxValue) ? ShortPacketLength : LongPacketLength;
-        var byteBuffer   = _byteBufferPool.Rent(packetLength + MessageIdLength + message.Length);
+        var byteBuffer   = ByteBufferPool.Shared.Rent(packetLength + MessageIdLength + message.Length);
         PackMessage(byteBuffer, messageId, message, isRequest, requestId);
 
         // 透過 SendQueue處理發送不完整問題
@@ -315,7 +310,7 @@ public class NetworkCommunicator
                 }
             }
 
-            _byteBufferPool.Return(dequeueBuffer);
+            ByteBufferPool.Shared.Return(dequeueBuffer);
         }
 
         if (byteBuffer != null)
@@ -392,10 +387,9 @@ public class NetworkCommunicator
                 bodyLength -= RequestIdLength;
             }
 
-            receivedMessageInfo.MessageLength = bodyLength;
             receivedMessageInfo.MessageId     = _receiveBuffer.ReadUInt16();
             receivedMessageInfo.Allocate(totalLength);
-            _receiveBuffer.Read(receivedMessageInfo.Message, 0, bodyLength);
+            _receiveBuffer.Read(receivedMessageInfo.Message);
         }
 
         return true;

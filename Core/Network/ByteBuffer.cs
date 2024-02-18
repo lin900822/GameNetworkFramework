@@ -10,9 +10,9 @@ public class ByteBuffer
     public int Length   => _writeIndex - _readIndex;
     public int Capacity => _capacity;
 
-    public byte[] RawData => _rawData;
-    public int ReadIndex => _readIndex;
-    public int WriteIndex => _writeIndex;
+    public byte[] RawData    => _rawData;
+    public int    ReadIndex  => _readIndex;
+    public int    WriteIndex => _writeIndex;
 
     // Private Variables
     private byte[] _rawData;
@@ -33,7 +33,7 @@ public class ByteBuffer
         _writeIndex = 0;
     }
 
-    public void SetReadIndex(int value) => _readIndex = value;
+    public void SetReadIndex(int  value) => _readIndex = value;
     public void SetWriteIndex(int value) => _writeIndex = value;
 
     // 擴充容量
@@ -55,7 +55,7 @@ public class ByteBuffer
         _rawData = newData;
 
         _writeIndex = Length;
-        _readIndex = 0;
+        _readIndex  = 0;
     }
 
     // 檢查與複用byte空間
@@ -74,7 +74,7 @@ public class ByteBuffer
 
         // 這裡順序要注意不能相反
         _writeIndex = Length;
-        _readIndex = 0;
+        _readIndex  = 0;
     }
 
     // 寫入資料
@@ -94,7 +94,7 @@ public class ByteBuffer
         if (Remain < 2) ReuseCapacity();
         if (Remain < 2) Resize(Length + 2);
 
-        _rawData[_writeIndex] = (byte)(value & 0xFF);
+        _rawData[_writeIndex]     = (byte)(value & 0xFF);
         _rawData[_writeIndex + 1] = (byte)((value >> 8) & 0xFF);
 
         _writeIndex += 2;
@@ -106,7 +106,7 @@ public class ByteBuffer
         if (Remain < 4) ReuseCapacity();
         if (Remain < 4) Resize(Length + 4);
 
-        _rawData[_writeIndex] = (byte)(value & 0xFF);
+        _rawData[_writeIndex]     = (byte)(value & 0xFF);
         _rawData[_writeIndex + 1] = (byte)((value >> 8) & 0xFF);
         _rawData[_writeIndex + 2] = (byte)((value >> 16) & 0xFF);
         _rawData[_writeIndex + 3] = (byte)((value >> 24) & 0xFF);
@@ -124,6 +124,19 @@ public class ByteBuffer
         return count;
     }
 
+    public int Read(ByteBuffer byteBuffer)
+    {
+        var length = Length;
+        if (byteBuffer.Remain < length) byteBuffer.ReuseCapacity();
+        if (byteBuffer.Remain < length) byteBuffer.Resize(byteBuffer.Length + length);
+
+        Array.Copy(_rawData, _readIndex, byteBuffer.RawData, byteBuffer.WriteIndex, length);
+        _readIndex             += length;
+        byteBuffer._writeIndex += length;
+        CheckAndReuseCapacity();
+        return length;
+    }
+
     // 檢查ushort
     public ushort CheckUInt16(int offset = 0)
     {
@@ -132,7 +145,7 @@ public class ByteBuffer
         ushort readUInt16 = (ushort)((_rawData[_readIndex + 1 + offset] << 8) | _rawData[_readIndex + offset]);
         return readUInt16;
     }
-    
+
     public uint CheckUInt32()
     {
         if (Length < 4) return 0;

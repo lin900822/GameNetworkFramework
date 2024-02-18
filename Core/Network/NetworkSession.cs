@@ -4,7 +4,7 @@ public class NetworkSession : NetworkCommunicator
 {
     public object SessionObject { get; set; }
     
-    public NetworkSession(ByteBufferPool pool, int bufferSize) : base(pool, bufferSize)
+    public NetworkSession(int bufferSize) : base(bufferSize)
     {
     }
 

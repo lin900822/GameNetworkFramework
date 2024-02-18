@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Reflection;
+using System.Text;
 using Core.Common;
 using Core.Logger;
 using Core.Network;
@@ -209,5 +210,25 @@ public class CommandHandler
             //     Log.Info($"{messageInfo.StateCode.ToString()}");
             // }
         });
+    }
+    
+    [Command("rawbyte")]
+    public async void TestRawByte()
+    {
+        var byteBuffer = ByteBufferPool.Shared.Rent(12);
+        byteBuffer.WriteUInt32(24);
+        byteBuffer.WriteUInt32(65);
+        byteBuffer.WriteUInt32(98);
+
+        var message     = "Never gonna give you up";
+        var messageByte = Encoding.UTF8.GetBytes(message);
+        byteBuffer.Write(messageByte, 0, messageByte.Length);
+
+        byte[] data = new byte[byteBuffer.Length];
+        byteBuffer.Read(data, 0, byteBuffer.Length);
+        
+        _networkClient.SendMessage((ushort)MessageId.RawByte, data);
+        
+        ByteBufferPool.Shared.Return(byteBuffer);
     }
 }

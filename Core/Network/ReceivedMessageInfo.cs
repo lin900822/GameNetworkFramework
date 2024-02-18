@@ -34,21 +34,16 @@ public struct ReceivedMessageInfo
     public ushort RequestId;
 
     /// <summary>
-    /// 有意義的訊息長度
-    /// </summary>
-    public int MessageLength;
-
-    /// <summary>
     /// 訊息本體
     /// </summary>
-    public byte[] Message;
+    public ByteBuffer Message;
 
     public bool TryDecode<T>(out T outMessage) where T : IMessage, new()
     {
         try
         { 
             outMessage = new T();
-            outMessage.MergeFrom(Message, 0, MessageLength);
+            outMessage.MergeFrom(Message.RawData, 0, Message.Length);
             return true;
         }
         catch (Exception e)
@@ -61,11 +56,11 @@ public struct ReceivedMessageInfo
 
     public void Allocate(int size)
     {
-        Message = ArrayPool<byte>.Shared.Rent(size);
+        Message = ByteBufferPool.Shared.Rent(size);
     }
 
     public void Release()
     {
-        ArrayPool<byte>.Shared.Return(Message);
+        ByteBufferPool.Shared.Return(Message);
     }
 }

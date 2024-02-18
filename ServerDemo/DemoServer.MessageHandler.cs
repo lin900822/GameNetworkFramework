@@ -1,4 +1,5 @@
-﻿using Core.Common;
+﻿using System.Text;
+using Core.Common;
 using Core.Logger;
 using Core.Network;
 using Protocol;
@@ -77,5 +78,19 @@ public partial class DemoServer
         Log.Debug($"{Environment.CurrentManagedThreadId}: After Insert");
 
         return Response.Create((uint)StateCode.Success);
+    }
+
+    [MessageRoute(MessageId.RawByte)]
+    public void OnReceiveRawByte(ReceivedMessageInfo receivedMessageInfo)
+    {
+        var x = receivedMessageInfo.Message.ReadUInt32();
+        var y = receivedMessageInfo.Message.ReadUInt32();
+        var z = receivedMessageInfo.Message.ReadUInt32();
+
+        byte[] messageByte = new byte[receivedMessageInfo.Message.Length];
+        receivedMessageInfo.Message.Read(messageByte, 0, receivedMessageInfo.Message.Length);
+        var message = Encoding.UTF8.GetString(messageByte);
+        
+        Log.Info($"({x},{y},{z}) {message}");
     }
 }

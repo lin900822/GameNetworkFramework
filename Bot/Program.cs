@@ -20,8 +20,8 @@ var responseCount = 0;
 var stopWatch = new Stopwatch();
 stopWatch.Start();
 
-var threadCount = 24;
-var botCount = 41;
+var threadCount = 40;
+var botCount = 25;
 
 for (int i = 0; i < threadCount; i++)
 {
@@ -68,7 +68,7 @@ for (int i = 0; i < threadCount; i++)
                 bot.Update();
                 
             }
-            Thread.Sleep(16);
+            Thread.Sleep(50);
         }
     });
 }

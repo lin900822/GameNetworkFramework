@@ -4,6 +4,20 @@ namespace Core.Network;
 
 public class ByteBufferPool
 {
+    private static ByteBufferPool _shared;
+    public static ByteBufferPool Shared
+    {
+        get
+        {
+            if (_shared == null)
+            {
+                _shared = new ByteBufferPool();
+            }
+
+            return _shared;
+        }
+    }
+    
     private ConcurrentQueue<ByteBuffer> _byteBufferQueue = new ConcurrentQueue<ByteBuffer>();
 
     public ByteBufferPool()
