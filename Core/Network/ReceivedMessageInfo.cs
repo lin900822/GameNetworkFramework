@@ -32,8 +32,6 @@ public struct ReceivedMessageInfo
     /// 請求Id
     /// </summary>
     public ushort RequestId;
-
-    public int MessageLength;
     
     /// <summary>
     /// 訊息本體
@@ -59,12 +57,10 @@ public struct ReceivedMessageInfo
     public void Allocate(int size)
     {
         Message = ByteBufferPool.Shared.Rent(size);
-        //Message = ArrayPool<byte>.Shared.Rent(size);
     }
 
     public void Release()
     {
         ByteBufferPool.Shared.Return(Message);
-        //ArrayPool<byte>.Shared.Return(Message);
     }
 }

@@ -77,7 +77,7 @@ public class ByteBufferTest
         buffer2.Write(data1, 0, data1.Length);
 
         // Act
-        buffer1.Read(buffer2);
+        buffer1.Read(buffer2, buffer1.Length);
 
         // Assert
         byte[] data2 = new byte[buffer2.Length];

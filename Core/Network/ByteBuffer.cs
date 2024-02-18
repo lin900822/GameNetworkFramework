@@ -124,17 +124,16 @@ public class ByteBuffer
         return count;
     }
 
-    public int Read(ByteBuffer byteBuffer)
+    public int Read(ByteBuffer byteBuffer, int count)
     {
-        var length = Length;
-        if (byteBuffer.Remain < length) byteBuffer.ReuseCapacity();
-        if (byteBuffer.Remain < length) byteBuffer.Resize(byteBuffer.Length + length);
+        if (byteBuffer.Remain < count) byteBuffer.ReuseCapacity();
+        if (byteBuffer.Remain < count) byteBuffer.Resize(byteBuffer.Length + count);
 
-        Array.Copy(_rawData, _readIndex, byteBuffer.RawData, byteBuffer.WriteIndex, length);
-        _readIndex             += length;
-        byteBuffer._writeIndex += length;
+        Array.Copy(_rawData, _readIndex, byteBuffer.RawData, byteBuffer.WriteIndex, count);
+        _readIndex             += count;
+        byteBuffer._writeIndex += count;
         CheckAndReuseCapacity();
-        return length;
+        return count;
     }
 
     // 檢查ushort
