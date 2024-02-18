@@ -389,8 +389,8 @@ public class NetworkCommunicator
 
             receivedMessageInfo.MessageId     = _receiveBuffer.ReadUInt16();
             receivedMessageInfo.MessageLength = bodyLength;
-            receivedMessageInfo.Allocate(totalLength);
-            _receiveBuffer.Read(receivedMessageInfo.Message, 0, bodyLength);
+            receivedMessageInfo.Allocate(bodyLength);
+            _receiveBuffer.Read(receivedMessageInfo.Message);
         }
 
         return true;

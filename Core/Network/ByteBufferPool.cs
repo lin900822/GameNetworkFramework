@@ -18,7 +18,7 @@ public class ByteBufferPool
         }
     }
     
-    private ConcurrentQueue<ByteBuffer> _byteBufferQueue = new ConcurrentQueue<ByteBuffer>();
+    private Queue<ByteBuffer> _byteBufferQueue = new Queue<ByteBuffer>();
 
     public ByteBufferPool()
     {
@@ -26,8 +26,11 @@ public class ByteBufferPool
     
     public ByteBuffer Rent(int size)
     {
-        if (_byteBufferQueue.TryDequeue(out var byteBuffer))
+        lock (_byteBufferQueue)
         {
+            if (!_byteBufferQueue.TryDequeue(out var byteBuffer)) 
+                return new ByteBuffer(size);
+        
             if (byteBuffer.Capacity < size)
             {
                 byteBuffer.Resize(size);
@@ -36,12 +39,13 @@ public class ByteBufferPool
             byteBuffer.SetWriteIndex(0);
             return byteBuffer;
         }
-
-        return new ByteBuffer(size);
     }
 
     public void Return(ByteBuffer byteBuffer)
     {
-        _byteBufferQueue.Enqueue(byteBuffer);
+        lock (_byteBufferQueue)
+        {
+            _byteBufferQueue.Enqueue(byteBuffer);
+        }
     }
 }
