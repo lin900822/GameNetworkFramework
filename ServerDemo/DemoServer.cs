@@ -26,11 +26,12 @@ public partial class DemoServer : ServerBase<DemoClient>
     {
         //InitDebug();
         //_connectorClient.Connect("127.0.0.1", 10002);
-
+        
         var byteBuffer = ByteBufferPool.Shared.Rent(20);
         byteBuffer.WriteUInt32(99);
         byteBuffer.WriteUInt32(99);
         byteBuffer.WriteUInt32(99);
+        _cacheRawByteData = new byte[byteBuffer.Length];
         byteBuffer.Read(_cacheRawByteData, 0, byteBuffer.Length);
     }
 

@@ -24,6 +24,14 @@ networkClient.RegisterMessageHandler((ushort)MessageId.Move, (messageInfo) =>
     if (messageInfo.TryDecode<Move>(out var move))
         Log.Info($"{move.X}");
 });
+networkClient.RegisterMessageHandler((ushort)MessageId.RawByte, (receivedMessageInfo) =>
+{
+    var x = receivedMessageInfo.Message.ReadUInt32();
+    var y = receivedMessageInfo.Message.ReadUInt32();
+    var z = receivedMessageInfo.Message.ReadUInt32();
+                
+    Log.Info($"{x.ToString()} {y.ToString()} {z.ToString()}");
+});
 
 // Connect
 networkClient.Connect("192.168.0.108", 10001);
