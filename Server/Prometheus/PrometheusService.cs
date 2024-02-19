@@ -10,6 +10,9 @@ public class PrometheusService
     private Gauge _remainMessageCountGauge = Metrics.CreateGauge("remain_message_count", "Remain Message Count");
     private Gauge _sessionCountGauge = Metrics.CreateGauge("session_count", "Session Count");
     private Gauge _fpsGauge = Metrics.CreateGauge("fps", "FPS");
+    private Gauge _gc0Gauge = Metrics.CreateGauge("gc0_per_second", "GC0 per Second");
+    private Gauge _gc1Gauge = Metrics.CreateGauge("gc1_per_second", "GC1 per Second");
+    private Gauge _gc2Gauge = Metrics.CreateGauge("gc2_per_second", "GC2 per Second");
 
     private MetricServer _metricServer;
     private const int _port = 19001;
@@ -50,5 +53,20 @@ public class PrometheusService
     public void UpdateFPS(float value)
     {
         _fpsGauge.Set(value);
+    }
+    
+    public void UpdateGC0PerSecond(int value)
+    {
+        _gc0Gauge.Set(value);
+    }
+    
+    public void UpdateGC1PerSecond(int value)
+    {
+        _gc1Gauge.Set(value);
+    }
+
+    public void UpdateGC2PerSecond(int value)
+    {
+        _gc2Gauge.Set(value);
     }
 }

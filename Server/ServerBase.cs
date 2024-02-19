@@ -292,5 +292,17 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
         _prometheusService.UpdateRemainMessageCount(SystemMetrics.RemainMessageCount);
         _prometheusService.UpdateHandledMessagePerSecond(SystemMetrics.HandledMessageCount);
         SystemMetrics.HandledMessageCount = 0;
+
+        var gc0 = GC.CollectionCount(0) - SystemMetrics.LastGC0;
+        var gc1 = GC.CollectionCount(1) - SystemMetrics.LastGC1;
+        var gc2 = GC.CollectionCount(2) - SystemMetrics.LastGC2;
+        
+        SystemMetrics.LastGC0 = GC.CollectionCount(0);
+        SystemMetrics.LastGC1 = GC.CollectionCount(1);
+        SystemMetrics.LastGC2 = GC.CollectionCount(2);
+        
+        _prometheusService.UpdateGC0PerSecond(gc0);
+        _prometheusService.UpdateGC1PerSecond(gc1);
+        _prometheusService.UpdateGC2PerSecond(gc2);
     }
 }
