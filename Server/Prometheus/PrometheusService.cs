@@ -10,6 +10,8 @@ public class PrometheusService
     private Gauge _remainMessageCountGauge = Metrics.CreateGauge("remain_message_count", "Remain Message Count");
     private Gauge _sessionCountGauge = Metrics.CreateGauge("session_count", "Session Count");
     private Gauge _fpsGauge = Metrics.CreateGauge("fps", "FPS");
+    
+    private Gauge _memoryGauge = Metrics.CreateGauge("memory", "Memory Usage");
     private Gauge _gc0Gauge = Metrics.CreateGauge("gc0_per_second", "GC0 per Second");
     private Gauge _gc1Gauge = Metrics.CreateGauge("gc1_per_second", "GC1 per Second");
     private Gauge _gc2Gauge = Metrics.CreateGauge("gc2_per_second", "GC2 per Second");
@@ -53,6 +55,11 @@ public class PrometheusService
     public void UpdateFPS(float value)
     {
         _fpsGauge.Set(value);
+    }
+    
+    public void UpdateMemory(float value)
+    {
+        _memoryGauge.Set(value);
     }
     
     public void UpdateGC0PerSecond(int value)

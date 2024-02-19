@@ -1,4 +1,5 @@
-﻿using System.Net.Sockets;
+﻿using System.Diagnostics;
+using System.Net.Sockets;
 using System.Reflection;
 using Core.Common;
 using Core.Logger;
@@ -300,6 +301,9 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
         SystemMetrics.LastGC0 = GC.CollectionCount(0);
         SystemMetrics.LastGC1 = GC.CollectionCount(1);
         SystemMetrics.LastGC2 = GC.CollectionCount(2);
+
+        var memoryUsed = Process.GetCurrentProcess().WorkingSet64;
+        _prometheusService.UpdateMemory(memoryUsed / (1024 * 1024));
         
         _prometheusService.UpdateGC0PerSecond(gc0);
         _prometheusService.UpdateGC1PerSecond(gc1);
