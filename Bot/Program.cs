@@ -35,7 +35,7 @@ stopWatch.Start();
 
 // Start
 var threadCount = 40;
-var botCount = 25;
+var botCount = 50;
 
 for (int i = 0; i < threadCount; i++)
 {
@@ -54,6 +54,14 @@ for (int i = 0; i < threadCount; i++)
             {
                 // if(receivedMessageInfo.TryDecode<Move>(out move))
                 // Log.Info($"{move.X}");
+            });
+            bots[j].RegisterMessageHandler((ushort)MessageId.RawByte, (receivedMessageInfo) =>
+            {
+                var x = receivedMessageInfo.Message.ReadUInt32();
+                var y = receivedMessageInfo.Message.ReadUInt32();
+                var z = receivedMessageInfo.Message.ReadUInt32();
+                
+                Log.Info($"{x.ToString()} {y.ToString()} {z.ToString()}");
             });
         }
 
@@ -82,7 +90,7 @@ for (int i = 0; i < threadCount; i++)
                 bot.Update();
                 
             }
-            Thread.Sleep(16);
+            Thread.Sleep(200);
         }
     });
 }

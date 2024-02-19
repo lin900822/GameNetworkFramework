@@ -86,5 +86,7 @@ public partial class DemoServer
         var x = receivedMessageInfo.Message.ReadUInt32();
         var y = receivedMessageInfo.Message.ReadUInt32();
         var z = receivedMessageInfo.Message.ReadUInt32();
+        
+        receivedMessageInfo.Session.Send((ushort)MessageId.RawByte, _cacheRawByteData);
     }
 }

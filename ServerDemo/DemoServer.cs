@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using Core.Common;
 using Core.Metrics;
+using Core.Network;
 using Server;
 using ServerDemo.Repositories;
 using Debugger = Core.Metrics.Debugger;
@@ -9,6 +10,8 @@ namespace ServerDemo;
 
 public partial class DemoServer : ServerBase<DemoClient>
 {
+    private byte[] _cacheRawByteData;
+    
     private UserRepository _userRepository;
     //private ClientBase _connectorClient;
     
@@ -23,6 +26,12 @@ public partial class DemoServer : ServerBase<DemoClient>
     {
         //InitDebug();
         //_connectorClient.Connect("127.0.0.1", 10002);
+
+        var byteBuffer = ByteBufferPool.Shared.Rent(20);
+        byteBuffer.WriteUInt32(99);
+        byteBuffer.WriteUInt32(99);
+        byteBuffer.WriteUInt32(99);
+        byteBuffer.Read(_cacheRawByteData, 0, byteBuffer.Length);
     }
 
     protected override void OnFixedUpdate()
