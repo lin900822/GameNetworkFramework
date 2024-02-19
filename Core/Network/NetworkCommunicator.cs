@@ -289,7 +289,7 @@ public class NetworkCommunicator
         ByteBuffer byteBuffer;
         lock (_sendQueue)
         {
-            byteBuffer = _sendQueue.First();
+            byteBuffer = _sendQueue.Peek();
         }
 
         byteBuffer.SetReadIndex(byteBuffer.ReadIndex + count);
@@ -303,7 +303,7 @@ public class NetworkCommunicator
                 dequeueBuffer = _sendQueue.Dequeue();
                 if (_sendQueue.Count >= 1)
                 {
-                    byteBuffer = _sendQueue.First();
+                    byteBuffer = _sendQueue.Peek();
                 }
                 else
                 {
