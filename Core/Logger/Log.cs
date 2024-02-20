@@ -2,7 +2,7 @@
 
 public static class Log
 {
-    private static LogType _logLevel = LogType.None;
+    private static LogType _logLevel = LogType.Error;
     
     private static ILog _logger;
 
