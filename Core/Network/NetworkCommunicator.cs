@@ -135,11 +135,6 @@ public class NetworkCommunicator
 
     private void OnReceive(object sender, SocketAsyncEventArgs args)
     {
-        if (!IsSocketValid())
-            return;
-        if (args.SocketError != SocketError.Success)
-            return;
-        
         if (!ReadDataToReceiveBuffer(args))
         {
             // 收到 0個 Byte代表 Client已關閉
