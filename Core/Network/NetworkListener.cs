@@ -1,32 +1,40 @@
-﻿using System.Net;
+﻿using System.Collections.Concurrent;
+using System.Net;
 using System.Net.Sockets;
 using Core.Logger;
 
 namespace Core.Network;
 
-public class NetworkListener 
+public class NetworkListener
 {
     public Action<NetworkSession> OnSessionConnected;
     public Action<NetworkSession> OnSessionDisconnected;
 
     public Action<ReceivedMessageInfo> OnReceivedMessage;
-    
+
     public int ConnectionCount => _sessionList.Count;
 
     // Variables
     private Socket _listenFd;
 
-    private int _maxConnectionCount;
+    private readonly int _maxConnectionCount;
 
-    public  Dictionary<Socket, NetworkSession> SessionList => _sessionList;
-    private Dictionary<Socket, NetworkSession> _sessionList;
+    private readonly Queue<NetworkSession>      _sessionsToAdd;
+    private readonly Queue<NetworkCommunicator> _communicatorsToClose;
 
-    private NetworkSessionPool _sessionPool;
+    public Dictionary<Socket, NetworkSession> SessionList => _sessionList;
+
+    private readonly Dictionary<Socket, NetworkSession> _sessionList;
+
+    private readonly NetworkSessionPool _sessionPool;
 
     public NetworkListener(int maxConnectionCount)
     {
         _maxConnectionCount = maxConnectionCount;
-        
+
+        _sessionsToAdd        = new Queue<NetworkSession>();
+        _communicatorsToClose = new Queue<NetworkCommunicator>();
+
         _sessionPool = new NetworkSessionPool(_maxConnectionCount);
         _sessionList = new Dictionary<Socket, NetworkSession>();
     }
@@ -54,21 +62,55 @@ public class NetworkListener
         }
     }
 
-    public void Update()
+    #region - Life Cycle -
+    
+    // 每個Frame要處理的順序： AddSessions -> HandleMessages -> CloseSessions
+
+    public void AddSessions()
     {
-        try
+        if (_sessionsToAdd.Count <= 0) return;
+
+        lock (_sessionsToAdd)
         {
-            foreach (var session in SessionList.Values)
+            foreach (var session in _sessionsToAdd)
             {
-                session.Update();
+                _sessionList.Add(session.Socket, session);
+
+                OnSessionConnected?.Invoke(session);
+
+                // 開始接收clientFd傳來的訊息
+                session.ReceiveAsync();
             }
-        }
-        catch (Exception ex)
-        {
-            // ignored
+
+            _sessionsToAdd.Clear();
         }
     }
-    
+
+    public void CloseSessions()
+    {
+        if (_communicatorsToClose.Count <= 0) return;
+
+        lock (_communicatorsToClose)
+        {
+            foreach (var session in _communicatorsToClose)
+            {
+                Close(session.Socket);
+            }
+
+            _communicatorsToClose.Clear();
+        }
+    }
+
+    public void HandleMessages()
+    {
+        foreach (var session in SessionList.Values)
+        {
+            session.HandleMessages();
+        }
+    }
+
+    #endregion
+
     #region - Accept -
 
     private void AcceptAsync(SocketAsyncEventArgs acceptEventArg)
@@ -96,10 +138,10 @@ public class NetworkListener
             return;
         }
 
-        Log.Info($"A Client {clientFd.RemoteEndPoint?.ToString()} Connected!");
+        //Log.Info($"A Client {clientFd.RemoteEndPoint?.ToString()} Connected!");
 
         // 加入SessionList列表
-        var session = _sessionPool.Rent();;
+        var session = _sessionPool.Rent();
 
         if (session == null)
         {
@@ -110,31 +152,38 @@ public class NetworkListener
         {
             session.Init(clientFd, true);
             session.OnReceivedMessage += HandleReceivedMessage;
-            session.OnReceivedNothing += OnCommunicatorReceivedNothing;
+            session.OnClose           += OnCommunicatorClose;
 
-            lock (_sessionList)
+            lock (_sessionsToAdd)
             {
-                _sessionList.Add(clientFd, session);
+                _sessionsToAdd.Enqueue(session);
             }
-            
-            OnSessionConnected?.Invoke(session);
-
-            // 開始接收clientFd傳來的訊息
-            session.ReceiveAsync();
         }
-        
+
         // 重置acceptEventArg，並繼續監聽
         acceptEventArg.AcceptSocket = null;
         AcceptAsync(acceptEventArg);
     }
+
+    #endregion
+
+    #region - NetworkCommunicator Events -
 
     private void HandleReceivedMessage(ReceivedMessageInfo receivedMessageInfo)
     {
         OnReceivedMessage?.Invoke(receivedMessageInfo);
     }
     
+    private void OnCommunicatorClose(NetworkCommunicator communicator)
+    {
+        lock (_communicatorsToClose)
+        {
+            _communicatorsToClose.Enqueue(communicator);
+        }
+    }
+
     #endregion
-    
+
     #region - Send -
 
     public void SendAll(ushort messageId, byte[] message)
@@ -156,25 +205,24 @@ public class NetworkListener
             Log.Error("Send Failed, client is null or not connected");
             return;
         }
-        
+
         communicator.Send(messageId, message);
     }
-    
+
     #endregion
 
-    private void OnCommunicatorReceivedNothing(NetworkCommunicator _communicator)
-    {
-        Close(_communicator.Socket);
-    }
-    
+    #region - Close -
+
     public void Close(Socket socket)
     {
+        if (socket == null) return;
+        
         if (!_sessionList.TryGetValue(socket, out var session))
         {
             Log.Error($"Close Socket Error: Cannot find session");
             return;
         }
-        
+
         RemoveFromSessionList();
         ReturnSession();
         CloseConnection();
@@ -183,16 +231,13 @@ public class NetworkListener
         void RemoveFromSessionList()
         {
             OnSessionDisconnected?.Invoke(session);
-            lock (_sessionList)
-            {
-                if (_sessionList.ContainsKey(socket)) _sessionList.Remove(socket);
-            }
+            if (_sessionList.ContainsKey(socket)) _sessionList.Remove(socket);
         }
 
         void ReturnSession()
         {
             session.OnReceivedMessage -= HandleReceivedMessage;
-            session.OnReceivedNothing -= OnCommunicatorReceivedNothing;
+            session.OnClose           -= OnCommunicatorClose;
             _sessionPool.Return(session);
         }
 
@@ -200,7 +245,7 @@ public class NetworkListener
         {
             var socketEndPointStr = socket.RemoteEndPoint?.ToString();
             CloseSocket(socket);
-            Log.Info($"{socketEndPointStr} Closed!");
+            //Log.Info($"{socketEndPointStr} Closed!");
         }
     }
 
@@ -217,4 +262,6 @@ public class NetworkListener
 
         socket.Close();
     }
+
+    #endregion
 }

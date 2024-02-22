@@ -34,7 +34,7 @@ var stopWatch = new Stopwatch();
 stopWatch.Start();
 
 // Start
-var threadCount = 40;
+var threadCount = 20;
 var botCount = 50;
 
 for (int i = 0; i < threadCount; i++)
@@ -61,14 +61,21 @@ for (int i = 0; i < threadCount; i++)
                 var y = receivedMessageInfo.Message.ReadUInt32();
                 var z = receivedMessageInfo.Message.ReadUInt32();
                 
-                Log.Info($"{x.ToString()} {y.ToString()} {z.ToString()}");
+                //Log.Info($"{x.ToString()} {y.ToString()} {z.ToString()}");
+            });
+            bots[j].RegisterMessageHandler((ushort)MessageId.Broadcast, (receivedMessageInfo) =>
+            {
+                var x = receivedMessageInfo.Message.ReadUInt32();
+                var y = receivedMessageInfo.Message.ReadUInt32();
+                var z = receivedMessageInfo.Message.ReadUInt32();
+                
+                //Log.Info($"{x.ToString()} {y.ToString()} {z.ToString()}");
             });
         }
 
         foreach (var bot in bots)
         {
-            bot.Connect("192.168.0.108", 10001);
-            Thread.Sleep(100);
+            bot.Connect("127.0.0.1", 10001);
         }
 
         while (true)
@@ -84,13 +91,13 @@ for (int i = 0; i < threadCount; i++)
                      //         Log.Info("Get Response");
                      //     }
                      // });
-                    bot.SendMessage((ushort)MessageId.Move, moveData);
+                    bot.SendMessage((ushort)MessageId.RawByte, rawByteData);
                 }
 
                 bot.Update();
                 
             }
-            Thread.Sleep(200);
+            Thread.Sleep(3000);
         }
     });
 }

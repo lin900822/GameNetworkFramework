@@ -49,7 +49,7 @@ public class NetworkClient
 
     private long _lastCheckRequestTimeOutTime;
 
-    private const int _checkReconnectIntervalMs = 10_000;
+    private const int _checkReconnectIntervalMs = 3_000;
 
     private long _lastCheckReconnectTime;
     private string _cacheIp;

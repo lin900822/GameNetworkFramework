@@ -8,4 +8,5 @@ public enum MessageId : uint
     Move = 102,
     Register = 103,
     RawByte = 104,
+    Broadcast = 105,
 }

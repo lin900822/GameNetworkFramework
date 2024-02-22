@@ -10,10 +10,12 @@ public class NetworkCommunicator
 {
     private bool _isNeedCheckOverReceived = false;
 
+    private bool _isClosing = false;
+
     public Socket Socket { get; private set; }
 
     public Action<ReceivedMessageInfo> OnReceivedMessage;
-    public Action<NetworkCommunicator> OnReceivedNothing;
+    public Action<NetworkCommunicator> OnClose;
 
     private readonly ByteBuffer        _receiveBuffer;
     private readonly Queue<ByteBuffer> _sendQueue;
@@ -73,6 +75,8 @@ public class NetworkCommunicator
 
         _isNeedCheckOverReceived = false;
 
+        _isClosing = false;
+
         lock (_receiveBuffer)
         {
             _receiveBuffer.SetReadIndex(0);
@@ -95,7 +99,7 @@ public class NetworkCommunicator
         _sendArgs.Completed    -= OnSend;
     }
 
-    public void Update()
+    public void HandleMessages()
     {
         for (var i = 0; i < 10; i++)
         {
@@ -115,11 +119,8 @@ public class NetworkCommunicator
     {
         try
         {
-            if (Socket == null)
-            {
-                Log.Error("Receive Failed, client socket is null");
+            if (!IsSocketValid())
                 return;
-            }
 
             if (!Socket.ReceiveAsync(_receiveArgs))
             {
@@ -134,10 +135,15 @@ public class NetworkCommunicator
 
     private void OnReceive(object sender, SocketAsyncEventArgs args)
     {
+        if (!IsSocketValid())
+            return;
+        if (args.SocketError != SocketError.Success)
+            return;
+        
         if (!ReadDataToReceiveBuffer(args))
         {
             // 收到 0個 Byte代表 Client已關閉
-            OnReceivedNothing?.Invoke(this);
+            Close();
             return;
         }
 
@@ -176,8 +182,8 @@ public class NetworkCommunicator
 
         if (IsOverReceived())
         {
-            Log.Warn($"{Socket.RemoteEndPoint} Sent Too Much Packets.");
-            OnReceivedNothing?.Invoke(this);
+            Log.Warn($"{Socket.RemoteEndPoint.ToString()} Sent Too Much Packets.");
+            Close();
             return;
         }
 
@@ -201,17 +207,8 @@ public class NetworkCommunicator
 
     public void Send(ushort messageId, byte[] message, bool isRequest = false, ushort requestId = 0)
     {
-        if (Socket == null)
-        {
-            Log.Error("Send Failed, client is null or not connected");
+        if (!IsSocketValid())
             return;
-        }
-
-        if (!Socket.Connected)
-        {
-            Log.Error("Send Failed, client is null or not connected");
-            return;
-        }
 
         AddMessageToSendQueue(messageId, message, isRequest, requestId);
     }
@@ -246,11 +243,8 @@ public class NetworkCommunicator
     {
         try
         {
-            if (Socket == null)
-            {
-                Log.Error("Send Failed, client socket is null");
+            if (!IsSocketValid())
                 return;
-            }
 
             if (!Socket.SendAsync(_sendArgs))
             {
@@ -265,17 +259,10 @@ public class NetworkCommunicator
 
     private void OnSend(object sender, SocketAsyncEventArgs args)
     {
-        if (Socket == null)
-        {
-            Log.Error("OnSend Failed, client socket is null");
+        if (!IsSocketValid())
             return;
-        }
-
         if (args.SocketError != SocketError.Success)
-        {
-            Log.Error($"OnSend Failed, Socket Error: {args.SocketError}");
             return;
-        }
 
         CheckSendQueue();
     }
@@ -322,6 +309,28 @@ public class NetworkCommunicator
             Array.Copy(byteBuffer.RawData, byteBuffer.ReadIndex, _sendArgs.Buffer, _sendArgs.Offset, copyCount);
             SendAsync();
         }
+    }
+
+    #endregion
+
+    private bool IsSocketValid()
+    {
+        if (_isClosing)
+            return false;
+        if (Socket == null)
+            return false;
+        if (!Socket.Connected) 
+            return false;
+
+        return true;
+    }
+
+    #region - Close -
+
+    private void Close()
+    {
+        OnClose?.Invoke(this);
+        _isClosing = true;
     }
 
     #endregion
@@ -388,7 +397,7 @@ public class NetworkCommunicator
                 bodyLength -= RequestIdLength;
             }
 
-            receivedMessageInfo.MessageId     = _receiveBuffer.ReadUInt16();
+            receivedMessageInfo.MessageId = _receiveBuffer.ReadUInt16();
             receivedMessageInfo.Allocate(bodyLength);
             _receiveBuffer.Read(receivedMessageInfo.Message, bodyLength);
         }

@@ -12,23 +12,23 @@ namespace Server;
 
 public abstract class ServerBase<TClient> where TClient : ClientBase, new()
 {
-    public MessageRouter Router => _messageRouter;
+    public MessageRouter   Router          => _messageRouter;
     public NetworkListener NetworkListener => _networkListener;
 
     public Dictionary<Socket, NetworkSession> SessionList => _networkListener.SessionList;
 
-    private MessageRouter _messageRouter;
+    private MessageRouter   _messageRouter;
     private NetworkListener _networkListener;
 
-    private PrometheusService _prometheusService;
-    private long _lastSyncPrometheusTimeMs;
-    private const int SyncPrometheusInterval = 1000;
+    private       PrometheusService _prometheusService;
+    private       long              _lastSyncPrometheusTimeMs;
+    private const int               SyncPrometheusInterval = 1000;
 
     private long _startTimeMs;
     private long _lastFrameTimeMs;
 
-    protected int _targetFps = 20;
-    protected int _millisecondsPerFrame;
+    protected int  _targetFps = 20;
+    protected int  _millisecondsPerFrame;
     protected long _millisecondsPassed;
     protected long _frameCount = 0;
 
@@ -38,7 +38,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
     {
         _settings = settings;
 
-        _messageRouter = new MessageRouter();
+        _messageRouter   = new MessageRouter();
         _networkListener = new NetworkListener(settings.MaxSessionCount);
 
         _prometheusService = new PrometheusService();
@@ -53,9 +53,11 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
     {
         _networkListener.OnSessionConnected -= OnSessionConnected;
         _networkListener.OnReceivedMessage  -= OnReceivedMessage;
-        
+
         _prometheusService.Stop();
     }
+
+    #region - NetworkListner Events -
 
     private void OnSessionConnected(NetworkSession session)
     {
@@ -64,17 +66,19 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
         client.LastPingTime   = TimeUtils.GetTimeStamp();
         session.SessionObject = client;
     }
-    
+
     private void OnReceivedMessage(ReceivedMessageInfo receivedMessageInfo)
     {
         if (receivedMessageInfo.Session.SessionObject is ClientBase clientBase)
         {
             clientBase.LastPingTime = TimeUtils.GetTimeStamp();
         }
-        
+
         _messageRouter.ReceiveMessage(receivedMessageInfo);
     }
 
+    #endregion
+    
     #region - Message Route -
 
     private void RegisterMessageHandlers()
@@ -84,8 +88,8 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
         {
             if (!methodInfo.IsDefined(typeof(MessageRouteAttribute), true)) continue;
 
-            var parameters = methodInfo.GetParameters();
-            var returnType = methodInfo.ReturnType;
+            var parameters      = methodInfo.GetParameters();
+            var returnType      = methodInfo.ReturnType;
             var routeAttributes = methodInfo.GetCustomAttributes<MessageRouteAttribute>();
 
             if (parameters.Length != 1 || parameters[0].ParameterType != typeof(ReceivedMessageInfo))
@@ -138,7 +142,8 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
                     {
                         var response = func(messageInfo);
                         if (response.Message == null) return;
-                        messageInfo.Communicator.Send((ushort)routeAttribute.MessageId, response.Message, true, messageInfo.RequestId);
+                        messageInfo.Communicator.Send((ushort)routeAttribute.MessageId, response.Message, true,
+                            messageInfo.RequestId);
                     });
                 }
             }
@@ -158,7 +163,8 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
                             response =>
                             {
                                 if (response.Message == null) return;
-                                messageInfo.Communicator.Send((ushort)routeAttribute.MessageId, response.Message, true, messageInfo.RequestId);
+                                messageInfo.Communicator.Send((ushort)routeAttribute.MessageId, response.Message, true,
+                                    messageInfo.RequestId);
                             },
                             e => Log.Error(e.ToString()));
                     }
@@ -174,12 +180,9 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
     }
 
     #endregion
-    
-    public void SendMessage(NetworkCommunicator session, ushort messageId, byte[] message)
-    {
-        _networkListener.Send(session, messageId, message);
-    }
 
+    #region - Life Cycle -
+    
     public void Start()
     {
         Log.Info($"{_settings.ServerName} (Id:{_settings.ServerId}) Init!");
@@ -194,7 +197,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
 
         // Start Life Cycle
         Init();
-        
+
         while (true)
         {
             Update();
@@ -214,8 +217,9 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
     {
         try
         {
-            _networkListener.Update();
-            
+            _networkListener.AddSessions();
+            _networkListener.HandleMessages();
+
             _millisecondsPassed = TimeUtils.TimeSinceAppStart - _startTimeMs;
 
             while (_millisecondsPassed - _frameCount * _millisecondsPerFrame >= _millisecondsPerFrame)
@@ -224,14 +228,15 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
                 ++_frameCount;
                 CheckHeartBeat();
                 SyncPrometheus();
-                
+
                 var deltaTime = (TimeUtils.TimeSinceAppStart - _lastFrameTimeMs) / 1000f;
                 SystemMetrics.FPS = 1f / deltaTime;
                 _prometheusService.UpdateFPS(SystemMetrics.FPS);
                 _lastFrameTimeMs = TimeUtils.TimeSinceAppStart;
             }
-            
+
             SystemMetrics.RemainMessageCount = 0;
+            _networkListener.CloseSessions();
         }
         catch (Exception e)
         {
@@ -256,6 +261,10 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
     protected virtual void OnDeinit()
     {
     }
+    
+    #endregion
+
+    #region - Heart Beat -
 
     [MessageRoute(MessageId.HeartBeat)]
     public void OnReceivedPing(ReceivedMessageInfo receivedMessageInfo)
@@ -263,7 +272,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
         if (receivedMessageInfo.Session.SessionObject is not ClientBase client) return;
 
         client.LastPingTime = TimeUtils.GetTimeStamp();
-        SendMessage(receivedMessageInfo.Communicator, 1, Array.Empty<byte>());
+        receivedMessageInfo.Communicator.Send(1, Array.Empty<byte>());
     }
 
     private void CheckHeartBeat()
@@ -283,10 +292,26 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
             }
         }
     }
+    
+    #endregion
+
+    #region - Other -
+
+    public void BroadcastMessage(ushort messageId, byte[] message)
+    {
+        foreach (var session in SessionList.Values)
+        {
+            session.Send(messageId, message);
+        }
+    }
+
+    #endregion
+
+    #region - Metrics -
 
     private void SyncPrometheus()
     {
-        if(TimeUtils.TimeSinceAppStart - _lastSyncPrometheusTimeMs < SyncPrometheusInterval) return;
+        if (TimeUtils.TimeSinceAppStart - _lastSyncPrometheusTimeMs < SyncPrometheusInterval) return;
         _lastSyncPrometheusTimeMs = TimeUtils.TimeSinceAppStart;
 
         _prometheusService.UpdateSessionCount(_networkListener.ConnectionCount);
@@ -297,16 +322,18 @@ public abstract class ServerBase<TClient> where TClient : ClientBase, new()
         var gc0 = GC.CollectionCount(0) - SystemMetrics.LastGC0;
         var gc1 = GC.CollectionCount(1) - SystemMetrics.LastGC1;
         var gc2 = GC.CollectionCount(2) - SystemMetrics.LastGC2;
-        
+
         SystemMetrics.LastGC0 = GC.CollectionCount(0);
         SystemMetrics.LastGC1 = GC.CollectionCount(1);
         SystemMetrics.LastGC2 = GC.CollectionCount(2);
 
         var memoryUsed = Process.GetCurrentProcess().WorkingSet64;
         _prometheusService.UpdateMemory(memoryUsed / (1024 * 1024));
-        
+
         _prometheusService.UpdateGC0PerSecond(gc0);
         _prometheusService.UpdateGC1PerSecond(gc1);
         _prometheusService.UpdateGC2PerSecond(gc2);
     }
+
+    #endregion
 }

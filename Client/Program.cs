@@ -32,9 +32,17 @@ networkClient.RegisterMessageHandler((ushort)MessageId.RawByte, (receivedMessage
                 
     Log.Info($"{x.ToString()} {y.ToString()} {z.ToString()}");
 });
+networkClient.RegisterMessageHandler((ushort)MessageId.Broadcast, (receivedMessageInfo) =>
+{
+    var x = receivedMessageInfo.Message.ReadUInt32();
+    var y = receivedMessageInfo.Message.ReadUInt32();
+    var z = receivedMessageInfo.Message.ReadUInt32();
+                
+    //Log.Info($"{x.ToString()} {y.ToString()} {z.ToString()}");
+});
 
 // Connect
-networkClient.Connect("192.168.0.108", 10001);
+networkClient.Connect("127.0.0.1", 10001);
 
 Thread.Sleep(100);
 

@@ -89,4 +89,14 @@ public partial class DemoServer
         
         receivedMessageInfo.Session.Send((ushort)MessageId.RawByte, _cacheRawByteData);
     }
+    
+    [MessageRoute(MessageId.Broadcast)]
+    public void OnReceiveBroadcast(ReceivedMessageInfo receivedMessageInfo)
+    {
+        var x = receivedMessageInfo.Message.ReadUInt32();
+        var y = receivedMessageInfo.Message.ReadUInt32();
+        var z = receivedMessageInfo.Message.ReadUInt32();
+        
+        BroadcastMessage((ushort)MessageId.Broadcast, _cacheRawByteData);
+    }
 }
