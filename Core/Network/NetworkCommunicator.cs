@@ -1,6 +1,5 @@
 ﻿using System.Collections.Concurrent;
 using System.Net.Sockets;
-using Core.Common;
 using Core.Logger;
 using Core.Metrics;
 
@@ -103,8 +102,15 @@ public class NetworkCommunicator
     {
         for (var i = 0; i < 10; i++)
         {
-            if (_receivedMessageInfos.Count <= 0) return;
-            if (!_receivedMessageInfos.TryDequeue(out var messageInfo)) return;
+            if (_receivedMessageInfos.Count <= 0)
+            {
+                return;
+            }
+
+            if (!_receivedMessageInfos.TryDequeue(out var messageInfo))
+            {
+                return;
+            }
 
             // 分發收到的 Message
             OnReceivedMessage?.Invoke(messageInfo);
@@ -120,7 +126,9 @@ public class NetworkCommunicator
         try
         {
             if (!IsSocketValid())
+            {
                 return;
+            }
 
             if (!Socket.ReceiveAsync(_receiveArgs))
             {
@@ -135,7 +143,7 @@ public class NetworkCommunicator
 
     private void OnReceive(object sender, SocketAsyncEventArgs args)
     {
-        if (!ReadDataToReceiveBuffer(args))
+        if (!IsSocketValid() || !ReadDataToReceiveBuffer(args))
         {
             // 收到 0個 Byte代表 Client已關閉
             Close();
@@ -191,7 +199,10 @@ public class NetworkCommunicator
 
     private bool IsOverReceived()
     {
-        if (!_isNeedCheckOverReceived) return false;
+        if (!_isNeedCheckOverReceived)
+        {
+            return false;
+        }
 
         return _receivedMessageInfos.Count >= MaxReceivedCount;
     }
@@ -203,7 +214,9 @@ public class NetworkCommunicator
     public void Send(ushort messageId, byte[] message, bool isRequest = false, ushort requestId = 0)
     {
         if (!IsSocketValid())
+        {
             return;
+        }
 
         AddMessageToSendQueue(messageId, message, isRequest, requestId);
     }
@@ -239,7 +252,9 @@ public class NetworkCommunicator
         try
         {
             if (!IsSocketValid())
+            {
                 return;
+            }
 
             if (!Socket.SendAsync(_sendArgs))
             {
@@ -255,16 +270,24 @@ public class NetworkCommunicator
     private void OnSend(object sender, SocketAsyncEventArgs args)
     {
         if (!IsSocketValid())
+        {
             return;
+        }
+
         if (args.SocketError != SocketError.Success)
+        {
             return;
+        }
 
         CheckSendQueue();
     }
 
     private void CheckSendQueue()
     {
-        if (_sendQueue.Count <= 0) return;
+        if (_sendQueue.Count <= 0)
+        {
+            return;
+        }
 
         var count = _sendArgs.BytesTransferred;
 
@@ -311,13 +334,16 @@ public class NetworkCommunicator
     private bool IsSocketValid()
     {
         if (_isClosing)
+        {
             return false;
-        if (Socket == null)
-            return false;
-        if (!Socket.Connected) 
-            return false;
+        }
 
-        return true;
+        if (Socket == null)
+        {
+            return false;
+        }
+
+        return Socket.Connected;
     }
 
     #region - Close -
