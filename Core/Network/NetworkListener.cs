@@ -62,7 +62,7 @@ public class NetworkListener
     }
 
     #region - Life Cycle -
-    
+
     // 每個Frame要處理的順序： AddCommunicators -> HandleMessages -> CloseCommunicators
 
     /// <summary>
@@ -99,7 +99,7 @@ public class NetworkListener
         {
             foreach (var communicator in _communicatorsToClose)
             {
-                Close(communicator.Socket);
+                InnerClose(communicator.Socket);
             }
 
             _communicatorsToClose.Clear();
@@ -181,13 +181,10 @@ public class NetworkListener
     {
         OnReceivedMessage?.Invoke(communicator, receivedMessageInfo);
     }
-    
+
     private void OnCommunicatorClose(NetworkCommunicator communicator)
     {
-        lock (_communicatorsToClose)
-        {
-            _communicatorsToClose.Enqueue(communicator);
-        }
+        Close(communicator);
     }
 
     #endregion
@@ -221,10 +218,21 @@ public class NetworkListener
 
     #region - Close -
 
-    public void Close(Socket socket)
+    public void Close(NetworkCommunicator communicator)
+    {
+        if (communicator == null)
+            return;
+        
+        lock (_communicatorsToClose)
+        {
+            _communicatorsToClose.Enqueue(communicator);
+        }
+    }
+
+    private void InnerClose(Socket socket)
     {
         if (socket == null) return;
-        
+
         if (!_communicatorList.TryGetValue(socket, out var communicator))
         {
             Log.Error($"Close Socket Error: Cannot find communicator");

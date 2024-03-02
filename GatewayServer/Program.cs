@@ -5,9 +5,9 @@ using Server;
 
 try
 {
-    // var configuration = new ConfigurationBuilder()
-    //     .AddJsonFile("appsettings.json")
-    //     .Build();
+    var configuration = new ConfigurationBuilder()
+        .AddJsonFile("appsettings.json")
+        .Build();
 
     var serviceCollection = new ServiceCollection();
 

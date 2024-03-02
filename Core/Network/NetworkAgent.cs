@@ -123,17 +123,17 @@ public class NetworkAgent
         if (TimeUtils.GetTimeStamp() - _lastCheckReconnectTime < _checkReconnectIntervalMs) return;
 
         _lastCheckReconnectTime = TimeUtils.GetTimeStamp();
-        Reconnect();
+        Reconnect().Await();
     }
 
-    private void Reconnect()
+    private async Task Reconnect()
     {
         if (_connector.ConnectState != ConnectState.Disconnected) return;
 
-        Connect(_cacheIp, _cachePort);
+        await Connect(_cacheIp, _cachePort);
     }
 
-    public void Connect(string ip, int port)
+    public async Task Connect(string ip, int port)
     {
         _cacheIp = ip;
         _cachePort = port;
@@ -143,7 +143,7 @@ public class NetworkAgent
         _connector.OnReceivedMessage += OnReceivedMessage;
         _connector.OnClosed += OnClosed;
         
-        _connector.Connect(ip, port);
+        await _connector.Connect(ip, port);
     }
     
     private void OnReceivedMessage(NetworkCommunicator communicator, ReceivedMessageInfo receivedMessageInfo)

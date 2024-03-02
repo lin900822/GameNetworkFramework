@@ -290,7 +290,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
 
     #region - Heart Beat -
 
-    [MessageRoute((uint)MessageId.HeartBeat)]
+    [MessageRoute((ushort)MessageId.HeartBeat)]
     public void OnReceivedPing(TClient client, ReceivedMessageInfo receivedMessageInfo)
     {
         client.LastPingTime = TimeUtils.GetTimeStamp();
@@ -300,17 +300,14 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
     private void CheckHeartBeat()
     {
         var currentTime = TimeUtils.GetTimeStamp();
-        lock (ClientList)
+        foreach (var communicator in ClientList.Keys)
         {
-            foreach (var communicator in ClientList.Keys)
-            {
-                var client = ClientList[communicator];
+            var client = ClientList[communicator];
 
-                if (currentTime - client.LastPingTime >= _settings.HeartBeatInterval)
-                {
-                    Log.Info($"{communicator.Socket.RemoteEndPoint} Heart Beat Time Out!");
-                    _networkListener.Close(communicator.Socket);
-                }
+            if (currentTime - client.LastPingTime >= _settings.HeartBeatInterval)
+            {
+                Log.Info($"{communicator.Socket.RemoteEndPoint} Heart Beat Time Out!");
+                Close(communicator);
             }
         }
     }
@@ -327,6 +324,11 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
         }
     }
 
+    public void Close(NetworkCommunicator communicator)
+    {
+        _networkListener.Close(communicator);
+    }
+    
     #endregion
 
     #region - Metrics -
