@@ -97,7 +97,7 @@ for (int i = 0; i < threadCount; i++)
                 bot.Update();
                 
             }
-            Thread.Sleep(3000);
+            Thread.Sleep(50);
         }
     });
 }

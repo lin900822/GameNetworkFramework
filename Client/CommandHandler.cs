@@ -212,6 +212,24 @@ public class CommandHandler
         });
     }
     
+    [Command("login")]
+    public async void TestLogin()
+    {
+        Log.Info("請輸入用戶名稱:");
+        var username = Console.ReadLine();
+        Log.Info("請輸入密碼:");
+        var password = Console.ReadLine();
+
+        YieldToMainThread(async () =>
+        {
+            var user     = new User() { Username = username, Password = password };
+            var userData = ProtoUtils.Encode(user);
+
+            var messageInfo = await _networkClient.SendRequest((ushort)MessageId.Login, userData,
+                () => { Log.Warn($"Time Out"); });
+        });
+    }
+    
     [Command("rawbyte")]
     public async void TestRawByte()
     {

@@ -9,4 +9,5 @@ public enum MessageId : uint
     Register = 103,
     RawByte = 104,
     Broadcast = 105,
+    Login = 106,
 }

@@ -16,8 +16,8 @@ public class UserRepository : BaseRepository<UserPO>
     public async Task<int> Insert(UserPO userPo)
     {
         var sql =
-        @"
-        INSERT INTO User(Id,Username,Password) 
+            @"
+        INSERT INTO UserPO(Id,Username,Password) 
         VALUES(@Id,@Username,@Password);
         SELECT @@IDENTITY;
         ";
@@ -28,8 +28,8 @@ public class UserRepository : BaseRepository<UserPO>
     public async Task<int> Update(UserPO userPo)
     {
         var sql =
-        @"
-        UPDATE User SET
+            @"
+        UPDATE UserPO SET
         Username=@Username,
         Password=@Password
         WHERE Id=@Id;
@@ -40,9 +40,9 @@ public class UserRepository : BaseRepository<UserPO>
 
     public async Task<int> Delete(int id)
     {
-        var sql = 
-        @"
-        DELETE FROM User WHERE Id=@Id;
+        var sql =
+            @"
+        DELETE FROM UserPO WHERE Id=@Id;
         ";
 
         return await Delete(id, sql);
@@ -50,9 +50,9 @@ public class UserRepository : BaseRepository<UserPO>
 
     public async Task<UserPO> SelectOne(int id)
     {
-        var sql = 
-        @"
-        SELECT * FROM User WHERE Id=@Id;
+        var sql =
+            @"
+        SELECT * FROM UserPO WHERE Id=@Id;
         ";
 
         return await SelectOne(id, sql);
@@ -60,9 +60,9 @@ public class UserRepository : BaseRepository<UserPO>
 
     public async Task<List<UserPO>> SelectAll()
     {
-        var sql = 
-        @"
-        SELECT * FROM User;
+        var sql =
+            @"
+        SELECT * FROM UserPO;
         ";
 
         return await SelectAll(sql);
@@ -70,16 +70,42 @@ public class UserRepository : BaseRepository<UserPO>
 
     public async Task<bool> IsUserExist(string username)
     {
-        var sql = 
-        @"
-        SELECT COUNT(*) FROM User WHERE username=@Username;
+        var sql =
+            @"
+        SELECT COUNT(*) FROM UserPO WHERE username=@Username;
         ";
-        
+
         using var dbConnection = _dbContext.Connection;
         dbConnection.Open();
         Log.Debug($"{Environment.CurrentManagedThreadId}: Before QueryFirstAsync");
         var count = await dbConnection.QueryFirstAsync<int>(sql, new { Username = username });
         Log.Debug($"{Environment.CurrentManagedThreadId}: After QueryFirstAsync");
         return count >= 1;
+    }
+
+    public async Task<UserPO> GetUserAsync(string username)
+    {
+        var sql =
+        @"
+        SELECT * FROM UserPO WHERE username=@Username;
+        ";
+
+        using var dbConnection = _dbContext.Connection;
+        dbConnection.Open();
+        var user = await dbConnection.QuerySingleAsync<UserPO>(sql, new { Username = username });
+        return user ?? null;
+    }
+
+    public async Task<uint> GetMaxId()
+    {
+        var sql =
+            @"
+        SELECT MAX(Id) FROM UserPO;
+        ";
+
+        using var dbConnection = _dbContext.Connection;
+        dbConnection.Open();
+        var maxId = await dbConnection.QuerySingleAsync<uint>(sql);
+        return maxId;
     }
 }

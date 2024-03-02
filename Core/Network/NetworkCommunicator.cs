@@ -164,10 +164,7 @@ public class NetworkCommunicator
             return false;
         }
 
-        lock (_receiveBuffer)
-        {
-            _receiveBuffer.Write(args.Buffer, args.Offset, receiveCount);
-        }
+        _receiveBuffer.Write(args.Buffer, args.Offset, receiveCount);
 
         return true;
     }
@@ -395,33 +392,30 @@ public class NetworkCommunicator
         if (_receiveBuffer.Length < totalLength) return false;
 
         // 資料完整，開始解析
-        lock (_receiveBuffer)
+        if (isLongPacket)
         {
-            if (isLongPacket)
-            {
-                totalLength = (int)(_receiveBuffer.ReadUInt16() & ~LongPacketFlag);
-                totalLength = (int)(totalLength & ~RequestFlag);
-                totalLength = (totalLength << 16) | _receiveBuffer.ReadUInt16();
-            }
-            else
-            {
-                totalLength = _receiveBuffer.ReadUInt16();
-            }
-
-            var bodyLength = totalLength - (isLongPacket ? LongPacketLength : ShortPacketLength) - MessageIdLength;
-
-            if (isRequest)
-            {
-                receivedMessageInfo.IsRequest = true;
-                receivedMessageInfo.RequestId = _receiveBuffer.ReadUInt16();
-
-                bodyLength -= RequestIdLength;
-            }
-
-            receivedMessageInfo.MessageId = _receiveBuffer.ReadUInt16();
-            receivedMessageInfo.Allocate(bodyLength);
-            _receiveBuffer.Read(receivedMessageInfo.Message, bodyLength);
+            totalLength = (int)(_receiveBuffer.ReadUInt16() & ~LongPacketFlag);
+            totalLength = (int)(totalLength & ~RequestFlag);
+            totalLength = (totalLength << 16) | _receiveBuffer.ReadUInt16();
         }
+        else
+        {
+            totalLength = _receiveBuffer.ReadUInt16();
+        }
+
+        var bodyLength = totalLength - (isLongPacket ? LongPacketLength : ShortPacketLength) - MessageIdLength;
+
+        if (isRequest)
+        {
+            receivedMessageInfo.IsRequest = true;
+            receivedMessageInfo.RequestId = _receiveBuffer.ReadUInt16();
+
+            bodyLength -= RequestIdLength;
+        }
+
+        receivedMessageInfo.MessageId = _receiveBuffer.ReadUInt16();
+        receivedMessageInfo.Allocate(bodyLength);
+        _receiveBuffer.Read(receivedMessageInfo.Message, bodyLength);
 
         return true;
     }

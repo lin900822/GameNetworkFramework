@@ -5,6 +5,8 @@ using Server.Database;
 using ServerDemo;
 using ServerDemo.Repositories;
 using Microsoft.Extensions.Configuration;
+using Server.Repositories;
+using ServerDemo.PO;
 
 try
 {
@@ -27,12 +29,16 @@ try
     serviceCollection.AddSingleton<DemoServer>();
 
     serviceCollection.AddSingleton<IDbContext>(new MySqlDbContext(connectionString));
+    serviceCollection.AddSingleton<MigrateTool>();
     serviceCollection.AddSingleton<UserRepository>();
 
     var serviceProvider = serviceCollection.BuildServiceProvider();
 
-    var server = serviceProvider.GetRequiredService<DemoServer>();
+    var migrateTool = serviceProvider.GetRequiredService<MigrateTool>();
+    migrateTool.Migrate(typeof(TestPO));
+    migrateTool.Migrate(typeof(UserPO));
 
+    var server = serviceProvider.GetRequiredService<DemoServer>();
     server.Start();
 }
 catch (Exception ex)

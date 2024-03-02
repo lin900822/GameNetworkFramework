@@ -68,14 +68,40 @@ public partial class DemoServer
         }
         
         Log.Debug($"{Environment.CurrentManagedThreadId}: Before Insert");
+
+        var maxId = await _userRepository.GetMaxId();
         
         await _userRepository.Insert(new UserPO()
         {
+            Id = maxId + 1,
             Username = user.Username,
             Password = user.Password,
         });
         
         Log.Debug($"{Environment.CurrentManagedThreadId}: After Insert");
+
+        return Response.Create((uint)StateCode.Success);
+    }
+    
+    [MessageRoute(MessageId.Login)]
+    public async Task<Response> OnReceiveUserLogin(ReceivedMessageInfo receivedMessageInfo)
+    {
+        if (!receivedMessageInfo.TryDecode<User>(out var user)) return Response.None;
+        
+        if(user.Username.Length <= 2) return Response.None;
+
+        var userPo = await _userRepository.GetUserAsync(user.Username);
+        if (userPo != null)
+        {
+            if (userPo.Password.Equals(user.Password))
+            {
+                Log.Info($"玩家[{user.Username}] 登入成功");
+            }
+            else
+            {
+                Log.Info($"玩家[{user.Username}] 密碼錯誤");
+            }
+        }
 
         return Response.Create((uint)StateCode.Success);
     }

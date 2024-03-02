@@ -1,8 +1,14 @@
-﻿namespace ServerDemo.PO;
+﻿using System.ComponentModel.DataAnnotations;
+using Server.Repositories;
+
+namespace ServerDemo.PO;
 
 public class UserPO
 {
-    public int Id { get; set; }
+    [Key]
+    public uint Id { get; set; }
+    [VarcharLength(50)]
     public string Username { get; set; }
+    [VarcharLength(50)]
     public string Password { get; set; }
 }
