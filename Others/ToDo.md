@@ -6,5 +6,4 @@
 - Repository
 
 #### 有空再做
-- 重構NetworkSession的SessionObject
 - 重構Response, RequestInfo, ReceivedMessageInfo這些struct

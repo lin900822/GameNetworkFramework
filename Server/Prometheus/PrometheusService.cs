@@ -47,7 +47,7 @@ public class PrometheusService
         _remainMessageCountGauge.Set(value);
     }
 
-    public void UpdateSessionCount(int value)
+    public void UpdateCommunicatorCount(int value)
     {
         _sessionCountGauge.Set(value);
     }

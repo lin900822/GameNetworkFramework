@@ -36,46 +36,45 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
         ClientList = new Dictionary<NetworkCommunicator, TClient>();
 
         _messageRouter   = new MessageRouter<TClient>();
-        _networkListener = new NetworkListener(settings.MaxSessionCount);
+        _networkListener = new NetworkListener(settings.MaxConnectionCount);
 
         _prometheusService = new PrometheusService();
         _prometheusService.Start();
 
-        _networkListener.OnSessionConnected    += OnSessionConnected;
-        _networkListener.OnSessionDisconnected += OnSessionDisconnected;
-        _networkListener.OnReceivedMessage     += OnReceivedMessage;
+        _networkListener.OnCommunicatorConnected    += OnCommunicatorConnected;
+        _networkListener.OnCommunicatorDisconnected += OnCommunicatorDisconnected;
+        _networkListener.OnReceivedMessage          += OnReceivedMessage;
         RegisterMessageHandlers();
     }
 
     ~ServerBase()
     {
-        _networkListener.OnSessionConnected    -= OnSessionConnected;
-        _networkListener.OnSessionDisconnected -= OnSessionDisconnected;
-        _networkListener.OnReceivedMessage     -= OnReceivedMessage;
+        _networkListener.OnCommunicatorConnected    -= OnCommunicatorConnected;
+        _networkListener.OnCommunicatorDisconnected -= OnCommunicatorDisconnected;
+        _networkListener.OnReceivedMessage          -= OnReceivedMessage;
 
         _prometheusService.Stop();
     }
 
     #region - NetworkListner Events -
 
-    private void OnSessionConnected(NetworkSession session)
+    private void OnCommunicatorConnected(NetworkCommunicator communicator)
     {
         var client = new TClient();
-        client.Init(this, session);
+        client.Init(this, communicator);
 
-        client.LastPingTime   = TimeUtils.GetTimeStamp();
-        session.SessionObject = client;
+        client.LastPingTime = TimeUtils.GetTimeStamp();
 
-        ClientList.TryAdd(session, client);
+        ClientList.TryAdd(communicator, client);
     }
 
-    private void OnSessionDisconnected(NetworkSession session)
+    private void OnCommunicatorDisconnected(NetworkCommunicator communicator)
     {
-        if (!ClientList.TryGetValue(session, out var client))
+        if (!ClientList.TryGetValue(communicator, out var client))
             return;
 
         client.Deinit();
-        ClientList.Remove(session);
+        ClientList.Remove(communicator);
     }
 
     private void OnReceivedMessage(NetworkCommunicator communicator, ReceivedMessageInfo receivedMessageInfo)
@@ -231,7 +230,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
     {
         try
         {
-            _networkListener.AddSessions();
+            _networkListener.AddCommunicators();
             _networkListener.HandleMessages();
 
             _millisecondsPassed = TimeUtils.TimeSinceAppStart - _startTimeMs;
@@ -252,7 +251,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
             }
 
             SystemMetrics.RemainMessageCount = 0;
-            _networkListener.CloseSessions();
+            _networkListener.CloseCommunicators();
         }
         catch (Exception e)
         {
@@ -303,14 +302,14 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
         var currentTime = TimeUtils.GetTimeStamp();
         lock (ClientList)
         {
-            foreach (var session in ClientList.Keys)
+            foreach (var communicator in ClientList.Keys)
             {
-                var client = ClientList[session];
+                var client = ClientList[communicator];
 
                 if (currentTime - client.LastPingTime >= _settings.HeartBeatInterval)
                 {
-                    Log.Info($"{session.Socket.RemoteEndPoint} Heart Beat Time Out!");
-                    _networkListener.Close(session.Socket);
+                    Log.Info($"{communicator.Socket.RemoteEndPoint} Heart Beat Time Out!");
+                    _networkListener.Close(communicator.Socket);
                 }
             }
         }
@@ -322,9 +321,9 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
 
     public void BroadcastMessage(ushort messageId, byte[] message)
     {
-        foreach (var session in ClientList.Keys)
+        foreach (var communicator in ClientList.Keys)
         {
-            session.Send(messageId, message);
+            communicator.Send(messageId, message);
         }
     }
 
@@ -337,7 +336,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
         if (TimeUtils.TimeSinceAppStart - _lastSyncPrometheusTimeMs < SyncPrometheusInterval) return;
         _lastSyncPrometheusTimeMs = TimeUtils.TimeSinceAppStart;
 
-        _prometheusService.UpdateSessionCount(_networkListener.ConnectionCount);
+        _prometheusService.UpdateCommunicatorCount(_networkListener.ConnectionCount);
         _prometheusService.UpdateRemainMessageCount(SystemMetrics.RemainMessageCount);
         _prometheusService.UpdateHandledMessagePerSecond(SystemMetrics.HandledMessageCount);
         SystemMetrics.HandledMessageCount = 0;

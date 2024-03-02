@@ -46,7 +46,7 @@ public class NetworkConnector
             Log.Info("Connected!");
 
             _communicator.OnReceivedMessage += OnReceivedMessage;
-            _communicator.OnClose += OnSessionReceivedNothing;
+            _communicator.OnClose += OnCommunicatorClose;
 
             _communicator.Init(_connectFd);
             _communicator.ReceiveAsync();
@@ -70,10 +70,10 @@ public class NetworkConnector
         _communicator.Send(messageId, message, isRequest, requestId);
     }
 
-    private void OnSessionReceivedNothing(NetworkCommunicator session)
+    private void OnCommunicatorClose(NetworkCommunicator communicator)
     {
         _communicator.OnReceivedMessage -= OnReceivedMessage;
-        _communicator.OnClose -= OnSessionReceivedNothing;
+        _communicator.OnClose -= OnCommunicatorClose;
 
         ConnectState = ConnectState.Disconnected;
 
