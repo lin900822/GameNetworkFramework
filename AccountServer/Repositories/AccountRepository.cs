@@ -88,8 +88,15 @@ public class AccountRepository : BaseRepository<Account>
 
         using var dbConnection = _dbContext.Connection;
         dbConnection.Open();
-        var account = await dbConnection.QuerySingleAsync<Account>(sql, new { Username = username });
-        return account ?? null;
+        try
+        {
+            var account = await dbConnection.QuerySingleAsync<Account>(sql, new { Username = username });
+            return account ?? null;
+        }
+        catch (Exception e)
+        {
+            return null;
+        }
     }
 
     public async Task<uint> GetMaxId()
@@ -101,7 +108,14 @@ public class AccountRepository : BaseRepository<Account>
 
         using var dbConnection = _dbContext.Connection;
         dbConnection.Open();
-        var maxId = await dbConnection.QuerySingleAsync<uint>(sql);
-        return maxId;
+
+        try
+        {
+            return await dbConnection.QuerySingleAsync<uint>(sql);
+        }
+        catch (Exception e)
+        {
+            return 0;
+        }
     }
 }

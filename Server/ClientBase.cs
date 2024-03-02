@@ -20,9 +20,9 @@ public abstract class ClientBase<T> where T : ClientBase<T>, new()
         OnInit();
     }
 
-    public void Update()
+    public void FixedUpdate()
     {
-        OnUpdate();
+        OnFixedUpdate();
     }
 
     public void Deinit()
@@ -34,7 +34,7 @@ public abstract class ClientBase<T> where T : ClientBase<T>, new()
     {
     }
 
-    protected virtual void OnUpdate()
+    protected virtual void OnFixedUpdate()
     {
     }
 

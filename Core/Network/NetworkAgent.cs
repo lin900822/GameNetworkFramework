@@ -210,32 +210,13 @@ public class NetworkAgent
         if (_connector.ConnectState != ConnectState.Connected) return;
         _connector.Send(messageId, message);
     }
-
-    public void SendRequest(ushort messageId, byte[] request, Action<ReceivedMessageInfo> onCompleted,
-        Action onTimeOut = null)
+    
+    public void SendMessage(ushort messageId, ByteBuffer message)
     {
         if (_connector.ConnectState != ConnectState.Connected) return;
-
-        lock (this)
-        {
-            ++_requestSerialId;
-        }
-
-        var requestPack = _requestPool.Rent();
-        requestPack.MessageId = messageId;
-        requestPack.RequestId = _requestSerialId;
-        requestPack.OnCompleted = onCompleted;
-        requestPack.OnTimeOut = onTimeOut;
-        requestPack.RequestTime = TimeUtils.TimeSinceAppStart;
-
-        lock (_requestPacks)
-        {
-            _requestPacks.AddLast(requestPack);
-        }
-
-        _connector.Send(messageId, request, true, _requestSerialId);
+        _connector.Send(messageId, message);
     }
-
+    
     public Task<ReceivedMessageInfo> SendRequest(ushort messageId, byte[] request, Action onTimeOut = null)
     {
         var taskCompletionSource =
@@ -262,6 +243,74 @@ public class NetworkAgent
         }
 
         return taskCompletionSource.Task;
+    }
+    
+    public Task<ReceivedMessageInfo> SendRequest(ushort messageId, ByteBuffer request, Action onTimeOut = null)
+    {
+        var taskCompletionSource =
+            new TaskCompletionSource<ReceivedMessageInfo>(TaskCreationOptions.RunContinuationsAsynchronously);
+        try
+        {
+            SendRequest(messageId, request,
+                (info) =>
+                {
+                    try
+                    {
+                        taskCompletionSource.SetResult(info);
+                    }
+                    catch (Exception e)
+                    {
+                        Log.Error(e.ToString());
+                    }
+                },
+                onTimeOut);
+        }
+        catch (Exception ex)
+        {
+            taskCompletionSource.SetException(ex);
+        }
+
+        return taskCompletionSource.Task;
+    }
+
+    public void SendRequest(ushort messageId, byte[] request, Action<ReceivedMessageInfo> onCompleted,
+        Action onTimeOut = null)
+    {
+        if (_connector.ConnectState != ConnectState.Connected) return;
+
+        AddRequest(messageId, onCompleted, onTimeOut);
+
+        _connector.Send(messageId, request, true, _requestSerialId);
+    }
+    
+    public void SendRequest(ushort messageId, ByteBuffer request, Action<ReceivedMessageInfo> onCompleted,
+        Action                     onTimeOut = null)
+    {
+        if (_connector.ConnectState != ConnectState.Connected) return;
+
+        AddRequest(messageId, onCompleted, onTimeOut);
+
+        _connector.Send(messageId, request, true, _requestSerialId);
+    }
+
+    private void AddRequest(ushort messageId, Action<ReceivedMessageInfo> onCompleted, Action onTimeOut)
+    {
+        lock (this)
+        {
+            ++_requestSerialId;
+        }
+
+        var requestPack = _requestPool.Rent();
+        requestPack.MessageId   = messageId;
+        requestPack.RequestId   = _requestSerialId;
+        requestPack.OnCompleted = onCompleted;
+        requestPack.OnTimeOut   = onTimeOut;
+        requestPack.RequestTime = TimeUtils.TimeSinceAppStart;
+
+        lock (_requestPacks)
+        {
+            _requestPacks.AddLast(requestPack);
+        }
     }
     
     #endregion

@@ -69,6 +69,13 @@ public class NetworkConnector
 
         _communicator.Send(messageId, message, isRequest, requestId);
     }
+    
+    public void Send(ushort messageId, ByteBuffer message, bool isRequest = false, ushort requestId = 0)
+    {
+        if (_communicator == null) return;
+
+        _communicator.Send(messageId, message, isRequest, requestId);
+    }
 
     private void OnCommunicatorClose(NetworkCommunicator communicator)
     {

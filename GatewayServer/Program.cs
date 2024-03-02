@@ -18,6 +18,7 @@ try
         Port               = 10001,
         MaxConnectionCount = 2000,
         HeartBeatInterval  = 150_000,
+        PrometheusPort     = 20001,
     });
     serviceCollection.AddSingleton<GatewayServer.GatewayServer>();
 

@@ -39,7 +39,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
         _networkListener = new NetworkListener(settings.MaxConnectionCount);
 
         _prometheusService = new PrometheusService();
-        _prometheusService.Start();
+        _prometheusService.Start(_settings.PrometheusPort);
 
         _networkListener.OnCommunicatorConnected    += OnCommunicatorConnected;
         _networkListener.OnCommunicatorDisconnected += OnCommunicatorDisconnected;
@@ -154,7 +154,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
                         (client, messageInfo) =>
                         {
                             var response = func(client, messageInfo);
-                            if (response == null) 
+                            if (response == null)
                                 return;
                             client.Send((ushort)routeAttribute.MessageId, response, true,
                                 messageInfo.RequestId);
@@ -177,7 +177,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
                         func(client, messageInfo).Await(
                             response =>
                             {
-                                if (response == null) 
+                                if (response == null)
                                     return;
                                 client.Send((ushort)routeAttribute.MessageId, response, true,
                                     messageInfo.RequestId);
@@ -239,12 +239,13 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
 
             _millisecondsPassed = TimeUtils.TimeSinceAppStart - _startTimeMs;
 
+            OnUpdate();
             while (_millisecondsPassed - _frameCount * _millisecondsPerFrame >= _millisecondsPerFrame)
             {
                 ++_frameCount;
                 OnFixedUpdate();
                 CheckHeartBeat();
-                UpdateClients();
+                FixedUpdateClients();
 
                 SyncPrometheus();
 
@@ -273,6 +274,10 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
     {
     }
 
+    protected virtual void OnUpdate()
+    {
+    }
+
     protected virtual void OnFixedUpdate()
     {
     }
@@ -282,13 +287,13 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
     }
 
     #endregion
-
-    private void UpdateClients()
+    
+    private void FixedUpdateClients()
     {
         foreach (var communicator in ClientList.Keys)
         {
             var client = ClientList[communicator];
-            client.Update();
+            client.FixedUpdate();
         }
     }
 
@@ -332,7 +337,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
     {
         _networkListener.Close(communicator);
     }
-    
+
     #endregion
 
     #region - Metrics -

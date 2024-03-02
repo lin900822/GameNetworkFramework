@@ -17,9 +17,8 @@ public class PrometheusService
     private Gauge _gc2Gauge = Metrics.CreateGauge("gc2_per_second", "GC2 per Second");
 
     private MetricServer _metricServer;
-    private const int _port = 19001;
 
-    public void Start()
+    public void Start(int port)
     {
         // 初始化 Prometheus 库
         Metrics.SuppressDefaultMetrics();
@@ -27,7 +26,7 @@ public class PrometheusService
         // 这里可以添加其他初始化代码
 
         // 启动 Web 服务器，用于暴露 Prometheus metrics
-        _metricServer = new MetricServer(port: _port);
+        _metricServer = new MetricServer(port: port);
         _metricServer.Start();
     }
 

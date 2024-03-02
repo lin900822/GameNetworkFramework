@@ -24,7 +24,7 @@ public class AccountServer : ServerBase<AccountClient>
     }
 
     [MessageRoute((ushort)MessageId.Register)]
-    public async Task<ByteBuffer> OnReceiveUserRegister(AccountClient client, ReceivedMessageInfo receivedMessageInfo)
+    public async Task<ByteBuffer> OnReceiveRegister(AccountClient client, ReceivedMessageInfo receivedMessageInfo)
     {
         var response = ByteBufferPool.Shared.Rent(10);
 
@@ -57,6 +57,45 @@ public class AccountServer : ServerBase<AccountClient>
         });
 
         response.WriteUInt16(1);
+        return response;
+    }
+    
+    [MessageRoute((ushort)MessageId.Login)]
+    public async Task<ByteBuffer> OnReceiveLogin(AccountClient client, ReceivedMessageInfo receivedMessageInfo)
+    {
+        var response = ByteBufferPool.Shared.Rent(10);
+
+        if (!receivedMessageInfo.TryDecode<User>(out var user))
+        {
+            response.WriteUInt16(0);
+            return response;
+        }
+
+        if (user.Username.Length <= 2)
+        {
+            response.WriteUInt16(0);
+            return response;
+        }
+
+        var userPo = await _accountRepository.GetAccountAsync(user.Username);
+        if (userPo != null)
+        {
+            if (userPo.Password.Equals(user.Password))
+            {
+                Log.Info($"玩家[{user.Username}] 登入成功");
+                response.WriteUInt16(1);
+            }
+            else
+            {
+                Log.Info($"玩家[{user.Username}] 密碼錯誤");
+                response.WriteUInt16(0);
+            }
+        }
+        else
+        {
+            response.WriteUInt16(0);
+        }
+
         return response;
     }
 }

@@ -18,11 +18,12 @@ try
 
     serviceCollection.AddSingleton(new ServerSettings()
     {
-        ServerId           = 1,
-        ServerName         = "DemoServer",
-        Port               = 10001,
+        ServerId           = 10011,
+        ServerName         = "AccountServer",
+        Port               = 10011,
         MaxConnectionCount = 2000,
         HeartBeatInterval  = 150_000,
+        PrometheusPort     = 20011,
     });
     serviceCollection.AddSingleton<AccountServer.AccountServer>();
 
