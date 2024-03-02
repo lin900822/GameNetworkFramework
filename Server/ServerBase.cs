@@ -140,10 +140,10 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
                     _messageRouter.RegisterMessageHandler((ushort)routeAttribute.MessageId, Handler);
                 }
             }
-            else if (returnType == typeof(Response))
+            else if (returnType == typeof(ByteBuffer))
             {
-                var func = (Func<TClient, ReceivedMessageInfo, Response>)Delegate.CreateDelegate(
-                    typeof(Func<TClient, ReceivedMessageInfo, Response>), this, methodInfo);
+                var func = (Func<TClient, ReceivedMessageInfo, ByteBuffer>)Delegate.CreateDelegate(
+                    typeof(Func<TClient, ReceivedMessageInfo, ByteBuffer>), this, methodInfo);
 
                 using var enumerator = routeAttributes.GetEnumerator();
                 while (enumerator.MoveNext())
@@ -154,16 +154,18 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
                         (client, messageInfo) =>
                         {
                             var response = func(client, messageInfo);
-                            if (response.Message == null) return;
-                            client.Send((ushort)routeAttribute.MessageId, response.Message, true,
+                            if (response == null) 
+                                return;
+                            client.Send((ushort)routeAttribute.MessageId, response, true,
                                 messageInfo.RequestId);
+                            ByteBufferPool.Shared.Return(response);
                         });
                 }
             }
-            else if (returnType == typeof(Task<Response>))
+            else if (returnType == typeof(Task<ByteBuffer>))
             {
-                var func = (Func<TClient, ReceivedMessageInfo, Task<Response>>)Delegate.CreateDelegate(
-                    typeof(Func<TClient, ReceivedMessageInfo, Task<Response>>), this, methodInfo);
+                var func = (Func<TClient, ReceivedMessageInfo, Task<ByteBuffer>>)Delegate.CreateDelegate(
+                    typeof(Func<TClient, ReceivedMessageInfo, Task<ByteBuffer>>), this, methodInfo);
 
                 using var enumerator = routeAttributes.GetEnumerator();
                 while (enumerator.MoveNext())
@@ -175,9 +177,11 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
                         func(client, messageInfo).Await(
                             response =>
                             {
-                                if (response.Message == null) return;
-                                client.Send((ushort)routeAttribute.MessageId, response.Message, true,
+                                if (response == null) 
+                                    return;
+                                client.Send((ushort)routeAttribute.MessageId, response, true,
                                     messageInfo.RequestId);
+                                ByteBufferPool.Shared.Return(response);
                             },
                             e => Log.Error(e.ToString()));
                     }

@@ -6,9 +6,10 @@ public class ByteBuffer
     private const int DEFAULT_SIZE = 1024 * 4; // 4kb
 
     // Properties
-    public int Remain   => _capacity - _writeIndex;
-    public int Length   => _writeIndex - _readIndex;
-    public int Capacity => _capacity;
+    public bool IsInPool { get; set; }
+    public int  Remain   => _capacity - _writeIndex;
+    public int  Length   => _writeIndex - _readIndex;
+    public int  Capacity => _capacity;
 
     public byte[] RawData    => _rawData;
     public int    ReadIndex  => _readIndex;

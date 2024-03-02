@@ -12,7 +12,7 @@ public class AccountServer : ServerBase<AccountClient>
     private AccountRepository _accountRepository;
 
     private uint _accountMaxId;
-    
+
     public AccountServer(AccountRepository accountRepository, ServerSettings settings) : base(settings)
     {
         _accountRepository = accountRepository;
@@ -24,27 +24,39 @@ public class AccountServer : ServerBase<AccountClient>
     }
 
     [MessageRoute((ushort)MessageId.Register)]
-    public async Task<Response> OnReceiveUserRegister(AccountClient client, ReceivedMessageInfo receivedMessageInfo)
+    public async Task<ByteBuffer> OnReceiveUserRegister(AccountClient client, ReceivedMessageInfo receivedMessageInfo)
     {
-        if (!receivedMessageInfo.TryDecode<User>(out var user)) return Response.None;
-        
-        if(user.Username.Length <= 2) return Response.None;
+        var response = ByteBufferPool.Shared.Rent(10);
+
+        if (!receivedMessageInfo.TryDecode<User>(out var user))
+        {
+            response.WriteUInt16(0);
+            return response;
+        }
+
+        if (user.Username.Length <= 2)
+        {
+            response.WriteUInt16(0);
+            return response;
+        }
 
         var isAccountExist = await _accountRepository.IsAccountExist(user.Username);
         if (isAccountExist)
         {
-            return Response.Create((uint)StateCode.Register_Failed_UserExist);
+            response.WriteUInt16(0);
+            return response;
         }
 
         Interlocked.Increment(ref _accountMaxId);
-        
+
         await _accountRepository.Insert(new Account()
         {
             Id       = _accountMaxId,
             Username = user.Username,
             Password = user.Password,
         });
-        
-        return Response.Create((uint)StateCode.Success);
+
+        response.WriteUInt16(1);
+        return response;
     }
 }

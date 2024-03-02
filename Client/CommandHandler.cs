@@ -201,14 +201,16 @@ public class CommandHandler
             var messageInfo = await _networkAgent.SendRequest((ushort)MessageId.Register, userData,
                 () => { Log.Warn($"Time Out"); });
 
-            // if (messageInfo.StateCode == (uint)StateCode.Success)
-            // {
-            //     Log.Info($"註冊成功!");
-            // }
-            // else
-            // {
-            //     Log.Info($"{messageInfo.StateCode.ToString()}");
-            // }
+            var response = messageInfo.Message.ReadUInt16();
+
+            if (response == 1)
+            {
+                Log.Info($"註冊成功!");
+            }
+            else
+            {
+                Log.Info($"{response}");
+            }
         });
     }
     
@@ -227,6 +229,17 @@ public class CommandHandler
 
             var messageInfo = await _networkAgent.SendRequest((ushort)MessageId.Login, userData,
                 () => { Log.Warn($"Time Out"); });
+            
+            var response = messageInfo.Message.ReadUInt16();
+
+            if (response == 1)
+            {
+                Log.Info($"登入成功!");
+            }
+            else
+            {
+                Log.Info($"{response}");
+            }
         });
     }
     
