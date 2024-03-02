@@ -91,13 +91,13 @@ for (int i = 0; i < threadCount; i++)
                      //         Log.Info("Get Response");
                      //     }
                      // });
-                    bot.SendMessage((ushort)MessageId.RawByte, rawByteData);
+                    bot.SendMessage((ushort)MessageId.Move, moveData);
                 }
 
                 bot.Update();
                 
             }
-            Thread.Sleep(50);
+            Thread.Sleep(16);
         }
     });
 }
