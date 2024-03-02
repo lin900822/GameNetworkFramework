@@ -213,16 +213,35 @@ public class NetworkCommunicator
             return;
         }
 
-        AddMessageToSendQueue(messageId, message, isRequest, requestId);
-    }
-
-    private void AddMessageToSendQueue(ushort messageId, byte[] message, bool isRequest = false, ushort requestId = 0)
-    {
         // 打包資料
         var packetLength = (message.Length > short.MaxValue) ? ShortPacketLength : LongPacketLength;
         var byteBuffer   = ByteBufferPool.Shared.Rent(packetLength + MessageIdLength + message.Length);
-        PackMessage(byteBuffer, messageId, message, isRequest, requestId);
+        PackMessage(byteBuffer, messageId, message, message.Length, 0, isRequest, requestId);
 
+        AddMessageToSendQueue(byteBuffer);
+    }
+
+    public void Send(
+        ushort     messageId,
+        ByteBuffer message,
+        bool       isRequest = false,
+        ushort     requestId = 0)
+    {
+        if (!IsSocketValid())
+        {
+            return;
+        }
+
+        // 打包資料
+        var packetLength = (message.Length > short.MaxValue) ? ShortPacketLength : LongPacketLength;
+        var byteBuffer   = ByteBufferPool.Shared.Rent(packetLength + MessageIdLength + message.Length);
+        PackMessage(byteBuffer, messageId, message.RawData, message.Length, message.ReadIndex, isRequest, requestId);
+        
+        AddMessageToSendQueue(byteBuffer);
+    }
+
+    private void AddMessageToSendQueue(ByteBuffer byteBuffer)
+    {
         // 透過 SendQueue處理發送不完整問題
         int count = 0;
         lock (_sendQueue)
@@ -428,10 +447,15 @@ public class NetworkCommunicator
     /// </summary>
     private static bool HasRequestFlag(int value) => (value & RequestFlag) > 0;
 
-    private static void PackMessage(ByteBuffer byteBuffer,        ushort messageId, byte[] message,
-        bool                                   isRequest = false, ushort requestId = 0)
+    private static void PackMessage(
+        ByteBuffer byteBuffer,
+        ushort     messageId,
+        byte[]     message,
+        int        bodyLength,
+        int        offset    = 0,
+        bool       isRequest = false,
+        ushort     requestId = 0)
     {
-        var bodyLength = message.Length;
         if (bodyLength >= MaxPacketSize)
             throw new Exception($"MessageId({messageId}) length({bodyLength}) is over size.");
         if (bodyLength >= WarningPacketSize)
@@ -474,7 +498,7 @@ public class NetworkCommunicator
         }
 
         byteBuffer.WriteUInt16(messageId);
-        byteBuffer.Write(message, 0, bodyLength);
+        byteBuffer.Write(message, offset, bodyLength);
     }
 
     #endregion

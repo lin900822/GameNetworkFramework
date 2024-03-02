@@ -48,4 +48,9 @@ public abstract class ClientBase<T> where T : ClientBase<T>, new()
     {
         _communicator.Send(messageId, message, isRequest, requestId);
     }
+    
+    public void Send(ushort messageId, ByteBuffer message, bool isRequest = false, ushort requestId = 0)
+    {
+        _communicator.Send(messageId, message, isRequest, requestId);
+    }
 }

@@ -46,10 +46,13 @@ public partial class DemoServer
         {
             sum++;
         }
-
+        
         move.X += sum;
-        var moveData = ProtoUtils.Encode(move);
-        client.Send((ushort)MessageId.Move, moveData);
+        var moveData   = ProtoUtils.Encode(move);
+        var byteBuffer = ByteBufferPool.Shared.Rent(moveData.Length);
+        byteBuffer.Write(moveData, 0, moveData.Length);
+        client.Send((ushort)MessageId.Move, byteBuffer);
+        ByteBufferPool.Shared.Return(byteBuffer);
     }
     
     [MessageRoute((ushort)MessageId.Register)]
