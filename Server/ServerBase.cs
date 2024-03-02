@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Net.Sockets;
 using System.Reflection;
 using Core.Common;
 using Core.Logger;
@@ -12,13 +11,10 @@ namespace Server;
 
 public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, new()
 {
-    public MessageRouter   Router          => _messageRouter;
-    public NetworkListener NetworkListener => _networkListener;
+    public readonly Dictionary<NetworkCommunicator, TClient> ClientList;
 
-    public readonly Dictionary<NetworkSession, TClient> ClientList;
-
-    private MessageRouter   _messageRouter;
-    private NetworkListener _networkListener;
+    private MessageRouter<TClient> _messageRouter;
+    private NetworkListener        _networkListener;
 
     private       PrometheusService _prometheusService;
     private       long              _lastSyncPrometheusTimeMs;
@@ -27,7 +23,6 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
     private long _startTimeMs;
     private long _lastFrameTimeMs;
 
-    protected int  _targetFps = 20;
     protected int  _millisecondsPerFrame;
     protected long _millisecondsPassed;
     protected long _frameCount = 0;
@@ -38,9 +33,9 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
     {
         _settings = settings;
 
-        ClientList = new Dictionary<NetworkSession, TClient>();
+        ClientList = new Dictionary<NetworkCommunicator, TClient>();
 
-        _messageRouter   = new MessageRouter();
+        _messageRouter   = new MessageRouter<TClient>();
         _networkListener = new NetworkListener(settings.MaxSessionCount);
 
         _prometheusService = new PrometheusService();
@@ -66,8 +61,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
     private void OnSessionConnected(NetworkSession session)
     {
         var client = new TClient();
-        client.SetServer(this);
-        client.Init();
+        client.Init(this, session);
 
         client.LastPingTime   = TimeUtils.GetTimeStamp();
         session.SessionObject = client;
@@ -79,18 +73,19 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
     {
         if (!ClientList.TryGetValue(session, out var client))
             return;
+
         client.Deinit();
         ClientList.Remove(session);
     }
 
     private void OnReceivedMessage(NetworkCommunicator communicator, ReceivedMessageInfo receivedMessageInfo)
     {
-        if (ClientList.TryGetValue((NetworkSession)communicator, out var client))
+        if (ClientList.TryGetValue(communicator, out var client))
         {
             client.LastPingTime = TimeUtils.GetTimeStamp();
         }
 
-        _messageRouter.ReceiveMessage(communicator, receivedMessageInfo);
+        _messageRouter.ReceiveMessage(client, receivedMessageInfo);
     }
 
     #endregion
@@ -108,7 +103,8 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
             var returnType      = methodInfo.ReturnType;
             var routeAttributes = methodInfo.GetCustomAttributes<MessageRouteAttribute>();
 
-            if (parameters.Length != 2 || parameters[0].ParameterType != typeof(NetworkCommunicator) || parameters[1].ParameterType != typeof(ReceivedMessageInfo))
+            if (parameters.Length != 2 || parameters[0].ParameterType != typeof(TClient) ||
+                parameters[1].ParameterType != typeof(ReceivedMessageInfo))
             {
                 throw new ArgumentException($"MessageRoute Method \"{methodInfo.Name}\" Parameters Error!");
             }
@@ -116,8 +112,8 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
             if (returnType == typeof(void))
             {
                 var action =
-                    (Action<NetworkCommunicator, ReceivedMessageInfo>)Delegate.CreateDelegate(
-                        typeof(Action<NetworkCommunicator, ReceivedMessageInfo>), this,
+                    (Action<TClient, ReceivedMessageInfo>)Delegate.CreateDelegate(
+                        typeof(Action<TClient, ReceivedMessageInfo>), this,
                         methodInfo);
 
                 using var enumerator = routeAttributes.GetEnumerator();
@@ -129,17 +125,17 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
             }
             else if (returnType == typeof(Task))
             {
-                var func = (Func<NetworkCommunicator, ReceivedMessageInfo, Task>)Delegate.CreateDelegate(
-                    typeof(Func<NetworkCommunicator, ReceivedMessageInfo, Task>), this, methodInfo);
+                var func = (Func<TClient, ReceivedMessageInfo, Task>)Delegate.CreateDelegate(
+                    typeof(Func<TClient, ReceivedMessageInfo, Task>), this, methodInfo);
 
                 using var enumerator = routeAttributes.GetEnumerator();
                 while (enumerator.MoveNext())
                 {
                     var routeAttribute = enumerator.Current;
 
-                    void Handler(NetworkCommunicator communicator, ReceivedMessageInfo messageInfo)
+                    void Handler(TClient client, ReceivedMessageInfo messageInfo)
                     {
-                        func(communicator, messageInfo).Await(null, e => { Log.Error(e.ToString()); });
+                        func(client, messageInfo).Await(null, e => { Log.Error(e.ToString()); });
                     }
 
                     _messageRouter.RegisterMessageHandler((ushort)routeAttribute.MessageId, Handler);
@@ -147,8 +143,8 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
             }
             else if (returnType == typeof(Response))
             {
-                var func = (Func<NetworkCommunicator, ReceivedMessageInfo, Response>)Delegate.CreateDelegate(
-                    typeof(Func<NetworkCommunicator, ReceivedMessageInfo, Response>), this, methodInfo);
+                var func = (Func<TClient, ReceivedMessageInfo, Response>)Delegate.CreateDelegate(
+                    typeof(Func<TClient, ReceivedMessageInfo, Response>), this, methodInfo);
 
                 using var enumerator = routeAttributes.GetEnumerator();
                 while (enumerator.MoveNext())
@@ -156,32 +152,32 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
                     var routeAttribute = enumerator.Current;
 
                     _messageRouter.RegisterMessageHandler((ushort)routeAttribute.MessageId,
-                        (communicator, messageInfo) =>
+                        (client, messageInfo) =>
                         {
-                            var response = func(communicator, messageInfo);
+                            var response = func(client, messageInfo);
                             if (response.Message == null) return;
-                            communicator.Send((ushort)routeAttribute.MessageId, response.Message, true,
+                            client.Send((ushort)routeAttribute.MessageId, response.Message, true,
                                 messageInfo.RequestId);
                         });
                 }
             }
             else if (returnType == typeof(Task<Response>))
             {
-                var func = (Func<NetworkCommunicator, ReceivedMessageInfo, Task<Response>>)Delegate.CreateDelegate(
-                    typeof(Func<NetworkCommunicator, ReceivedMessageInfo, Task<Response>>), this, methodInfo);
+                var func = (Func<TClient, ReceivedMessageInfo, Task<Response>>)Delegate.CreateDelegate(
+                    typeof(Func<TClient, ReceivedMessageInfo, Task<Response>>), this, methodInfo);
 
                 using var enumerator = routeAttributes.GetEnumerator();
                 while (enumerator.MoveNext())
                 {
                     var routeAttribute = enumerator.Current;
 
-                    void Handler(NetworkCommunicator communicator, ReceivedMessageInfo messageInfo)
+                    void Handler(TClient client, ReceivedMessageInfo messageInfo)
                     {
-                        func(communicator, messageInfo).Await(
+                        func(client, messageInfo).Await(
                             response =>
                             {
                                 if (response.Message == null) return;
-                                communicator.Send((ushort)routeAttribute.MessageId, response.Message, true,
+                                client.Send((ushort)routeAttribute.MessageId, response.Message, true,
                                     messageInfo.RequestId);
                             },
                             e => Log.Error(e.ToString()));
@@ -226,7 +222,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
 
     private void Init()
     {
-        _millisecondsPerFrame = 1000 / _targetFps;
+        _millisecondsPerFrame = 1000 / _settings.TargetFPS;
 
         OnInit();
     }
@@ -242,9 +238,11 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
 
             while (_millisecondsPassed - _frameCount * _millisecondsPerFrame >= _millisecondsPerFrame)
             {
-                OnFixedUpdate();
                 ++_frameCount;
+                OnFixedUpdate();
                 CheckHeartBeat();
+                UpdateClients();
+
                 SyncPrometheus();
 
                 var deltaTime = (TimeUtils.TimeSinceAppStart - _lastFrameTimeMs) / 1000f;
@@ -282,18 +280,22 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
 
     #endregion
 
+    private void UpdateClients()
+    {
+        foreach (var communicator in ClientList.Keys)
+        {
+            var client = ClientList[communicator];
+            client.Update();
+        }
+    }
+
     #region - Heart Beat -
 
     [MessageRoute(MessageId.HeartBeat)]
-    public void OnReceivedPing(NetworkCommunicator communicator, ReceivedMessageInfo receivedMessageInfo)
+    public void OnReceivedPing(TClient client, ReceivedMessageInfo receivedMessageInfo)
     {
-        if (!ClientList.TryGetValue((NetworkSession)communicator, out var client))
-        {
-            return;
-        }
-
         client.LastPingTime = TimeUtils.GetTimeStamp();
-        communicator.Send(1, Array.Empty<byte>());
+        client.Send(1, Array.Empty<byte>());
     }
 
     private void CheckHeartBeat()

@@ -36,7 +36,7 @@ public class NetworkClient
     private static readonly long REQUEST_TIME_OUT_MILLISECONDS = 10 * 1000;
     private static readonly long CHECK_REQUEST_TIME_OUT_MILLISECONDS = 1 * 1000;
 
-    private MessageRouter _messageRouter;
+    private MessageRouter<NetworkCommunicator> _messageRouter;
     private NetworkConnector _connector;
 
     private LinkedList<RequestInfo> _requestPacks;
@@ -57,9 +57,9 @@ public class NetworkClient
 
     public NetworkClient()
     {
-        _messageRouter = new MessageRouter();
-        _requestPacks = new LinkedList<RequestInfo>();
-        _responseQueue = new ConcurrentQueue<RequestInfo>();
+        _messageRouter   = new MessageRouter<NetworkCommunicator>();
+        _requestPacks    = new LinkedList<RequestInfo>();
+        _responseQueue   = new ConcurrentQueue<RequestInfo>();
         _timeOutRequests = new Queue<RequestInfo>();
 
         _requestPool = new ConcurrentPool<RequestInfo>();

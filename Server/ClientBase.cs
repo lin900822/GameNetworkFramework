@@ -1,18 +1,22 @@
-﻿namespace Server;
+﻿using Core.Network;
+
+namespace Server;
 
 public abstract class ClientBase<T> where T : ClientBase<T>, new()
 {
     public ServerBase<T> Server { get; private set; }
 
+    private NetworkCommunicator _communicator;
+
     public long LastPingTime { get; set; }
 
-    public void SetServer(ServerBase<T> server)
-    {
-        Server = server;
-    }
+    #region - Life Cycle -
 
-    public void Init()
+    public void Init(ServerBase<T> server, NetworkCommunicator communicator)
     {
+        _communicator = communicator;
+        Server        = server;
+        
         OnInit();
     }
 
@@ -36,5 +40,12 @@ public abstract class ClientBase<T> where T : ClientBase<T>, new()
 
     protected virtual void OnDeinit()
     {
+    }
+
+    #endregion
+    
+    public void Send(ushort messageId, byte[] message, bool isRequest = false, ushort requestId = 0)
+    {
+        _communicator.Send(messageId, message, isRequest, requestId);
     }
 }
