@@ -8,7 +8,7 @@ public class NetworkConnector
 {
     public Action<NetworkCommunicator> OnConnected;
 
-    public Action<ReceivedMessageInfo> OnReceivedMessage;
+    public Action<NetworkCommunicator, ReceivedMessageInfo> OnReceivedMessage;
 
     public Action<Socket> OnClosed;
 

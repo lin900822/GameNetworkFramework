@@ -1,3 +1,32 @@
-﻿// See https://aka.ms/new-console-template for more information
+﻿using Core.Logger;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Server;
 
-Console.WriteLine("Hello, World!");
+try
+{
+    var configuration = new ConfigurationBuilder()
+        .AddJsonFile("appsettings.json")
+        .Build();
+
+    var serviceCollection = new ServiceCollection();
+
+    serviceCollection.AddSingleton(new ServerSettings()
+    {
+        ServerId          = 10001,
+        ServerName        = "GatewayServer",
+        Port              = 10001,
+        MaxSessionCount   = 2000,
+        HeartBeatInterval = 150_000,
+    });
+    serviceCollection.AddSingleton<GatewayServer.GatewayServer>();
+
+    var serviceProvider = serviceCollection.BuildServiceProvider();
+
+    var server = serviceProvider.GetRequiredService<GatewayServer.GatewayServer>();
+    server.Start();
+}
+catch (Exception ex)
+{
+    Log.Error(ex.ToString());
+}

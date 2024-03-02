@@ -45,17 +45,17 @@ for (int i = 0; i < threadCount; i++)
         for (int j = 0; j < botCount; j++)
         {
             bots[j] = new NetworkClient();
-            bots[j].RegisterMessageHandler((ushort)MessageId.Move, (receivedMessageInfo) =>
+            bots[j].RegisterMessageHandler((ushort)MessageId.Move, (communicator, receivedMessageInfo) =>
             {
                 // if(receivedMessageInfo.TryDecode<Move>(out move))
                 // Log.Info($"{move.X}");
             });
-            bots[j].RegisterMessageHandler(1, (receivedMessageInfo) =>
+            bots[j].RegisterMessageHandler(1, (communicator, receivedMessageInfo) =>
             {
                 // if(receivedMessageInfo.TryDecode<Move>(out move))
                 // Log.Info($"{move.X}");
             });
-            bots[j].RegisterMessageHandler((ushort)MessageId.RawByte, (receivedMessageInfo) =>
+            bots[j].RegisterMessageHandler((ushort)MessageId.RawByte, (communicator, receivedMessageInfo) =>
             {
                 var x = receivedMessageInfo.Message.ReadUInt32();
                 var y = receivedMessageInfo.Message.ReadUInt32();
@@ -63,7 +63,7 @@ for (int i = 0; i < threadCount; i++)
                 
                 //Log.Info($"{x.ToString()} {y.ToString()} {z.ToString()}");
             });
-            bots[j].RegisterMessageHandler((ushort)MessageId.Broadcast, (receivedMessageInfo) =>
+            bots[j].RegisterMessageHandler((ushort)MessageId.Broadcast, (communicator, receivedMessageInfo) =>
             {
                 var x = receivedMessageInfo.Message.ReadUInt32();
                 var y = receivedMessageInfo.Message.ReadUInt32();

@@ -11,7 +11,7 @@ namespace ServerDemo;
 public partial class DemoServer
 {
     [MessageRoute(MessageId.Hello)]
-    public Response OnReceiveHello(ReceivedMessageInfo receivedMessageInfo)
+    public Response OnReceiveHello(NetworkCommunicator communicator, ReceivedMessageInfo receivedMessageInfo)
     {
         if (!receivedMessageInfo.TryDecode<Hello>(out var hello))
         {
@@ -37,7 +37,7 @@ public partial class DemoServer
     }
     
     [MessageRoute(MessageId.Move)]
-    public void OnReceiveMove(ReceivedMessageInfo receivedMessageInfo)
+    public void OnReceiveMove(NetworkCommunicator communicator, ReceivedMessageInfo receivedMessageInfo)
     {
         if (!receivedMessageInfo.TryDecode<Move>(out var move)) return;
         //Log.Debug($"({move.X},{move.Y},{move.Z})");
@@ -49,11 +49,11 @@ public partial class DemoServer
 
         move.X += sum;
         var moveData = ProtoUtils.Encode(move);
-        receivedMessageInfo.Session.Send((ushort)MessageId.Move, moveData);
+        communicator.Send((ushort)MessageId.Move, moveData);
     }
     
     [MessageRoute(MessageId.Register)]
-    public async Task<Response> OnReceiveUserRegister(ReceivedMessageInfo receivedMessageInfo)
+    public async Task<Response> OnReceiveUserRegister(NetworkCommunicator communicator, ReceivedMessageInfo receivedMessageInfo)
     {
         if (!receivedMessageInfo.TryDecode<User>(out var user)) return Response.None;
         
@@ -84,7 +84,7 @@ public partial class DemoServer
     }
     
     [MessageRoute(MessageId.Login)]
-    public async Task<Response> OnReceiveUserLogin(ReceivedMessageInfo receivedMessageInfo)
+    public async Task<Response> OnReceiveUserLogin(NetworkCommunicator communicator, ReceivedMessageInfo receivedMessageInfo)
     {
         if (!receivedMessageInfo.TryDecode<User>(out var user)) return Response.None;
         
@@ -107,17 +107,17 @@ public partial class DemoServer
     }
 
     [MessageRoute(MessageId.RawByte)]
-    public void OnReceiveRawByte(ReceivedMessageInfo receivedMessageInfo)
+    public void OnReceiveRawByte(NetworkCommunicator communicator, ReceivedMessageInfo receivedMessageInfo)
     {
         var x = receivedMessageInfo.Message.ReadUInt32();
         var y = receivedMessageInfo.Message.ReadUInt32();
         var z = receivedMessageInfo.Message.ReadUInt32();
         
-        receivedMessageInfo.Session.Send((ushort)MessageId.RawByte, _cacheRawByteData);
+        communicator.Send((ushort)MessageId.RawByte, _cacheRawByteData);
     }
     
     [MessageRoute(MessageId.Broadcast)]
-    public void OnReceiveBroadcast(ReceivedMessageInfo receivedMessageInfo)
+    public void OnReceiveBroadcast(NetworkCommunicator communicator, ReceivedMessageInfo receivedMessageInfo)
     {
         var x = receivedMessageInfo.Message.ReadUInt32();
         var y = receivedMessageInfo.Message.ReadUInt32();

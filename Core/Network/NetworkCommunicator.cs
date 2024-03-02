@@ -13,8 +13,8 @@ public class NetworkCommunicator
 
     public Socket Socket { get; private set; }
 
-    public Action<ReceivedMessageInfo> OnReceivedMessage;
-    public Action<NetworkCommunicator> OnClose;
+    public Action<NetworkCommunicator, ReceivedMessageInfo> OnReceivedMessage;
+    public Action<NetworkCommunicator>                      OnClose;
 
     private readonly ByteBuffer        _receiveBuffer;
     private readonly Queue<ByteBuffer> _sendQueue;
@@ -113,7 +113,7 @@ public class NetworkCommunicator
             }
 
             // 分發收到的 Message
-            OnReceivedMessage?.Invoke(messageInfo);
+            OnReceivedMessage?.Invoke(this, messageInfo);
         }
 
         SystemMetrics.RemainMessageCount += _receivedMessageInfos.Count;
@@ -175,8 +175,6 @@ public class NetworkCommunicator
         {
             return;
         }
-
-        messageInfo.Communicator = this;
 
         _receivedMessageInfos.Enqueue(messageInfo);
 

@@ -147,7 +147,7 @@ public class NetworkClient
         _connector.Connect(ip, port);
     }
     
-    private void OnReceivedMessage(ReceivedMessageInfo receivedMessageInfo)
+    private void OnReceivedMessage(NetworkCommunicator communicator, ReceivedMessageInfo receivedMessageInfo)
     {
         if (receivedMessageInfo.IsRequest)
         {
@@ -162,7 +162,7 @@ public class NetworkClient
         }
         else
         {
-            _messageRouter.ReceiveMessage(receivedMessageInfo);
+            _messageRouter.ReceiveMessage(communicator, receivedMessageInfo);
         }
     }
     
@@ -196,12 +196,12 @@ public class NetworkClient
 
     #region - Public Methods -
     
-    public void RegisterMessageHandler(ushort messageId, Action<ReceivedMessageInfo> handler)
+    public void RegisterMessageHandler(ushort messageId, Action<NetworkCommunicator, ReceivedMessageInfo> handler)
     {
         _messageRouter.RegisterMessageHandler(messageId, handler);
     }
 
-    public void UnregisterMessageHandler(ushort messageId, Action<ReceivedMessageInfo> handler)
+    public void UnregisterMessageHandler(ushort messageId, Action<NetworkCommunicator, ReceivedMessageInfo> handler)
     {
         _messageRouter.UnregisterMessageHandler(messageId, handler);
     }

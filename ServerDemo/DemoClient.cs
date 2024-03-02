@@ -2,7 +2,7 @@
 
 namespace ServerDemo;
 
-public class DemoClient : ClientBase
+public class DemoClient : ClientBase<DemoClient>
 {
     
 }

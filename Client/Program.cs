@@ -15,16 +15,16 @@ var synchronizationContext = new GameSynchronizationContext();
 SynchronizationContext.SetSynchronizationContext(synchronizationContext);
 
 // Register Handlers
-networkClient.RegisterMessageHandler(1, (messageInfo) =>
+networkClient.RegisterMessageHandler(1, (communicator, messageInfo) =>
 {
     Log.Info($"Pong! {TimeUtils.GetTimeStamp() - TestData.PingTime}ms");
 });
-networkClient.RegisterMessageHandler((ushort)MessageId.Move, (messageInfo) =>
+networkClient.RegisterMessageHandler((ushort)MessageId.Move, (communicator, messageInfo) =>
 {
     if (messageInfo.TryDecode<Move>(out var move))
         Log.Info($"{move.X}");
 });
-networkClient.RegisterMessageHandler((ushort)MessageId.RawByte, (receivedMessageInfo) =>
+networkClient.RegisterMessageHandler((ushort)MessageId.RawByte, (communicator, receivedMessageInfo) =>
 {
     var x = receivedMessageInfo.Message.ReadUInt32();
     var y = receivedMessageInfo.Message.ReadUInt32();
@@ -32,7 +32,7 @@ networkClient.RegisterMessageHandler((ushort)MessageId.RawByte, (receivedMessage
                 
     Log.Info($"{x.ToString()} {y.ToString()} {z.ToString()}");
 });
-networkClient.RegisterMessageHandler((ushort)MessageId.Broadcast, (receivedMessageInfo) =>
+networkClient.RegisterMessageHandler((ushort)MessageId.Broadcast, (communicator, receivedMessageInfo) =>
 {
     var x = receivedMessageInfo.Message.ReadUInt32();
     var y = receivedMessageInfo.Message.ReadUInt32();

@@ -1,9 +1,16 @@
 ﻿namespace Server;
 
-public abstract class ClientBase
+public abstract class ClientBase<T> where T : ClientBase<T>, new()
 {
+    public ServerBase<T> Server { get; private set; }
+
     public long LastPingTime { get; set; }
-    
+
+    public void SetServer(ServerBase<T> server)
+    {
+        Server = server;
+    }
+
     public void Init()
     {
         OnInit();
@@ -18,8 +25,16 @@ public abstract class ClientBase
     {
         OnDeinit();
     }
-    
-    protected virtual void OnInit()   {}
-    protected virtual void OnUpdate() {}
-    protected virtual void OnDeinit() {}
+
+    protected virtual void OnInit()
+    {
+    }
+
+    protected virtual void OnUpdate()
+    {
+    }
+
+    protected virtual void OnDeinit()
+    {
+    }
 }

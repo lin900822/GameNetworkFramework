@@ -7,14 +7,14 @@ namespace Core.Network;
 
 public class MessageRouter
 {
-    private Dictionary<uint, Action<ReceivedMessageInfo>> _routeTable;
+    private Dictionary<uint, Action<NetworkCommunicator, ReceivedMessageInfo>> _routeTable;
 
     public MessageRouter()
     {
-        _routeTable       = new Dictionary<uint, Action<ReceivedMessageInfo>>();
+        _routeTable       = new Dictionary<uint, Action<NetworkCommunicator, ReceivedMessageInfo>>();
     }
 
-    public void RegisterMessageHandler(ushort messageId, Action<ReceivedMessageInfo> handler)
+    public void RegisterMessageHandler(ushort messageId, Action<NetworkCommunicator, ReceivedMessageInfo> handler)
     {
         if (_routeTable.TryGetValue(messageId, out var handlers))
         {
@@ -26,7 +26,7 @@ public class MessageRouter
         }
     }
 
-    public void UnregisterMessageHandler(ushort messageId, Action<ReceivedMessageInfo> handler)
+    public void UnregisterMessageHandler(ushort messageId, Action<NetworkCommunicator, ReceivedMessageInfo> handler)
     {
         if (_routeTable.TryGetValue(messageId, out var handlers))
         {
@@ -34,11 +34,11 @@ public class MessageRouter
         }
     }
 
-    public void ReceiveMessage(ReceivedMessageInfo receivedMessageInfo)
+    public void ReceiveMessage(NetworkCommunicator networkCommunicator, ReceivedMessageInfo receivedMessageInfo)
     {
         if (_routeTable.TryGetValue(receivedMessageInfo.MessageId, out var handler))
         {
-            handler?.Invoke(receivedMessageInfo);
+            handler?.Invoke(networkCommunicator, receivedMessageInfo);
         }
         else
         {

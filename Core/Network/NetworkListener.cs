@@ -1,5 +1,4 @@
-﻿using System.Collections.Concurrent;
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
 using Core.Logger;
 
@@ -10,7 +9,7 @@ public class NetworkListener
     public Action<NetworkSession> OnSessionConnected;
     public Action<NetworkSession> OnSessionDisconnected;
 
-    public Action<ReceivedMessageInfo> OnReceivedMessage;
+    public Action<NetworkCommunicator, ReceivedMessageInfo> OnReceivedMessage;
 
     public int ConnectionCount => _sessionList.Count;
 
@@ -66,6 +65,9 @@ public class NetworkListener
     
     // 每個Frame要處理的順序： AddSessions -> HandleMessages -> CloseSessions
 
+    /// <summary>
+    /// 需在Main Thread上執行
+    /// </summary>
     public void AddSessions()
     {
         if (_sessionsToAdd.Count <= 0) return;
@@ -86,6 +88,9 @@ public class NetworkListener
         }
     }
 
+    /// <summary>
+    /// 需在Main Thread上執行
+    /// </summary>
     public void CloseSessions()
     {
         if (_communicatorsToClose.Count <= 0) return;
@@ -101,6 +106,9 @@ public class NetworkListener
         }
     }
 
+    /// <summary>
+    /// 需在Main Thread上執行
+    /// </summary>
     public void HandleMessages()
     {
         foreach (var session in SessionList.Values)
@@ -169,9 +177,9 @@ public class NetworkListener
 
     #region - NetworkCommunicator Events -
 
-    private void HandleReceivedMessage(ReceivedMessageInfo receivedMessageInfo)
+    private void HandleReceivedMessage(NetworkCommunicator communicator, ReceivedMessageInfo receivedMessageInfo)
     {
-        OnReceivedMessage?.Invoke(receivedMessageInfo);
+        OnReceivedMessage?.Invoke(communicator, receivedMessageInfo);
     }
     
     private void OnCommunicatorClose(NetworkCommunicator communicator)
