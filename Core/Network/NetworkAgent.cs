@@ -2,9 +2,8 @@
 using System.Net.Sockets;
 using Core.Common;
 using Core.Logger;
-using Core.Network;
 
-namespace Client;
+namespace Core.Network;
 
 public class RequestInfo : IPoolable
 {
@@ -31,7 +30,7 @@ public class RequestInfo : IPoolable
 /// <summary>
 /// 實作發Request, 斷線重連
 /// </summary>
-public class NetworkClient
+public class NetworkAgent
 {
     private static readonly long REQUEST_TIME_OUT_MILLISECONDS = 10 * 1000;
     private static readonly long CHECK_REQUEST_TIME_OUT_MILLISECONDS = 1 * 1000;
@@ -55,7 +54,7 @@ public class NetworkClient
     private string _cacheIp;
     private int _cachePort;
 
-    public NetworkClient()
+    public NetworkAgent()
     {
         _messageRouter   = new MessageRouter<NetworkCommunicator>();
         _requestPacks    = new LinkedList<RequestInfo>();

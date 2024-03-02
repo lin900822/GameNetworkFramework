@@ -5,19 +5,19 @@ using Server;
 
 try
 {
-    var configuration = new ConfigurationBuilder()
-        .AddJsonFile("appsettings.json")
-        .Build();
+    // var configuration = new ConfigurationBuilder()
+    //     .AddJsonFile("appsettings.json")
+    //     .Build();
 
     var serviceCollection = new ServiceCollection();
 
     serviceCollection.AddSingleton(new ServerSettings()
     {
-        ServerId          = 10001,
-        ServerName        = "GatewayServer",
-        Port              = 10001,
-        MaxConnectionCount   = 2000,
-        HeartBeatInterval = 150_000,
+        ServerId           = 10001,
+        ServerName         = "GatewayServer",
+        Port               = 10001,
+        MaxConnectionCount = 2000,
+        HeartBeatInterval  = 150_000,
     });
     serviceCollection.AddSingleton<GatewayServer.GatewayServer>();
 

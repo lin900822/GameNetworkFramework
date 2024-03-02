@@ -23,14 +23,14 @@ public class CommandHandler
 {
     #region - Inner Logic -
 
-    private NetworkClient _networkClient;
+    private NetworkAgent _networkAgent;
 
     private ConcurrentQueue<Action> _inputActions;
     private Dictionary<string, Action> _commandHandlers;
 
-    public CommandHandler(NetworkClient networkClient, ConcurrentQueue<Action> inputActions)
+    public CommandHandler(NetworkAgent networkAgent, ConcurrentQueue<Action> inputActions)
     {
-        _networkClient = networkClient;
+        _networkAgent = networkAgent;
         _inputActions = inputActions;
 
         _commandHandlers = new Dictionary<string, Action>();
@@ -144,7 +144,7 @@ public class CommandHandler
             Log.Info($"Data Length: {helloData.Length}");
 
             Log.Info($"Before await Thread:{Environment.CurrentManagedThreadId}");
-            var messageInfo = await _networkClient.SendRequest((ushort)MessageId.Hello, helloData);
+            var messageInfo = await _networkAgent.SendRequest((ushort)MessageId.Hello, helloData);
             Log.Info($"After  await Thread:{Environment.CurrentManagedThreadId}");
 
             if (!messageInfo.TryDecode<Hello>(out var response)) return;
@@ -170,7 +170,7 @@ public class CommandHandler
     public async void TestPing()
     {
         TestData.PingTime = TimeUtils.GetTimeStamp();
-        _networkClient.SendMessage((ushort)MessageId.HeartBeat, Array.Empty<byte>());
+        _networkAgent.SendMessage((ushort)MessageId.HeartBeat, Array.Empty<byte>());
     }
 
     [Command("move")]
@@ -181,7 +181,7 @@ public class CommandHandler
             var move = new Move() { X = 99 };
             var moveData = ProtoUtils.Encode(move);
 
-            _networkClient.SendMessage((ushort)MessageId.Move, moveData);
+            _networkAgent.SendMessage((ushort)MessageId.Move, moveData);
         });
     }
 
@@ -198,7 +198,7 @@ public class CommandHandler
             var user = new User() { Username = username, Password = password };
             var userData = ProtoUtils.Encode(user);
 
-            var messageInfo = await _networkClient.SendRequest((ushort)MessageId.Register, userData,
+            var messageInfo = await _networkAgent.SendRequest((ushort)MessageId.Register, userData,
                 () => { Log.Warn($"Time Out"); });
 
             // if (messageInfo.StateCode == (uint)StateCode.Success)
@@ -225,7 +225,7 @@ public class CommandHandler
             var user     = new User() { Username = username, Password = password };
             var userData = ProtoUtils.Encode(user);
 
-            var messageInfo = await _networkClient.SendRequest((ushort)MessageId.Login, userData,
+            var messageInfo = await _networkAgent.SendRequest((ushort)MessageId.Login, userData,
                 () => { Log.Warn($"Time Out"); });
         });
     }
@@ -241,7 +241,7 @@ public class CommandHandler
         byte[] data = new byte[byteBuffer.Length];
         byteBuffer.Read(data, 0, byteBuffer.Length);
         
-        _networkClient.SendMessage((ushort)MessageId.RawByte, data);
+        _networkAgent.SendMessage((ushort)MessageId.RawByte, data);
         
         ByteBufferPool.Shared.Return(byteBuffer);
     }

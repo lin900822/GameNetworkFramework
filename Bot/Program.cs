@@ -41,10 +41,10 @@ for (int i = 0; i < threadCount; i++)
 {
     Task.Run(() =>
     {
-        var bots = new NetworkClient[botCount];
+        var bots = new NetworkAgent[botCount];
         for (int j = 0; j < botCount; j++)
         {
-            bots[j] = new NetworkClient();
+            bots[j] = new NetworkAgent();
             bots[j].RegisterMessageHandler((ushort)MessageId.Move, (communicator, receivedMessageInfo) =>
             {
                 // if(receivedMessageInfo.TryDecode<Move>(out move))

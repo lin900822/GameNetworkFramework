@@ -10,7 +10,7 @@ namespace ServerDemo;
 
 public partial class DemoServer
 {
-    [MessageRoute(MessageId.Hello)]
+    [MessageRoute((uint)MessageId.Hello)]
     public Response OnReceiveHello(DemoClient client, ReceivedMessageInfo receivedMessageInfo)
     {
         if (!receivedMessageInfo.TryDecode<Hello>(out var hello))
@@ -36,7 +36,7 @@ public partial class DemoServer
         return Response.Create(helloData);
     }
     
-    [MessageRoute(MessageId.Move)]
+    [MessageRoute((uint)MessageId.Move)]
     public void OnReceiveMove(DemoClient client, ReceivedMessageInfo receivedMessageInfo)
     {
         if (!receivedMessageInfo.TryDecode<Move>(out var move)) return;
@@ -52,7 +52,7 @@ public partial class DemoServer
         client.Send((ushort)MessageId.Move, moveData);
     }
     
-    [MessageRoute(MessageId.Register)]
+    [MessageRoute((uint)MessageId.Register)]
     public async Task<Response> OnReceiveUserRegister(DemoClient client, ReceivedMessageInfo receivedMessageInfo)
     {
         if (!receivedMessageInfo.TryDecode<User>(out var user)) return Response.None;
@@ -83,7 +83,7 @@ public partial class DemoServer
         return Response.Create((uint)StateCode.Success);
     }
     
-    [MessageRoute(MessageId.Login)]
+    [MessageRoute((uint)MessageId.Login)]
     public async Task<Response> OnReceiveUserLogin(DemoClient client, ReceivedMessageInfo receivedMessageInfo)
     {
         if (!receivedMessageInfo.TryDecode<User>(out var user)) return Response.None;
@@ -106,7 +106,7 @@ public partial class DemoServer
         return Response.Create((uint)StateCode.Success);
     }
 
-    [MessageRoute(MessageId.RawByte)]
+    [MessageRoute((uint)MessageId.RawByte)]
     public void OnReceiveRawByte(DemoClient client, ReceivedMessageInfo receivedMessageInfo)
     {
         var x = receivedMessageInfo.Message.ReadUInt32();
@@ -116,7 +116,7 @@ public partial class DemoServer
         client.Send((ushort)MessageId.RawByte, _cacheRawByteData);
     }
     
-    [MessageRoute(MessageId.Broadcast)]
+    [MessageRoute((uint)MessageId.Broadcast)]
     public void OnReceiveBroadcast(DemoClient client, ReceivedMessageInfo receivedMessageInfo)
     {
         var x = receivedMessageInfo.Message.ReadUInt32();

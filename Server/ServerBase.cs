@@ -290,7 +290,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
 
     #region - Heart Beat -
 
-    [MessageRoute(MessageId.HeartBeat)]
+    [MessageRoute((uint)MessageId.HeartBeat)]
     public void OnReceivedPing(TClient client, ReceivedMessageInfo receivedMessageInfo)
     {
         client.LastPingTime = TimeUtils.GetTimeStamp();

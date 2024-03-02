@@ -6,7 +6,7 @@ namespace ServerDemo2;
 
 public partial class DemoServer
 {
-    [MessageRoute(MessageId.Hello)]
+    [MessageRoute((uint)MessageId.Hello)]
     public Response OnReceiveHello(DemoClient client, ReceivedMessageInfo receivedMessageInfo)
     {
         if (!receivedMessageInfo.TryDecode<Hello>(out var hello)) return Response.None;
