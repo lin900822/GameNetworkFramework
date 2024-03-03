@@ -2,13 +2,15 @@ using AccountServer.Repositories;
 using AccountServer.Repositories.Data;
 using Core.Logger;
 using Core.Network;
-using Protocol;
 using Server;
+using Shared;
 
 namespace AccountServer;
 
 public class AccountServer : ServerBase<AccountClient>
 {
+    private Dictionary<ushort, AccountClient> _clientsByServerId = new Dictionary<ushort, AccountClient>();
+
     private AccountRepository _accountRepository;
 
     private uint _accountMaxId;
@@ -21,6 +23,34 @@ public class AccountServer : ServerBase<AccountClient>
     protected override async void OnInit()
     {
         _accountMaxId = await _accountRepository.GetMaxId();
+    }
+
+    protected override void OnClientDisconnected(AccountClient client)
+    {
+        if (_clientsByServerId.Remove((ushort)client.Id))
+        {
+            Log.Info($"Server({client.Id.ToString()}) disconnected!");
+            return;
+        }
+        
+        Log.Error($"Server({client.Id.ToString()}) does not exist!");
+    }
+
+    [MessageRoute((ushort)MessageId.ServerInfo)]
+    public void OnReceiveServerInfo(AccountClient client, ReceivedMessageInfo receivedMessageInfo)
+    {
+        var info     = receivedMessageInfo.Message;
+        var serverId = info.ReadUInt16();
+
+        if (_clientsByServerId.ContainsKey(serverId))
+        {
+            Log.Error($"Server({serverId.ToString()}) exist!");
+            return;
+        }
+
+        client.Id = serverId;
+        _clientsByServerId.Add((ushort)client.Id, client);
+        Log.Info($"Server({client.Id.ToString()}) connected!");
     }
 
     [MessageRoute((ushort)MessageId.Register)]
@@ -59,7 +89,7 @@ public class AccountServer : ServerBase<AccountClient>
         response.WriteUInt16(1);
         return response;
     }
-    
+
     [MessageRoute((ushort)MessageId.Login)]
     public async Task<ByteBuffer> OnReceiveLogin(AccountClient client, ReceivedMessageInfo receivedMessageInfo)
     {
@@ -82,12 +112,10 @@ public class AccountServer : ServerBase<AccountClient>
         {
             if (userPo.Password.Equals(user.Password))
             {
-                Log.Info($"玩家[{user.Username}] 登入成功");
                 response.WriteUInt16(1);
             }
             else
             {
-                Log.Info($"玩家[{user.Username}] 密碼錯誤");
                 response.WriteUInt16(0);
             }
         }

@@ -1,6 +1,6 @@
 ﻿using Core.Network;
-using Protocol;
 using Server;
+using Shared;
 
 namespace ServerDemo2;
 

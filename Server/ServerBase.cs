@@ -4,8 +4,8 @@ using Core.Common;
 using Core.Logger;
 using Core.Metrics;
 using Core.Network;
-using Protocol;
 using Server.Prometheus;
+using Shared;
 
 namespace Server;
 
@@ -27,7 +27,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
     protected long _millisecondsPassed;
     protected long _frameCount = 0;
 
-    private readonly ServerSettings _settings;
+    protected readonly ServerSettings _settings;
 
     protected ServerBase(ServerSettings settings)
     {
@@ -66,6 +66,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
         client.LastPingTime = TimeUtils.GetTimeStamp();
 
         ClientList.TryAdd(communicator, client);
+        OnClientConnected(client);
     }
 
     private void OnCommunicatorDisconnected(NetworkCommunicator communicator)
@@ -73,6 +74,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
         if (!ClientList.TryGetValue(communicator, out var client))
             return;
 
+        OnClientDisconnected(client);
         client.Deinit();
         ClientList.Remove(communicator);
     }
@@ -284,6 +286,16 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
 
     protected virtual void OnDeinit()
     {
+    }
+
+    protected virtual void OnClientConnected(TClient client)
+    {
+        
+    }
+    
+    protected virtual void OnClientDisconnected(TClient client)
+    {
+        
     }
 
     #endregion

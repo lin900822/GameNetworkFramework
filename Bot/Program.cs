@@ -3,7 +3,7 @@ using System.Text;
 using Client;
 using Core.Logger;
 using Core.Network;
-using Protocol;
+using Shared;
 
 // Move
 var move = new Move();

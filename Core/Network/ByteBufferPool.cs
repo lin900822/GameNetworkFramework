@@ -25,7 +25,7 @@ public class ByteBufferPool
     {
     }
 
-    public ByteBuffer Rent(int size)
+    public ByteBuffer Rent(int size = 10)
     {
         if (!_byteBufferQueue.TryDequeue(out var byteBuffer))
             return new ByteBuffer(size);

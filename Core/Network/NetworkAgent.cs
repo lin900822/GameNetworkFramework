@@ -7,23 +7,23 @@ namespace Core.Network;
 
 public class RequestInfo : IPoolable
 {
-    public ReceivedMessageInfo ReceivedMessageInfo;
-    public uint MessageId;
-    public ushort RequestId;
+    public ReceivedMessageInfo         ReceivedMessageInfo;
+    public uint                        MessageId;
+    public ushort                      RequestId;
     public Action<ReceivedMessageInfo> OnCompleted;
-    public Action OnTimeOut;
-    public long RequestTime;
-    public bool IsCompleted;
+    public Action                      OnTimeOut;
+    public long                        RequestTime;
+    public bool                        IsCompleted;
 
     public void Reset()
     {
         ReceivedMessageInfo = default;
-        MessageId = 0;
-        RequestId = 0;
-        OnCompleted = null;
-        OnTimeOut = null;
-        RequestTime = 0;
-        IsCompleted = false;
+        MessageId           = 0;
+        RequestId           = 0;
+        OnCompleted         = null;
+        OnTimeOut           = null;
+        RequestTime         = 0;
+        IsCompleted         = false;
     }
 }
 
@@ -32,15 +32,18 @@ public class RequestInfo : IPoolable
 /// </summary>
 public class NetworkAgent
 {
-    private static readonly long REQUEST_TIME_OUT_MILLISECONDS = 10 * 1000;
+    public Action OnConnected;
+    public Action OnDisconnected;
+
+    private static readonly long REQUEST_TIME_OUT_MILLISECONDS       = 10 * 1000;
     private static readonly long CHECK_REQUEST_TIME_OUT_MILLISECONDS = 1 * 1000;
 
     private MessageRouter<NetworkCommunicator> _messageRouter;
-    private NetworkConnector _connector;
+    private NetworkConnector                   _connector;
 
-    private LinkedList<RequestInfo> _requestPacks;
+    private LinkedList<RequestInfo>      _requestPacks;
     private ConcurrentQueue<RequestInfo> _responseQueue;
-    private Queue<RequestInfo> _timeOutRequests;
+    private Queue<RequestInfo>           _timeOutRequests;
 
     private ConcurrentPool<RequestInfo> _requestPool;
 
@@ -50,9 +53,9 @@ public class NetworkAgent
 
     private const int _checkReconnectIntervalMs = 3_000;
 
-    private long _lastCheckReconnectTime;
+    private long   _lastCheckReconnectTime;
     private string _cacheIp;
-    private int _cachePort;
+    private int    _cachePort;
 
     public NetworkAgent()
     {
@@ -135,18 +138,19 @@ public class NetworkAgent
 
     public async Task Connect(string ip, int port)
     {
-        _cacheIp = ip;
-        _cachePort = port;
+        _cacheIp                = ip;
+        _cachePort              = port;
         _lastCheckReconnectTime = TimeUtils.GetTimeStamp();
 
-        _connector = new NetworkConnector();
-        _connector.OnReceivedMessage += OnReceivedMessage;
-        _connector.OnClosed += OnClosed;
-        
+        _connector                   =  new NetworkConnector();
+        _connector.OnReceivedMessage += HandleReceivedMessage;
+        _connector.OnConnected       += HandleConnected;
+        _connector.OnClosed          += HandleClosed;
+
         await _connector.Connect(ip, port);
     }
-    
-    private void OnReceivedMessage(NetworkCommunicator communicator, ReceivedMessageInfo receivedMessageInfo)
+
+    private void HandleReceivedMessage(NetworkCommunicator communicator, ReceivedMessageInfo receivedMessageInfo)
     {
         if (receivedMessageInfo.IsRequest)
         {
@@ -164,19 +168,27 @@ public class NetworkAgent
             _messageRouter.ReceiveMessage(communicator, receivedMessageInfo);
         }
     }
-    
-    private void OnClosed(Socket socket)
+
+    private void HandleConnected(NetworkCommunicator communicator)
     {
+        OnConnected?.Invoke();
+    }
+
+    private void HandleClosed(Socket socket)
+    {
+        OnDisconnected?.Invoke();
+
         _requestPacks.Clear();
         _responseQueue.Clear();
         _timeOutRequests.Clear();
-        
-        _connector.OnReceivedMessage -= OnReceivedMessage;
-        _connector.OnClosed -= OnClosed;
-        
+
+        _connector.OnReceivedMessage -= HandleReceivedMessage;
+        _connector.OnConnected       -= HandleConnected;
+        _connector.OnClosed          -= HandleClosed;
+
         _lastCheckReconnectTime = TimeUtils.GetTimeStamp();
     }
-    
+
     private bool TryGetRequestInfo(uint requestId, out RequestInfo outRequestInfo)
     {
         var enumerator = _requestPacks.GetEnumerator();
@@ -194,7 +206,7 @@ public class NetworkAgent
     }
 
     #region - Public Methods -
-    
+
     public void RegisterMessageHandler(ushort messageId, Action<NetworkCommunicator, ReceivedMessageInfo> handler)
     {
         _messageRouter.RegisterMessageHandler(messageId, handler);
@@ -210,13 +222,13 @@ public class NetworkAgent
         if (_connector.ConnectState != ConnectState.Connected) return;
         _connector.Send(messageId, message);
     }
-    
+
     public void SendMessage(ushort messageId, ByteBuffer message)
     {
         if (_connector.ConnectState != ConnectState.Connected) return;
         _connector.Send(messageId, message);
     }
-    
+
     public Task<ReceivedMessageInfo> SendRequest(ushort messageId, byte[] request, Action onTimeOut = null)
     {
         var taskCompletionSource =
@@ -244,7 +256,7 @@ public class NetworkAgent
 
         return taskCompletionSource.Task;
     }
-    
+
     public Task<ReceivedMessageInfo> SendRequest(ushort messageId, ByteBuffer request, Action onTimeOut = null)
     {
         var taskCompletionSource =
@@ -274,7 +286,7 @@ public class NetworkAgent
     }
 
     public void SendRequest(ushort messageId, byte[] request, Action<ReceivedMessageInfo> onCompleted,
-        Action onTimeOut = null)
+        Action                     onTimeOut = null)
     {
         if (_connector.ConnectState != ConnectState.Connected) return;
 
@@ -282,7 +294,7 @@ public class NetworkAgent
 
         _connector.Send(messageId, request, true, _requestSerialId);
     }
-    
+
     public void SendRequest(ushort messageId, ByteBuffer request, Action<ReceivedMessageInfo> onCompleted,
         Action                     onTimeOut = null)
     {
@@ -312,6 +324,6 @@ public class NetworkAgent
             _requestPacks.AddLast(requestPack);
         }
     }
-    
+
     #endregion
 }

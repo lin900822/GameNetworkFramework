@@ -1,6 +1,4 @@
-﻿using Protocol;
-
-namespace Server;
+﻿namespace Server;
 
 [AttributeUsage(AttributeTargets.Method)]
 public class MessageRouteAttribute : Attribute

@@ -3,7 +3,7 @@ using Client;
 using Core.Common;
 using Core.Logger;
 using Core.Network;
-using Protocol;
+using Shared;
 
 // 
 ConcurrentQueue<Action> _inputActions = new ConcurrentQueue<Action>();

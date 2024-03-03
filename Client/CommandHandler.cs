@@ -4,7 +4,7 @@ using System.Text;
 using Core.Common;
 using Core.Logger;
 using Core.Network;
-using Protocol;
+using Shared;
 
 namespace Client;
 

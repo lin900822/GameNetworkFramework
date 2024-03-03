@@ -1,4 +1,4 @@
-﻿namespace Protocol;
+﻿namespace Shared;
 
 public enum StateCode : uint
 {
