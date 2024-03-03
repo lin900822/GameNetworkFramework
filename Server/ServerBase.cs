@@ -38,8 +38,8 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
         _messageRouter   = new MessageRouter<TClient>();
         _networkListener = new NetworkListener(settings.MaxConnectionCount);
 
-        _prometheusService = new PrometheusService();
-        _prometheusService.Start(_settings.PrometheusPort);
+        // _prometheusService = new PrometheusService();
+        // _prometheusService.Start(_settings.PrometheusPort);
 
         _networkListener.OnCommunicatorConnected    += OnCommunicatorConnected;
         _networkListener.OnCommunicatorDisconnected += OnCommunicatorDisconnected;
@@ -249,11 +249,11 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
                 CheckHeartBeat();
                 FixedUpdateClients();
 
-                SyncPrometheus();
+                //SyncPrometheus();
 
                 var deltaTime = (TimeUtils.TimeSinceAppStart - _lastFrameTimeMs) / 1000f;
                 SystemMetrics.FPS = 1f / deltaTime;
-                _prometheusService.UpdateFPS(SystemMetrics.FPS);
+                //_prometheusService.UpdateFPS(SystemMetrics.FPS);
                 _lastFrameTimeMs = TimeUtils.TimeSinceAppStart;
             }
 

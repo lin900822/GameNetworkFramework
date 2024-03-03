@@ -38,7 +38,7 @@ public class MigrateTool
 
         // 檢查表格是否存在
         bool tableExists = dbConnection.QuerySingleOrDefault<int>(
-            $"SELECT COUNT(*) FROM information_schema.tables WHERE table_name = '{tableName}'"
+            $"SELECT COUNT(*) FROM information_schema.tables WHERE table_name = '{tableName}' AND TABLE_SCHEMA = '{dbConnection.Database}';"
         ) > 0;
 
         if (!tableExists)
