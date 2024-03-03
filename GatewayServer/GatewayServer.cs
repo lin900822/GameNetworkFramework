@@ -66,7 +66,7 @@ public partial class GatewayServer : ServerBase<GatewayClient>
         //     Log.Info($"註冊失敗");
         // }
         
-        client.Send((ushort)MessageId.Register, response.Message);
+        client.SendMessage((ushort)MessageId.Register, response.Message);
     }
 
     [MessageRoute((ushort)MessageId.Login)]
@@ -74,7 +74,7 @@ public partial class GatewayServer : ServerBase<GatewayClient>
     {
         var response = await _accountAgent.SendRequest((ushort)MessageId.Login, receivedMessageInfo.Message);
 
-        client.Send((ushort)MessageId.Login, response.Message);
+        client.SendMessage((ushort)MessageId.Login, response.Message);
         
         // var state = response.Message.ReadUInt16();
         // if (state == 1)

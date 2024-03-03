@@ -158,7 +158,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
                             var response = func(client, messageInfo);
                             if (response == null)
                                 return;
-                            client.Send((ushort)routeAttribute.MessageId, response, true,
+                            client.SendMessage((ushort)routeAttribute.MessageId, response, true,
                                 messageInfo.RequestId);
                             ByteBufferPool.Shared.Return(response);
                         });
@@ -181,7 +181,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
                             {
                                 if (response == null)
                                     return;
-                                client.Send((ushort)routeAttribute.MessageId, response, true,
+                                client.SendMessage((ushort)routeAttribute.MessageId, response, true,
                                     messageInfo.RequestId);
                                 ByteBufferPool.Shared.Return(response);
                             },
@@ -315,7 +315,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
     public void OnReceivedPing(TClient client, ReceivedMessageInfo receivedMessageInfo)
     {
         client.LastPingTime = TimeUtils.GetTimeStamp();
-        client.Send(1, Array.Empty<byte>());
+        client.SendMessage(1, Array.Empty<byte>());
     }
 
     private void CheckHeartBeat()

@@ -1,5 +1,6 @@
 using AccountServer.Repositories;
 using AccountServer.Repositories.Data;
+using Core.Common;
 using Core.Logger;
 using Core.Network;
 using Server;
@@ -20,9 +21,9 @@ public class AccountServer : ServerBase<AccountClient>
         _accountRepository = accountRepository;
     }
 
-    protected override async void OnInit()
+    protected override void OnInit()
     {
-        _accountMaxId = await _accountRepository.GetMaxId();
+        _accountRepository.GetMaxId().Await((result) => { _accountMaxId = result; });
     }
 
     protected override void OnClientDisconnected(AccountClient client)
@@ -32,7 +33,7 @@ public class AccountServer : ServerBase<AccountClient>
             Log.Info($"Server({client.Id.ToString()}) disconnected!");
             return;
         }
-        
+
         Log.Error($"Server({client.Id.ToString()}) does not exist!");
     }
 

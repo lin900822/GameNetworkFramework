@@ -53,7 +53,7 @@ public partial class DemoServer
         var moveData   = ProtoUtils.Encode(move);
         var byteBuffer = ByteBufferPool.Shared.Rent(moveData.Length);
         byteBuffer.Write(moveData, 0, moveData.Length);
-        client.Send((ushort)MessageId.Move, byteBuffer);
+        client.SendMessage((ushort)MessageId.Move, byteBuffer);
     }
 
     [MessageRoute((ushort)MessageId.Register)]
@@ -140,7 +140,7 @@ public partial class DemoServer
         var y = receivedMessageInfo.Message.ReadUInt32();
         var z = receivedMessageInfo.Message.ReadUInt32();
 
-        client.Send((ushort)MessageId.RawByte, _cacheRawByteData);
+        client.SendMessage((ushort)MessageId.RawByte, _cacheRawByteData);
     }
 
     [MessageRoute((ushort)MessageId.Broadcast)]
