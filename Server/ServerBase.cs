@@ -216,6 +216,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
 
         // Start Life Cycle
         Init();
+        Log.Info($"{_settings.ServerName} (Id:{_settings.ServerId.ToString()}) Is Ready!");
 
         while (true)
         {

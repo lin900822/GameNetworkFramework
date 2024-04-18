@@ -33,6 +33,8 @@ public partial class DemoServer : ServerBase<DemoClient>
         byteBuffer.WriteUInt32(99);
         _cacheRawByteData = new byte[byteBuffer.Length];
         byteBuffer.Read(_cacheRawByteData, 0, byteBuffer.Length);
+        
+        _userRepository.Init().SafeWait();
     }
 
     protected override void OnFixedUpdate()

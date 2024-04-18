@@ -1,4 +1,5 @@
-﻿using Dapper;
+﻿using System.Data;
+using Dapper;
 using Server.Database;
 
 namespace Server.Repositories;
@@ -11,6 +12,13 @@ public abstract class BaseRepository<T>
     {
         _dbContext = dbContext;
     }
+
+    public async Task Init()
+    {
+        await OnInit();
+    }
+
+    protected abstract Task OnInit();
     
     protected async Task<int> Insert(T entity, string insertSql)
     {
@@ -21,16 +29,12 @@ public abstract class BaseRepository<T>
 
     protected async Task<int> Update(T entity, string updateSql)
     {
-        using var dbConnection = _dbContext.Connection;
-        dbConnection.Open();
-        return await dbConnection.ExecuteAsync(updateSql, entity);
+        return await ExecuteAsync(updateSql, entity);
     }
 
     protected async Task<int> Delete(int id, string deleteSql)
     {
-        using var dbConnection = _dbContext.Connection;
-        dbConnection.Open();
-        return await dbConnection.ExecuteAsync(deleteSql, new { Id = id });
+        return await ExecuteAsync(deleteSql, new { Id = id });
     }
 
     protected async Task<T> SelectOne(int id, string selectOneSql)
@@ -45,5 +49,27 @@ public abstract class BaseRepository<T>
         using var dbConnection = _dbContext.Connection;
         dbConnection.Open();
         return await Task.Run(() => dbConnection.Query<T>(selectSql).ToList());
+    }
+
+    protected async Task<int> ExecuteAsync(string sql, object? param = null, IDbTransaction? transaction = null, int? commandTimeout = null, CommandType? commandType = null)
+    {
+        using var dbConnection = _dbContext.Connection;
+        dbConnection.Open();
+        return await dbConnection.ExecuteAsync(sql, param, transaction, commandTimeout, commandType);
+    }
+    
+    protected async Task<bool> IsColumnExistsAsync(string tableName, string columnName)
+    {
+        string checkColumnExistsQuery = @"
+            SELECT COUNT(*) 
+            FROM INFORMATION_SCHEMA.COLUMNS 
+            WHERE table_schema = DATABASE() AND table_name = @TableName AND column_name = @ColumnName;
+        ";
+        
+        using var dbConnection = _dbContext.Connection;
+        dbConnection.Open();
+
+        var count = await dbConnection.ExecuteScalarAsync<int>(checkColumnExistsQuery, new { TableName = tableName, ColumnName = columnName });
+        return count > 0;
     }
 }

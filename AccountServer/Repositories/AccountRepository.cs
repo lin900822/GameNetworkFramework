@@ -118,4 +118,9 @@ public class AccountRepository : BaseRepository<Account>
             return 0;
         }
     }
+
+    protected override Task OnInit()
+    {
+        return null;
+    }
 }

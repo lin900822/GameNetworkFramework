@@ -84,6 +84,7 @@ public partial class DemoServer
 
         Log.Debug($"{Environment.CurrentManagedThreadId}: Before Insert");
 
+        // 這裡應該要改成maxId是在Server啟動時Cache到Memory
         var maxId = await _userRepository.GetMaxId();
 
         await _userRepository.Insert(new UserPO()
@@ -127,6 +128,10 @@ public partial class DemoServer
             {
                 Log.Info($"玩家[{user.Username}] 密碼錯誤");
             }
+        }
+        else
+        {
+            Log.Info($"玩家[{user.Username}] 不存在");
         }
 
         response.WriteUInt16(1);

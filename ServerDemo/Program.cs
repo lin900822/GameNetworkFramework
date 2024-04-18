@@ -34,9 +34,9 @@ try
 
     var serviceProvider = serviceCollection.BuildServiceProvider();
 
-    var migrateTool = serviceProvider.GetRequiredService<MigrateTool>();
-    migrateTool.Migrate(typeof(TestPO));
-    migrateTool.Migrate(typeof(UserPO));
+    // var migrateTool = serviceProvider.GetRequiredService<MigrateTool>();
+    // migrateTool.Migrate(typeof(TestPO));
+    // migrateTool.Migrate(typeof(UserPO));
 
     var server = serviceProvider.GetRequiredService<DemoServer>();
     server.Start();

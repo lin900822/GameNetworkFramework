@@ -13,6 +13,42 @@ public class UserRepository : BaseRepository<UserPO>
     {
     }
 
+    protected override async Task OnInit()
+    {
+        var sql = @"
+                CREATE TABLE IF NOT EXISTS UserPO (
+                    Id INT UNSIGNED PRIMARY KEY
+                );";
+        await ExecuteAsync(sql);
+        
+        Log.Debug($"{Environment.CurrentManagedThreadId}");
+        
+        if (!await IsColumnExistsAsync("UserPO", "Username"))
+        {
+            await ExecuteAsync("ALTER TABLE UserPO ADD Username VARCHAR(50);");
+        }
+        
+        Log.Debug($"{Environment.CurrentManagedThreadId}");
+
+        if (!await IsColumnExistsAsync("UserPO", "Password"))
+        {
+            await ExecuteAsync("ALTER TABLE UserPO ADD Password VARCHAR(50);");
+        }
+        
+        Log.Debug($"{Environment.CurrentManagedThreadId}");
+        
+        if (!await IsColumnExistsAsync("UserPO", "Description"))
+        {
+            await ExecuteAsync("ALTER TABLE UserPO ADD Description VARCHAR(50);");
+        }
+        else
+        {
+            await ExecuteAsync("ALTER TABLE UserPO MODIFY COLUMN Description VARCHAR(100);");
+        }
+        
+        Log.Debug($"{Environment.CurrentManagedThreadId}");
+    }
+
     public async Task<int> Insert(UserPO userPo)
     {
         var sql =
@@ -86,13 +122,22 @@ public class UserRepository : BaseRepository<UserPO>
     public async Task<UserPO> GetUserAsync(string username)
     {
         var sql =
-        @"
+            @"
         SELECT * FROM UserPO WHERE username=@Username;
         ";
 
         using var dbConnection = _dbContext.Connection;
         dbConnection.Open();
-        var user = await dbConnection.QuerySingleAsync<UserPO>(sql, new { Username = username });
+        UserPO user = null;
+        try
+        {
+            user = await dbConnection.QuerySingleAsync<UserPO>(sql, new { Username = username });
+        }
+        catch (Exception e)
+        {
+            // ignored
+        }
+
         return user ?? null;
     }
 
@@ -105,7 +150,16 @@ public class UserRepository : BaseRepository<UserPO>
 
         using var dbConnection = _dbContext.Connection;
         dbConnection.Open();
-        var maxId = await dbConnection.QuerySingleAsync<uint>(sql);
+        uint maxId = 0;
+        try
+        {
+            maxId = await dbConnection.QuerySingleAsync<uint>(sql);
+        }
+        catch (Exception e)
+        {
+            // ignored
+        }
+
         return maxId;
     }
 }
