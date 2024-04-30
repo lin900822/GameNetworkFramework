@@ -21,21 +21,21 @@ public class UserRepository : BaseRepository<UserPO>
                 );";
         await ExecuteAsync(sql);
         
-        Log.Debug($"{Environment.CurrentManagedThreadId}");
+        Log.Debug($"UserRepository OnInit {Environment.CurrentManagedThreadId}");
         
         if (!await IsColumnExistsAsync("UserPO", "Username"))
         {
             await ExecuteAsync("ALTER TABLE UserPO ADD Username VARCHAR(50);");
         }
         
-        Log.Debug($"{Environment.CurrentManagedThreadId}");
+        Log.Debug($"UserRepository OnInit {Environment.CurrentManagedThreadId}");
 
         if (!await IsColumnExistsAsync("UserPO", "Password"))
         {
             await ExecuteAsync("ALTER TABLE UserPO ADD Password VARCHAR(50);");
         }
         
-        Log.Debug($"{Environment.CurrentManagedThreadId}");
+        Log.Debug($"UserRepository OnInit {Environment.CurrentManagedThreadId}");
         
         if (!await IsColumnExistsAsync("UserPO", "Description"))
         {
@@ -46,7 +46,7 @@ public class UserRepository : BaseRepository<UserPO>
             await ExecuteAsync("ALTER TABLE UserPO MODIFY COLUMN Description VARCHAR(100);");
         }
         
-        Log.Debug($"{Environment.CurrentManagedThreadId}");
+        Log.Debug($"UserRepository OnInit {Environment.CurrentManagedThreadId}");
     }
 
     public async Task<int> Insert(UserPO userPo)

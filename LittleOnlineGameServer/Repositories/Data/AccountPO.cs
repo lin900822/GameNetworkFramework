@@ -1,14 +1,14 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace AccountServer.Repositories.Data;
+namespace LittleOnlineGameServer.Repositories.Data;
 
-public class Account
+public class AccountPO
 {
     [Key]
     public uint     Id        { get; set; }
-    [VarcharLength(50)]
+    
     public string   Username  { get; set; }
-    [VarcharLength(50)]
+    
     public string   Password  { get; set; }
     public DateTime CreatedAt { get; set; }
 }

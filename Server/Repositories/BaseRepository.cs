@@ -24,7 +24,7 @@ public abstract class BaseRepository<T>
     {
         using var dbConnection = _dbContext.Connection;
         dbConnection.Open();
-        return await dbConnection.QueryFirstOrDefaultAsync<int>(insertSql, entity);
+        return await dbConnection.ExecuteAsync(insertSql, entity);
     }
 
     protected async Task<int> Update(T entity, string updateSql)

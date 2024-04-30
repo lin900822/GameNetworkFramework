@@ -90,6 +90,23 @@ public class ByteBuffer
     }
 
     // 寫入ushort
+    public void WriteBool(bool value)
+    {
+        if (Remain < 1) ReuseCapacity();
+        if (Remain < 1) Resize(Length + 1);
+
+        if (value)
+        {
+            _rawData[_writeIndex] = 0b11111111;
+        }
+        else
+        {
+            _rawData[_writeIndex] = 0;
+        }
+
+        _writeIndex += 1;
+    }
+
     public void WriteUInt16(ushort value)
     {
         if (Remain < 2) ReuseCapacity();
@@ -169,6 +186,18 @@ public class ByteBuffer
     }
 
     // 讀取UInt32
+    public bool TryReadBool(out bool value)
+    {
+        value = false;
+        if (Length < 1) return false;
+
+        value = _rawData[_readIndex] == 0b11111111;
+        
+        _readIndex += 1;
+        CheckAndReuseCapacity();
+        return true;
+    }
+    
     public uint ReadUInt32()
     {
         if (Length < 4) return 0;

@@ -1,9 +1,9 @@
-using Core.Common;
+﻿using Core.Common;
 using Server;
 
-namespace GatewayServer;
+namespace LittleOnlineGameServer;
 
-public class GatewayClient : ClientBase<GatewayClient>
+public class LOGClient : ClientBase<LOGClient>
 {
     public long ConnectedTime { get; set; }
     
