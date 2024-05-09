@@ -1,6 +1,6 @@
 ﻿## ToDo
 - SendRequest要改成不論是否成功都要觸發Callback
-- MySqlConnect同時併發Open()的話會報錯，待處理
+- MySqlConnect同時併發Open()的話會報錯，待處理 (連接池)
 - Server讀配置
 - Repository
 - 改用SqlSugar
