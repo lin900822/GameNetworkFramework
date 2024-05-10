@@ -274,41 +274,49 @@ public class CommandHandler
     [Command("awaitlock")]
     public async void TestAwaitLock()
     {
-        for (int i = 0; i < 10; i++)
+        YieldToMainThread(() =>
         {
-            InnerTestAwaitLock().Await();
-        }
+            for (int i = 0; i < 100; i++)
+            {
+                InnerTestAwaitLock().Await();
+            }
+        });
     }
 
     private async Task InnerTestAwaitLock()
     {
         using (await _awaitLock.Lock())
         {
-            Log.Info("start");
+            Log.Debug($"start at {Environment.CurrentManagedThreadId}");
             Log.Info("1");
             await Task.Yield();
             Log.Info("2");
             await Task.Yield();
             Log.Info("3");
+            Log.Debug($"end at {Environment.CurrentManagedThreadId}");
         }
     }
     
     [Command("awaitnolock")]
     public async void TestAwaitNoLock()
     {
-        for (int i = 0; i < 10; i++)
+        YieldToMainThread(() =>
         {
-            InnerTestAwaitNoLock().Await();
-        }
+            for (int i = 0; i < 100; i++)
+            {
+                InnerTestAwaitNoLock().Await();
+            }
+        });
     }
     
     private async Task InnerTestAwaitNoLock()
     {
-        Log.Info("start");
+        Log.Debug($"start at {Environment.CurrentManagedThreadId}");
         Log.Info("1");
         await Task.Yield();
         Log.Info("2");
         await Task.Yield();
         Log.Info("3");
+        Log.Debug($"end at {Environment.CurrentManagedThreadId}");
     }
 }
