@@ -198,19 +198,29 @@ public class CommandHandler
             var user = new User() { Username = username, Password = password };
             var userData = ProtoUtils.Encode(user);
 
-            var messageInfo = await _networkAgent.SendRequest((ushort)MessageId.Register, userData,
+            // var messageInfo = await _networkAgent.SendRequest((ushort)MessageId.Register, userData,
+            //     () => { Log.Warn($"Time Out"); });
+            //
+            // var response = messageInfo.Message.ReadUInt16();
+            //
+            // if (response == 1)
+            // {
+            //     Log.Info($"註冊成功!");
+            // }
+            // else
+            // {
+            //     Log.Info($"{response}");
+            // }
+
+            for (int i = 0; i < 100; i++)
+            {
+                var messageInfo = _networkAgent.SendRequest((ushort)MessageId.Register, userData,
+                    () => { Log.Warn($"Time Out"); });
+                
+            }
+            
+            _networkAgent.SendRequest((ushort)MessageId.Login, userData,
                 () => { Log.Warn($"Time Out"); });
-
-            var response = messageInfo.Message.ReadUInt16();
-
-            if (response == 1)
-            {
-                Log.Info($"註冊成功!");
-            }
-            else
-            {
-                Log.Info($"{response}");
-            }
         });
     }
     
@@ -257,5 +267,48 @@ public class CommandHandler
         _networkAgent.SendMessage((ushort)MessageId.RawByte, data);
         
         ByteBufferPool.Shared.Return(byteBuffer);
+    }
+    
+    private AwaitLock _awaitLock = new AwaitLock();
+    
+    [Command("awaitlock")]
+    public async void TestAwaitLock()
+    {
+        for (int i = 0; i < 10; i++)
+        {
+            InnerTestAwaitLock().Await();
+        }
+    }
+
+    private async Task InnerTestAwaitLock()
+    {
+        using (await _awaitLock.Lock())
+        {
+            Log.Info("start");
+            Log.Info("1");
+            await Task.Yield();
+            Log.Info("2");
+            await Task.Yield();
+            Log.Info("3");
+        }
+    }
+    
+    [Command("awaitnolock")]
+    public async void TestAwaitNoLock()
+    {
+        for (int i = 0; i < 10; i++)
+        {
+            InnerTestAwaitNoLock().Await();
+        }
+    }
+    
+    private async Task InnerTestAwaitNoLock()
+    {
+        Log.Info("start");
+        Log.Info("1");
+        await Task.Yield();
+        Log.Info("2");
+        await Task.Yield();
+        Log.Info("3");
     }
 }

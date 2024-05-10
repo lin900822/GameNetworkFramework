@@ -56,9 +56,13 @@ public partial class DemoServer
         client.SendMessage((ushort)MessageId.Move, byteBuffer);
     }
 
+    private static AwaitLock _awaitLock = new AwaitLock();
+    
     [MessageRoute((ushort)MessageId.Register)]
     public async Task<ByteBuffer> OnReceiveUserRegister(DemoClient client, ReceivedMessageInfo receivedMessageInfo)
     {
+        Log.Debug("Before AwaitLock");
+        
         var response = ByteBufferPool.Shared.Rent(10);
 
         if (!receivedMessageInfo.TryDecode<User>(out var user))
@@ -67,37 +71,39 @@ public partial class DemoServer
             return response;
         }
 
-        if (user.Username.Length <= 2)
+        using (await _awaitLock.Lock())
         {
-            response.WriteUInt16(0);
+            Log.Debug("After AwaitLock");
+
+            if (user.Username.Length <= 2)
+            {
+                response.WriteUInt16(0);
+                return response;
+            }
+
+            var isUserExist = await _userRepository.IsUserExist(user.Username);
+            if (isUserExist)
+            {
+                response.WriteUInt16(0);
+                Log.Debug($"{Environment.CurrentManagedThreadId}: {user.Username} 已存在");
+                return response;
+            }
+
+            // 這裡應該要改成maxId是在Server啟動時Cache到Memory
+            var maxId = await _userRepository.GetMaxId();
+
+            await _userRepository.Insert(new UserPO()
+            {
+                Id       = maxId + 1,
+                Username = user.Username,
+                Password = user.Password,
+            });
+
+            Log.Debug($"{Environment.CurrentManagedThreadId}: {user.Username} 註冊成功");
+
+            response.WriteUInt16(1);
             return response;
         }
-
-        Log.Debug($"{Environment.CurrentManagedThreadId}: Before IsUserExist");
-        var isUserExist = await _userRepository.IsUserExist(user.Username);
-        Log.Debug($"{Environment.CurrentManagedThreadId}: After IsUserExist");
-        if (isUserExist)
-        {
-            response.WriteUInt16(0);
-            return response;
-        }
-
-        Log.Debug($"{Environment.CurrentManagedThreadId}: Before Insert");
-
-        // 這裡應該要改成maxId是在Server啟動時Cache到Memory
-        var maxId = await _userRepository.GetMaxId();
-
-        await _userRepository.Insert(new UserPO()
-        {
-            Id       = maxId + 1,
-            Username = user.Username,
-            Password = user.Password,
-        });
-
-        Log.Debug($"{Environment.CurrentManagedThreadId}: After Insert");
-
-        response.WriteUInt16(1);
-        return response;
     }
 
     [MessageRoute((ushort)MessageId.Login)]

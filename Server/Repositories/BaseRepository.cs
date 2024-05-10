@@ -23,7 +23,6 @@ public abstract class BaseRepository<T>
     protected async Task<int> Insert(T entity, string insertSql)
     {
         using var dbConnection = _dbContext.Connection;
-        dbConnection.Open();
         return await dbConnection.ExecuteAsync(insertSql, entity);
     }
 
@@ -40,21 +39,18 @@ public abstract class BaseRepository<T>
     protected async Task<T> SelectOne(int id, string selectOneSql)
     {
         using var dbConnection = _dbContext.Connection;
-        dbConnection.Open();
         return await dbConnection.QueryFirstOrDefaultAsync<T>(selectOneSql, new { Id = id });
     }
 
     protected async Task<List<T>> SelectAll(string selectSql)
     {
         using var dbConnection = _dbContext.Connection;
-        dbConnection.Open();
         return await Task.Run(() => dbConnection.Query<T>(selectSql).ToList());
     }
 
     protected async Task<int> ExecuteAsync(string sql, object? param = null, IDbTransaction? transaction = null, int? commandTimeout = null, CommandType? commandType = null)
     {
         using var dbConnection = _dbContext.Connection;
-        dbConnection.Open();
         return await dbConnection.ExecuteAsync(sql, param, transaction, commandTimeout, commandType);
     }
     
@@ -67,7 +63,6 @@ public abstract class BaseRepository<T>
         ";
         
         using var dbConnection = _dbContext.Connection;
-        dbConnection.Open();
 
         var count = await dbConnection.ExecuteScalarAsync<int>(checkColumnExistsQuery, new { TableName = tableName, ColumnName = columnName });
         return count > 0;

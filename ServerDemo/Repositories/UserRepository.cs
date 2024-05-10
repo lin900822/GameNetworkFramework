@@ -21,21 +21,15 @@ public class UserRepository : BaseRepository<UserPO>
                 );";
         await ExecuteAsync(sql);
         
-        Log.Debug($"UserRepository OnInit {Environment.CurrentManagedThreadId}");
-        
         if (!await IsColumnExistsAsync("UserPO", "Username"))
         {
             await ExecuteAsync("ALTER TABLE UserPO ADD Username VARCHAR(50);");
         }
         
-        Log.Debug($"UserRepository OnInit {Environment.CurrentManagedThreadId}");
-
         if (!await IsColumnExistsAsync("UserPO", "Password"))
         {
             await ExecuteAsync("ALTER TABLE UserPO ADD Password VARCHAR(50);");
         }
-        
-        Log.Debug($"UserRepository OnInit {Environment.CurrentManagedThreadId}");
         
         if (!await IsColumnExistsAsync("UserPO", "Description"))
         {
@@ -45,8 +39,6 @@ public class UserRepository : BaseRepository<UserPO>
         {
             await ExecuteAsync("ALTER TABLE UserPO MODIFY COLUMN Description VARCHAR(100);");
         }
-        
-        Log.Debug($"UserRepository OnInit {Environment.CurrentManagedThreadId}");
     }
 
     public async Task<int> Insert(UserPO userPo)
@@ -112,10 +104,7 @@ public class UserRepository : BaseRepository<UserPO>
         ";
 
         using var dbConnection = _dbContext.Connection;
-        dbConnection.Open();
-        Log.Debug($"{Environment.CurrentManagedThreadId}: Before QueryFirstAsync");
         var count = await dbConnection.QueryFirstAsync<int>(sql, new { Username = username });
-        Log.Debug($"{Environment.CurrentManagedThreadId}: After QueryFirstAsync");
         return count >= 1;
     }
 
@@ -127,7 +116,6 @@ public class UserRepository : BaseRepository<UserPO>
         ";
 
         using var dbConnection = _dbContext.Connection;
-        dbConnection.Open();
         UserPO user = null;
         try
         {
@@ -149,7 +137,6 @@ public class UserRepository : BaseRepository<UserPO>
         ";
 
         using var dbConnection = _dbContext.Connection;
-        dbConnection.Open();
         uint maxId = 0;
         try
         {

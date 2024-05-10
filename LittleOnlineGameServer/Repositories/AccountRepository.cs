@@ -100,7 +100,6 @@ public class AccountRepository : BaseRepository<AccountPO>
         ";
 
         using var dbConnection = _dbContext.Connection;
-        dbConnection.Open();
         var count = await dbConnection.QueryFirstAsync<int>(sql, new { Username = username });
         return count >= 1;
     }
@@ -113,7 +112,6 @@ public class AccountRepository : BaseRepository<AccountPO>
         ";
 
         using var dbConnection = _dbContext.Connection;
-        dbConnection.Open();
         try
         {
             var account = await dbConnection.QuerySingleAsync<AccountPO>(sql, new { Username = username });
@@ -133,7 +131,6 @@ public class AccountRepository : BaseRepository<AccountPO>
         ";
 
         using var dbConnection = _dbContext.Connection;
-        dbConnection.Open();
 
         try
         {
