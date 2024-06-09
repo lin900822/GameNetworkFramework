@@ -43,7 +43,7 @@ networkAgent.RegisterMessageHandler((ushort)MessageId.Broadcast, (communicator, 
 });
 
 // Connect
-networkAgent.Connect("127.0.0.1", 11001);
+networkAgent.Connect("127.0.0.1", 20001);
 
 Thread.Sleep(100);
 

@@ -5,8 +5,8 @@ services:
     build: .
     container_name: game-server
     ports:
-      - "10001:10001"
-      - "19001:19001"
+      - "20001:20001"
+      # - "19001:19001"
     depends_on:
       - mysql
     

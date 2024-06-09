@@ -34,7 +34,7 @@ public partial class DemoServer : ServerBase<DemoClient>
         _cacheRawByteData = new byte[byteBuffer.Length];
         byteBuffer.Read(_cacheRawByteData, 0, byteBuffer.Length);
         
-        _userRepository.Init().SafeWait();
+        //_userRepository.Init().SafeWait();
     }
 
     protected override void OnFixedUpdate()

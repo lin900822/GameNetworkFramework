@@ -22,7 +22,7 @@ try
     {
         ServerId = 1,
         ServerName = "DemoServer",
-        Port = 11001,
+        Port = 20001,
         MaxConnectionCount = 2000,
         HeartBeatInterval = 150_000,
     });
