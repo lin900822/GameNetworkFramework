@@ -2,7 +2,10 @@ version: '3.9'
 
 services:
   game-server:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: game-server
     container_name: game-server
     ports:
       - "20001:20001"
