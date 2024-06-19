@@ -198,29 +198,19 @@ public partial class CommandHandler
             var user = new User() { Username = username, Password = password };
             var userData = ProtoUtils.Encode(user);
 
-            // var messageInfo = await _networkAgent.SendRequest((ushort)MessageId.Register, userData,
-            //     () => { Log.Warn($"Time Out"); });
-            //
-            // var response = messageInfo.Message.ReadUInt16();
-            //
-            // if (response == 1)
-            // {
-            //     Log.Info($"註冊成功!");
-            // }
-            // else
-            // {
-            //     Log.Info($"{response}");
-            // }
-
-            for (int i = 0; i < 100; i++)
-            {
-                var messageInfo = _networkAgent.SendRequest((ushort)MessageId.Register, userData,
-                    () => { Log.Warn($"Time Out"); });
-                
-            }
-            
-            _networkAgent.SendRequest((ushort)MessageId.Login, userData,
+            var messageInfo = await _networkAgent.SendRequest((ushort)MessageId.Register, userData,
                 () => { Log.Warn($"Time Out"); });
+            
+            var response = messageInfo.Message.ReadUInt16();
+            
+            if (response == 1)
+            {
+                Log.Info($"註冊成功!");
+            }
+            else
+            {
+                Log.Info($"{response}");
+            }
         });
     }
     

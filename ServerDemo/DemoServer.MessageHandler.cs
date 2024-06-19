@@ -11,38 +11,25 @@ namespace ServerDemo;
 public partial class DemoServer
 {
     [MessageRoute((ushort)MessageId.Hello)]
-    public ByteBuffer OnReceiveHello(DemoClient client, ReceivedMessageInfo receivedMessageInfo)
+    public async Task<bool> OnReceiveHello(DemoClient client, ByteBuffer request, ByteBuffer response)
     {
-        if (!receivedMessageInfo.TryDecode<Hello>(out var hello))
+        if (!request.TryDecode<Hello>(out var hello))
         {
-            return null;
+            return false;
         }
+
+        await Task.Delay(1000);
 
         var helloData = ProtoUtils.Encode(hello);
 
-        //Log.Debug($"Before await Thread: {Environment.CurrentManagedThreadId}");
-        //await Task.Delay(100);
-        //Log.Debug($"After await Thread: {Environment.CurrentManagedThreadId}");
-
-        // var response = await _connectorClient.SendRequest((uint)MessageId.Hello, helloData);
-        //
-        // if (!response.TryDecode<Hello>(out hello))
-        // {
-        //     return Response.None;
-        // }
-        //
-        // helloData = ProtoUtils.Encode(hello);
-
-        var byteBuffer = ByteBufferPool.Shared.Rent(helloData.Length);
-        byteBuffer.Write(helloData, 0, helloData.Length);
-        return byteBuffer;
+        response.Write(helloData, 0, helloData.Length);
+        return true;
     }
 
     [MessageRoute((ushort)MessageId.Move)]
-    public void OnReceiveMove(DemoClient client, ReceivedMessageInfo receivedMessageInfo)
+    public void OnReceiveMove(DemoClient client, ByteBuffer request)
     {
-        if (!receivedMessageInfo.TryDecode<Move>(out var move)) return;
-        //Log.Debug($"({move.X},{move.Y},{move.Z})");
+        if (!request.TryDecode<Move>(out var move)) return;
         var sum = 0;
         for (int i = 0; i < 1000; i++)
         {
@@ -51,24 +38,24 @@ public partial class DemoServer
 
         move.X += sum;
         var moveData   = ProtoUtils.Encode(move);
-        var byteBuffer = ByteBufferPool.Shared.Rent(moveData.Length);
-        byteBuffer.Write(moveData, 0, moveData.Length);
-        client.SendMessage((ushort)MessageId.Move, byteBuffer);
+        
+        var message = ByteBufferPool.Shared.Rent(moveData.Length);
+        message.Write(moveData, 0, moveData.Length);
+        client.SendMessage((ushort)MessageId.Move, message);
+        ByteBufferPool.Shared.Return(message);
     }
 
     private static AwaitLock _awaitLock = new AwaitLock();
     
     [MessageRoute((ushort)MessageId.Register)]
-    public async Task<ByteBuffer> OnReceiveUserRegister(DemoClient client, ReceivedMessageInfo receivedMessageInfo)
+    public async Task<bool> OnReceiveUserRegister(DemoClient client, ByteBuffer request, ByteBuffer response)
     {
         Log.Debug("Before AwaitLock");
-        
-        var response = ByteBufferPool.Shared.Rent(10);
 
-        if (!receivedMessageInfo.TryDecode<User>(out var user))
+        if (!request.TryDecode<User>(out var user))
         {
             response.WriteUInt16(0);
-            return response;
+            return false;
         }
 
         using (await _awaitLock.Lock())
@@ -78,7 +65,7 @@ public partial class DemoServer
             if (user.Username.Length <= 2)
             {
                 response.WriteUInt16(0);
-                return response;
+                return false;
             }
 
             var isUserExist = await _userRepository.IsUserExist(user.Username);
@@ -86,7 +73,7 @@ public partial class DemoServer
             {
                 response.WriteUInt16(0);
                 Log.Debug($"{Environment.CurrentManagedThreadId}: {user.Username} 已存在");
-                return response;
+                return false;
             }
 
             // 這裡應該要改成maxId是在Server啟動時Cache到Memory
@@ -102,25 +89,23 @@ public partial class DemoServer
             Log.Debug($"{Environment.CurrentManagedThreadId}: {user.Username} 註冊成功");
 
             response.WriteUInt16(1);
-            return response;
+            return true;
         }
     }
 
     [MessageRoute((ushort)MessageId.Login)]
-    public async Task<ByteBuffer> OnReceiveUserLogin(DemoClient client, ReceivedMessageInfo receivedMessageInfo)
+    public async Task<bool> OnReceiveUserLogin(DemoClient client, ByteBuffer request, ByteBuffer response)
     {
-        var response = ByteBufferPool.Shared.Rent(10);
-
-        if (!receivedMessageInfo.TryDecode<User>(out var user))
+        if (!request.TryDecode<User>(out var user))
         {
             response.WriteUInt16(0);
-            return response;
+            return false;
         }
 
         if (user.Username.Length <= 2)
         {
             response.WriteUInt16(0);
-            return response;
+            return false;
         }
 
         var userPo = await _userRepository.GetUserAsync(user.Username);
@@ -129,37 +114,39 @@ public partial class DemoServer
             if (userPo.Password.Equals(user.Password))
             {
                 Log.Info($"玩家[{user.Username}] 登入成功");
+                response.WriteUInt16(1);
             }
             else
             {
                 Log.Info($"玩家[{user.Username}] 密碼錯誤");
+                response.WriteUInt16(0);
             }
         }
         else
         {
             Log.Info($"玩家[{user.Username}] 不存在");
+            response.WriteUInt16(0);
         }
 
-        response.WriteUInt16(1);
-        return response;
+        return true;
     }
 
     [MessageRoute((ushort)MessageId.RawByte)]
-    public void OnReceiveRawByte(DemoClient client, ReceivedMessageInfo receivedMessageInfo)
+    public void OnReceiveRawByte(DemoClient client, ByteBuffer request)
     {
-        var x = receivedMessageInfo.Message.ReadUInt32();
-        var y = receivedMessageInfo.Message.ReadUInt32();
-        var z = receivedMessageInfo.Message.ReadUInt32();
+        var x = request.ReadUInt32();
+        var y = request.ReadUInt32();
+        var z = request.ReadUInt32();
 
         client.SendMessage((ushort)MessageId.RawByte, _cacheRawByteData);
     }
 
     [MessageRoute((ushort)MessageId.Broadcast)]
-    public void OnReceiveBroadcast(DemoClient client, ReceivedMessageInfo receivedMessageInfo)
+    public void OnReceiveBroadcast(DemoClient client, ByteBuffer request)
     {
-        var x = receivedMessageInfo.Message.ReadUInt32();
-        var y = receivedMessageInfo.Message.ReadUInt32();
-        var z = receivedMessageInfo.Message.ReadUInt32();
+        var x = request.ReadUInt32();
+        var y = request.ReadUInt32();
+        var z = request.ReadUInt32();
 
         BroadcastMessage((ushort)MessageId.Broadcast, _cacheRawByteData);
     }

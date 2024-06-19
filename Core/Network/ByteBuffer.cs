@@ -1,4 +1,7 @@
-﻿namespace Core.Network;
+﻿using Core.Logger;
+using Google.Protobuf;
+
+namespace Core.Network;
 
 public class ByteBuffer
 {
@@ -209,6 +212,22 @@ public class ByteBuffer
         _readIndex += 4;
         CheckAndReuseCapacity();
         return readUInt32;
+    }
+    
+    public bool TryDecode<T>(out T outMessage) where T : IMessage, new()
+    {
+        try
+        { 
+            outMessage = new T();
+            outMessage.MergeFrom(RawData, 0, Length);
+            return true;
+        }
+        catch (Exception e)
+        {
+            Log.Error(e.ToString());
+            outMessage = default(T);
+            return false;
+        }
     }
 
     // 輸出緩衝區

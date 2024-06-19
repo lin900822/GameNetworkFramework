@@ -238,7 +238,6 @@ public class NetworkCommunicator
         PackMessage(byteBuffer, messageId, message.RawData, message.Length, message.ReadIndex, isRequest, requestId);
         
         AddMessageToSendQueue(byteBuffer);
-        ByteBufferPool.Shared.Return(message);
     }
 
     private void AddMessageToSendQueue(ByteBuffer byteBuffer)

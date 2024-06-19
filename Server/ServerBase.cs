@@ -104,96 +104,144 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
             var returnType      = methodInfo.ReturnType;
             var routeAttributes = methodInfo.GetCustomAttributes<MessageRouteAttribute>();
 
-            if (parameters.Length != 2 || parameters[0].ParameterType != typeof(TClient) ||
-                parameters[1].ParameterType != typeof(ReceivedMessageInfo))
+            if (parameters.Length == 2
+                && parameters[0].ParameterType == typeof(TClient)
+                && parameters[1].ParameterType == typeof(ByteBuffer))
             {
-                throw new ArgumentException($"MessageRoute Method \"{methodInfo.Name}\" Parameters Error!");
-            }
-
-            if (returnType == typeof(void))
-            {
-                var action =
-                    (Action<TClient, ReceivedMessageInfo>)Delegate.CreateDelegate(
-                        typeof(Action<TClient, ReceivedMessageInfo>), this,
-                        methodInfo);
-
-                using var enumerator = routeAttributes.GetEnumerator();
-                while (enumerator.MoveNext())
+                if (returnType == typeof(void))
                 {
-                    var routeAttribute = enumerator.Current;
-                    _messageRouter.RegisterMessageHandler((ushort)routeAttribute.MessageId, action);
-                }
-            }
-            else if (returnType == typeof(Task))
-            {
-                var func = (Func<TClient, ReceivedMessageInfo, Task>)Delegate.CreateDelegate(
-                    typeof(Func<TClient, ReceivedMessageInfo, Task>), this, methodInfo);
+                    var action = (Action<TClient, ByteBuffer>)
+                        Delegate.CreateDelegate(
+                            typeof(Action<TClient, ByteBuffer>),
+                            this,
+                            methodInfo);
 
-                using var enumerator = routeAttributes.GetEnumerator();
-                while (enumerator.MoveNext())
-                {
-                    var routeAttribute = enumerator.Current;
-
-                    void Handler(TClient client, ReceivedMessageInfo messageInfo)
+                    using var enumerator = routeAttributes.GetEnumerator();
+                    while (enumerator.MoveNext())
                     {
-                        func(client, messageInfo).Await(null, e => { Log.Error(e.ToString()); });
+                        var routeAttribute = enumerator.Current;
+                        _messageRouter.RegisterMessageHandler((ushort)routeAttribute.MessageId,
+                            (client, receivedMessageInfo) => { action(client, receivedMessageInfo.Message); });
                     }
-
-                    _messageRouter.RegisterMessageHandler((ushort)routeAttribute.MessageId, Handler);
                 }
-            }
-            else if (returnType == typeof(ByteBuffer))
-            {
-                var func = (Func<TClient, ReceivedMessageInfo, ByteBuffer>)Delegate.CreateDelegate(
-                    typeof(Func<TClient, ReceivedMessageInfo, ByteBuffer>), this, methodInfo);
-
-                using var enumerator = routeAttributes.GetEnumerator();
-                while (enumerator.MoveNext())
+                else if (returnType == typeof(Task))
                 {
-                    var routeAttribute = enumerator.Current;
+                    var func = (Func<TClient, ByteBuffer, Task>)
+                        Delegate.CreateDelegate(
+                            typeof(Func<TClient, ByteBuffer, Task>),
+                            this,
+                            methodInfo);
 
-                    _messageRouter.RegisterMessageHandler((ushort)routeAttribute.MessageId,
-                        (client, messageInfo) =>
+                    using var enumerator = routeAttributes.GetEnumerator();
+                    while (enumerator.MoveNext())
+                    {
+                        var routeAttribute = enumerator.Current;
+
+                        void Handler(TClient client, ByteBuffer byteBuffer)
                         {
-                            var response = func(client, messageInfo);
-                            if (response == null)
-                                return;
-                            client.SendMessage((ushort)routeAttribute.MessageId, response, true,
-                                messageInfo.RequestId);
-                            ByteBufferPool.Shared.Return(response);
-                        });
+                            func(client, byteBuffer).Await(null, e => { Log.Error(e.ToString()); });
+                        }
+
+                        _messageRouter.RegisterMessageHandler((ushort)routeAttribute.MessageId,
+                            (client, receivedMessageInfo) => { Handler(client, receivedMessageInfo.Message); });
+                    }
+                }
+                else
+                {
+                    throw new ArgumentException($"MessageRoute Method \"{methodInfo.Name}\" Return Type Error!");
                 }
             }
-            else if (returnType == typeof(Task<ByteBuffer>))
+            else if (parameters.Length == 3
+                     && parameters[0].ParameterType == typeof(TClient)
+                     && parameters[1].ParameterType == typeof(ByteBuffer)
+                     && parameters[2].ParameterType == typeof(ByteBuffer))
             {
-                var func = (Func<TClient, ReceivedMessageInfo, Task<ByteBuffer>>)Delegate.CreateDelegate(
-                    typeof(Func<TClient, ReceivedMessageInfo, Task<ByteBuffer>>), this, methodInfo);
-
-                using var enumerator = routeAttributes.GetEnumerator();
-                while (enumerator.MoveNext())
+                if (returnType == typeof(bool))
                 {
-                    var routeAttribute = enumerator.Current;
+                    var func = (Func<TClient, ByteBuffer, ByteBuffer, bool>)
+                        Delegate.CreateDelegate(
+                            typeof(Func<TClient, ByteBuffer, ByteBuffer, bool>),
+                            this,
+                            methodInfo);
 
-                    void Handler(TClient client, ReceivedMessageInfo messageInfo)
+                    using var enumerator = routeAttributes.GetEnumerator();
+                    while (enumerator.MoveNext())
                     {
-                        func(client, messageInfo).Await(
-                            response =>
+                        var routeAttribute = enumerator.Current;
+                        _messageRouter.RegisterMessageHandler((ushort)routeAttribute.MessageId,
+                            (client, receivedMessageInfo) =>
                             {
-                                if (response == null)
-                                    return;
-                                client.SendMessage((ushort)routeAttribute.MessageId, response, true,
-                                    messageInfo.RequestId);
-                                ByteBufferPool.Shared.Return(response);
-                            },
-                            e => Log.Error(e.ToString()));
-                    }
+                                var response            = ByteBufferPool.Shared.Rent();
+                                var isNeedToSendMessage = func(client, receivedMessageInfo.Message, response);
 
-                    _messageRouter.RegisterMessageHandler((ushort)routeAttribute.MessageId, Handler);
+                                if (isNeedToSendMessage)
+                                {
+                                    if (receivedMessageInfo.IsRequest)
+                                    {
+                                        client.SendMessage((ushort)routeAttribute.MessageId, response,
+                                            true, receivedMessageInfo.RequestId);
+                                    }
+                                    else
+                                    {
+                                        client.SendMessage((ushort)routeAttribute.MessageId, response);
+                                    }
+                                }
+
+                                ByteBufferPool.Shared.Return(response);
+                            });
+                    }
+                }
+                else if (returnType == typeof(Task<bool>))
+                {
+                    var func = (Func<TClient, ByteBuffer, ByteBuffer, Task<bool>>)
+                        Delegate.CreateDelegate(
+                            typeof(Func<TClient, ByteBuffer, ByteBuffer, Task<bool>>),
+                            this,
+                            methodInfo);
+
+                    using var enumerator = routeAttributes.GetEnumerator();
+                    while (enumerator.MoveNext())
+                    {
+                        var routeAttribute = enumerator.Current;
+
+                        _messageRouter.RegisterMessageHandler((ushort)routeAttribute.MessageId,
+                            (client, receivedMessageInfo) =>
+                            {
+                                var response = ByteBufferPool.Shared.Rent();
+                                func(client, receivedMessageInfo.Message, response).Await(
+                                    (isNeedToSendMessage) =>
+                                    {
+                                        if (isNeedToSendMessage)
+                                        {
+                                            if (receivedMessageInfo.IsRequest)
+                                            {
+                                                client.SendMessage((ushort)routeAttribute.MessageId, response,
+                                                    true, receivedMessageInfo.RequestId);
+                                            }
+                                            else
+                                            {
+                                                client.SendMessage((ushort)routeAttribute.MessageId, response);
+                                            }
+                                        }
+
+                                        ByteBufferPool.Shared.Return(response);
+                                    },
+                                    e =>
+                                    {
+                                        Log.Error(e.ToString());
+                                        ByteBufferPool.Shared.Return(response);
+                                    });
+                            });
+                    }
+                }
+                else
+                {
+                    throw new ArgumentException($"MessageRoute Method \"{methodInfo.Name}\" Return Type Error!");
                 }
             }
             else
             {
-                throw new ArgumentException($"MessageRoute Method \"{methodInfo.Name}\" Return Type Error!");
+                throw new ArgumentException($"MessageRoute Method \"{methodInfo.Name}\" Parameters Error!");
             }
         }
     }
@@ -291,16 +339,14 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
 
     protected virtual void OnClientConnected(TClient client)
     {
-        
     }
-    
+
     protected virtual void OnClientDisconnected(TClient client)
     {
-        
     }
 
     #endregion
-    
+
     private void FixedUpdateClients()
     {
         foreach (var communicator in ClientList.Keys)
@@ -312,8 +358,8 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
 
     #region - Heart Beat -
 
-    [MessageRoute((ushort)MessageId.HeartBeat)]
-    public void OnReceivedPing(TClient client, ReceivedMessageInfo receivedMessageInfo)
+    [MessageRoute(0)]
+    public void OnReceivedPing(TClient client, ByteBuffer request)
     {
         client.LastPingTime = TimeUtils.GetTimeStamp();
         client.SendMessage(1, Array.Empty<byte>());
