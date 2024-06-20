@@ -11,19 +11,32 @@ services:
       - "50001:50001"
       # - "19001:19001"
     depends_on:
-      - mysql
+      - db
+    networks:
+      game-server-network:
+        ipv4_address: 172.100.0.3
     
-  mysql:
+  db:
     image: mysql:latest
     container_name: game-server-mysql
+    ports:
+      - "53306:3306"
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PWD}
-      MYSQL_DATABASE: ${DB_NAME}
-      MYSQL_USER: ${DB_USER}
-      MYSQL_PASSWORD: ${DB_PWD}
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: gameserver
+      MYSQL_USER: lin
+      MYSQL_PASSWORD: lin
     volumes:
-      - db:/var/lib/mysql
+      - ./dev/db:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-
-volumes:
-  db:
+    networks:
+      game-server-network:
+        ipv4_address: 172.100.0.2
+    
+networks:
+  game-server-network:
+    name: game-server-network
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.100.0.0/16

@@ -5,6 +5,7 @@ using Server.Database;
 using ServerDemo;
 using ServerDemo.Repositories;
 using Microsoft.Extensions.Configuration;
+using MySql.Data.MySqlClient;
 using Server.Repositories;
 using ServerDemo.PO;
 
@@ -15,6 +16,23 @@ try
         .Build();
 
     var connectionString = configuration.GetConnectionString("DefaultConnection");
+    
+    bool isDbConnected = false;
+    while (!isDbConnected)
+    {
+        using var connection = new MySqlConnection(connectionString);
+        try
+        {
+            connection.Open();
+            isDbConnected = true;
+        }
+        catch (MySqlException ex)
+        {
+            Log.Warn("Db Connection failed: " + ex.Message);
+            Log.Warn("Retrying in 1 seconds...");
+            Thread.Sleep(1000);
+        }
+    }
 
     var serviceCollection = new ServiceCollection();
 
