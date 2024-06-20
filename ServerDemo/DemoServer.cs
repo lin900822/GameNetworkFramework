@@ -10,8 +10,6 @@ namespace ServerDemo;
 
 public partial class DemoServer : ServerBase<DemoClient>
 {
-    private byte[] _cacheRawByteData;
-    
     private UserRepository _userRepository;
     
     public DemoServer(UserRepository userRepository, ServerSettings settings) : base(settings)
@@ -21,13 +19,6 @@ public partial class DemoServer : ServerBase<DemoClient>
     
     protected override void OnInit()
     {
-        var byteBuffer = ByteBufferPool.Shared.Rent(20);
-        byteBuffer.WriteUInt32(99);
-        byteBuffer.WriteUInt32(99);
-        byteBuffer.WriteUInt32(99);
-        _cacheRawByteData = new byte[byteBuffer.Length];
-        byteBuffer.Read(_cacheRawByteData, 0, byteBuffer.Length);
-        
         _userRepository.Init().SafeWait();
     }
 

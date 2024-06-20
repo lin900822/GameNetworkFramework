@@ -25,7 +25,7 @@ public partial class CommandHandler
 
     private NetworkAgent _networkAgent;
 
-    private ConcurrentQueue<Action> _inputActions;
+    private ConcurrentQueue<Action>    _inputActions;
     private Dictionary<string, Action> _commandHandlers;
 
     public CommandHandler(NetworkAgent networkAgent, ConcurrentQueue<Action> inputActions)
@@ -44,7 +44,7 @@ public partial class CommandHandler
         {
             if (!methodInfo.IsDefined(typeof(CommandAttribute), true)) continue;
 
-            var parameters = methodInfo.GetParameters();
+            var parameters       = methodInfo.GetParameters();
             var commandAttribute = methodInfo.GetCustomAttribute<CommandAttribute>();
 
             var action = (Action)Delegate.CreateDelegate(typeof(Action), this, methodInfo);
@@ -123,6 +123,53 @@ public partial class CommandHandler
         YieldToMainThread(async () => { });
     }
 
+    [Command("echo")]
+    public async void TestEcho()
+    {
+        await SendEcho(false);
+    }
+
+    [Command("echoasync")]
+    public async void TestEchoAsync()
+    {
+        await SendEcho(true);
+    }
+
+    private async Task SendEcho(bool isAsync)
+    {
+        YieldToMainThread(async () =>
+        {
+            int    length      = 1024 * 100;
+            byte[] randomBytes = GenerateRandomBytes(length);
+
+            // 将字节数组转换为 Base64 字符串
+            string randomString = Convert.ToBase64String(randomBytes);
+
+            var echo     = new Echo() { Content = randomString };
+            var echoData = ProtoUtils.Encode(echo);
+            Log.Info($"Data Length: {echoData.Length}");
+
+            Log.Info($"Before await Thread:{Environment.CurrentManagedThreadId}");
+            ReceivedMessageInfo messageInfo;
+            if (isAsync)
+            {
+                messageInfo = await _networkAgent.SendRequest((ushort)MessageId.EchoAsync, echoData);
+            }
+            else
+            {
+                messageInfo = await _networkAgent.SendRequest((ushort)MessageId.Echo, echoData);
+            }
+
+            Log.Info($"After  await Thread:{Environment.CurrentManagedThreadId}");
+
+            if (!messageInfo.TryDecode<Echo>(out var response)) return;
+            if (response.Content == echo.Content)
+                Log.Info("True");
+            else
+                Log.Info("False");
+        });
+    }
+
     [Command("hello")]
     public async void TestHello()
     {
@@ -131,41 +178,24 @@ public partial class CommandHandler
 
     private async Task SendHello()
     {
-        YieldToMainThread(async () =>
+        YieldToMainThread(() =>
         {
-            int length = 1024 * 100;
-            byte[] randomBytes = GenerateRandomBytes(length);
-
-            // 将字节数组转换为 Base64 字符串
-            string randomString = Convert.ToBase64String(randomBytes);
-            
-            var hello = new Hello() { Content = randomString };
+            var hello     = new Hello() { Content = "Hello from Client" };
             var helloData = ProtoUtils.Encode(hello);
-            Log.Info($"Data Length: {helloData.Length}");
-
-            Log.Info($"Before await Thread:{Environment.CurrentManagedThreadId}");
-            var messageInfo = await _networkAgent.SendRequest((ushort)MessageId.Hello, helloData);
-            Log.Info($"After  await Thread:{Environment.CurrentManagedThreadId}");
-
-            if (!messageInfo.TryDecode<Hello>(out var response)) return;
-            if(response.Content == hello.Content)
-                Log.Info("True");
-            else
-                Log.Info("False");
-            //Logger.Info($"StateCode({messageInfo.StateCode}): " + response.Content);
+            _networkAgent.SendMessage((ushort)MessageId.Hello, helloData);
         });
     }
-    
+
     private byte[] GenerateRandomBytes(int length)
     {
         byte[] randomBytes = new byte[length];
-        Random random = new Random();
+        Random random      = new Random();
 
         random.NextBytes(randomBytes);
 
         return randomBytes;
     }
-    
+
     [Command("ping")]
     public async void TestPing()
     {
@@ -178,7 +208,7 @@ public partial class CommandHandler
     {
         YieldToMainThread(async () =>
         {
-            var move = new Move() { X = 99 };
+            var move     = new Move() { X = 99 };
             var moveData = ProtoUtils.Encode(move);
 
             _networkAgent.SendMessage((ushort)MessageId.Move, moveData);
@@ -195,25 +225,59 @@ public partial class CommandHandler
 
         YieldToMainThread(async () =>
         {
-            var user = new User() { Username = username, Password = password };
+            var user     = new User() { Username = username, Password = password };
             var userData = ProtoUtils.Encode(user);
 
             var messageInfo = await _networkAgent.SendRequest((ushort)MessageId.Register, userData,
                 () => { Log.Warn($"Time Out"); });
-            
+
             var response = messageInfo.Message.ReadUInt16();
-            
+
             if (response == 1)
             {
                 Log.Info($"註冊成功!");
             }
             else
             {
-                Log.Info($"{response}");
+                Log.Info($"註冊失敗: {response}");
             }
         });
     }
     
+    [Command("multiregister")]
+    public async void TestMultiRegister()
+    {
+        Log.Info("請輸入用戶名稱:");
+        var username = Console.ReadLine();
+        Log.Info("請輸入密碼:");
+        var password = Console.ReadLine();
+
+        YieldToMainThread(async () =>
+        {
+            var user     = new User() { Username = username, Password = password };
+            var userData = ProtoUtils.Encode(user);
+
+            for (int i = 0; i < 100; i++)
+            {
+                _networkAgent.SendRequest((ushort)MessageId.Register, userData,
+                    () => { Log.Warn($"Time Out"); }).Await((response) =>
+                {
+                    var result = response.Message.ReadUInt16();
+
+                    if (result == 1)
+                    {
+                        Log.Info($"註冊成功!");
+                    }
+                    else
+                    {
+                        Log.Info($"註冊失敗: {result}");
+                    }
+                });
+            }
+        });
+    }
+
+
     [Command("login")]
     public async void TestLogin()
     {
@@ -229,7 +293,7 @@ public partial class CommandHandler
 
             var messageInfo = await _networkAgent.SendRequest((ushort)MessageId.Login, userData,
                 () => { Log.Warn($"Time Out"); });
-            
+
             var response = messageInfo.Message.ReadUInt16();
 
             if (response == 1)
@@ -242,20 +306,30 @@ public partial class CommandHandler
             }
         });
     }
-    
+
     [Command("rawbyte")]
     public async void TestRawByte()
     {
-        var byteBuffer = ByteBufferPool.Shared.Rent(12);
-        byteBuffer.WriteUInt32(24);
-        byteBuffer.WriteUInt32(65);
-        byteBuffer.WriteUInt32(98);
+        var request = ByteBufferPool.Shared.Rent(12);
+        request.WriteUInt32(24);
+        request.WriteUInt32(65);
+        request.WriteUInt32(98);
 
-        byte[] data = new byte[byteBuffer.Length];
-        byteBuffer.Read(data, 0, byteBuffer.Length);
-        
-        _networkAgent.SendMessage((ushort)MessageId.RawByte, data);
-        
-        ByteBufferPool.Shared.Return(byteBuffer);
+        _networkAgent.SendMessage((ushort)MessageId.RawByte, request);
+
+        ByteBufferPool.Shared.Return(request);
+    }
+    
+    [Command("broadcast")]
+    public async void TestBroadcast()
+    {
+        var request = ByteBufferPool.Shared.Rent(12);
+        request.WriteUInt32(24);
+        request.WriteUInt32(65);
+        request.WriteUInt32(98);
+
+        _networkAgent.SendMessage((ushort)MessageId.Broadcast, request);
+
+        ByteBufferPool.Shared.Return(request);
     }
 }

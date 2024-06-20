@@ -391,6 +391,14 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
             communicator.Send(messageId, message);
         }
     }
+    
+    public void BroadcastMessage(ushort messageId, ByteBuffer message)
+    {
+        foreach (var communicator in ClientList.Keys)
+        {
+            communicator.Send(messageId, message);
+        }
+    }
 
     public void Close(NetworkCommunicator communicator)
     {

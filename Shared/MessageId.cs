@@ -5,10 +5,12 @@ public enum MessageId : ushort
     HeartBeat = 0,
     
     // 測試
-    Hello     = 10,
-    Move      = 11,
-    RawByte   = 12,
-    Broadcast = 13,
+    Echo      = 10,
+    EchoAsync = 11,
+    Move      = 12,
+    Hello     = 13,
+    RawByte   = 14,
+    Broadcast = 15,
     
     // 對Client
     Register = 101,

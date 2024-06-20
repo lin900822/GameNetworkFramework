@@ -10,20 +10,49 @@ namespace ServerDemo;
 
 public partial class DemoServer
 {
-    [MessageRoute((ushort)MessageId.Hello)]
-    public async Task<bool> OnReceiveHello(DemoClient client, ByteBuffer request, ByteBuffer response)
+    [MessageRoute((ushort)MessageId.Echo)]
+    public bool C2S_Echo(DemoClient client, ByteBuffer request, ByteBuffer response)
     {
-        if (!request.TryDecode<Hello>(out var hello))
+        if (!request.TryDecode<Echo>(out var echo))
+        {
+            return false;
+        }
+
+        var echoData = ProtoUtils.Encode(echo);
+        response.Write(echoData, 0, echoData.Length);
+        return true;
+    }
+    
+    [MessageRoute((ushort)MessageId.EchoAsync)]
+    public async Task<bool> C2S_EchoAsync(DemoClient client, ByteBuffer request, ByteBuffer response)
+    {
+        if (!request.TryDecode<Echo>(out var echo))
         {
             return false;
         }
 
         await Task.Delay(1000);
 
-        var helloData = ProtoUtils.Encode(hello);
-
-        response.Write(helloData, 0, helloData.Length);
+        var echoData = ProtoUtils.Encode(echo);
+        response.Write(echoData, 0, echoData.Length);
         return true;
+    }
+    
+    [MessageRoute((ushort)MessageId.Hello)]
+    public void OnReceiveHello(DemoClient client, ByteBuffer request)
+    {
+        if (!request.TryDecode<Hello>(out var hello))
+        {
+            return;
+        }
+        
+        Log.Info($"{hello.Content}");
+
+        var newHello  = new Hello();
+        newHello.Content = "Hello from Server";
+        var helloData = ProtoUtils.Encode(newHello);
+
+        client.SendMessage((ushort)MessageId.Hello, helloData);
     }
 
     [MessageRoute((ushort)MessageId.Move)]
@@ -31,18 +60,16 @@ public partial class DemoServer
     {
         if (!request.TryDecode<Move>(out var move)) return;
         var sum = 0;
-        for (int i = 0; i < 1000; i++)
+        for (int i = 0; i < 10000; i++)
         {
             sum++;
         }
 
         move.X += sum;
+        move.Y += sum;
+        move.Z += sum;
         var moveData   = ProtoUtils.Encode(move);
-        
-        var message = ByteBufferPool.Shared.Rent(moveData.Length);
-        message.Write(moveData, 0, moveData.Length);
-        client.SendMessage((ushort)MessageId.Move, message);
-        ByteBufferPool.Shared.Return(message);
+        client.SendMessage((ushort)MessageId.Move, moveData);
     }
 
     private static AwaitLock _awaitLock = new AwaitLock();
@@ -65,7 +92,7 @@ public partial class DemoServer
             if (user.Username.Length <= 2)
             {
                 response.WriteUInt16(0);
-                return false;
+                return true;
             }
 
             var isUserExist = await _userRepository.IsUserExist(user.Username);
@@ -73,7 +100,7 @@ public partial class DemoServer
             {
                 response.WriteUInt16(0);
                 Log.Debug($"{Environment.CurrentManagedThreadId}: {user.Username} 已存在");
-                return false;
+                return true;
             }
 
             // 這裡應該要改成maxId是在Server啟動時Cache到Memory
@@ -138,7 +165,12 @@ public partial class DemoServer
         var y = request.ReadUInt32();
         var z = request.ReadUInt32();
 
-        client.SendMessage((ushort)MessageId.RawByte, _cacheRawByteData);
+        var response = ByteBufferPool.Shared.Rent(12);
+        response.WriteUInt32(x);
+        response.WriteUInt32(y);
+        response.WriteUInt32(z);
+        client.SendMessage((ushort)MessageId.RawByte, response);
+        ByteBufferPool.Shared.Return(response);
     }
 
     [MessageRoute((ushort)MessageId.Broadcast)]
@@ -148,6 +180,11 @@ public partial class DemoServer
         var y = request.ReadUInt32();
         var z = request.ReadUInt32();
 
-        BroadcastMessage((ushort)MessageId.Broadcast, _cacheRawByteData);
+        var response = ByteBufferPool.Shared.Rent(12);
+        response.WriteUInt32(x);
+        response.WriteUInt32(y);
+        response.WriteUInt32(z);
+        BroadcastMessage((ushort)MessageId.Broadcast, response);
+        ByteBufferPool.Shared.Return(response);
     }
 }

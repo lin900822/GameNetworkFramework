@@ -20,10 +20,15 @@ networkAgent.RegisterMessageHandler(1, (communicator, messageInfo) =>
 {
     Log.Info($"Pong! {TimeUtils.GetTimeStamp() - TestData.PingTime}ms");
 });
+networkAgent.RegisterMessageHandler((ushort)MessageId.Hello, (communicator, messageInfo) =>
+{
+    if (messageInfo.TryDecode<Hello>(out var hello))
+        Log.Info($"{hello.Content}");
+});
 networkAgent.RegisterMessageHandler((ushort)MessageId.Move, (communicator, messageInfo) =>
 {
     if (messageInfo.TryDecode<Move>(out var move))
-        Log.Info($"{move.X}");
+        Log.Info($"({move.X}, {move.Y}, {move.Z})");
 });
 networkAgent.RegisterMessageHandler((ushort)MessageId.RawByte, (communicator, receivedMessageInfo) =>
 {
@@ -39,7 +44,7 @@ networkAgent.RegisterMessageHandler((ushort)MessageId.Broadcast, (communicator, 
     var y = receivedMessageInfo.Message.ReadUInt32();
     var z = receivedMessageInfo.Message.ReadUInt32();
                 
-    //Log.Info($"{x.ToString()} {y.ToString()} {z.ToString()}");
+    Log.Info($"{x.ToString()} {y.ToString()} {z.ToString()}");
 });
 
 // Connect
