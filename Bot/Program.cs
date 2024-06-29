@@ -75,7 +75,7 @@ for (int i = 0; i < threadCount; i++)
 
         foreach (var bot in bots)
         {
-            bot.Connect("127.0.0.1", 10001);
+            bot.Connect("192.168.201.146", 50001);
         }
 
         while (true)
@@ -91,13 +91,12 @@ for (int i = 0; i < threadCount; i++)
                      //         Log.Info("Get Response");
                      //     }
                      // });
-                    bot.SendMessage((ushort)MessageId.Move, moveData);
+                    bot.SendMessage((ushort)MessageId.RawByte, byteBuffer);
                 }
 
                 bot.Update();
-                
             }
-            Thread.Sleep(16);
+            Thread.Sleep(5);
         }
     });
 }
