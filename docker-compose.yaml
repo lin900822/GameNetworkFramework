@@ -9,7 +9,7 @@ services:
     container_name: game-server
     ports:
       - "50001:50001"
-      # - "19001:19001"
+      - "55001:55001" # Prometheus使用
     depends_on:
       - db
     networks:
