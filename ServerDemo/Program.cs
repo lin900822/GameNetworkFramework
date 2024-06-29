@@ -43,6 +43,7 @@ try
         Port = 50001,
         MaxConnectionCount = 2000,
         HeartBeatInterval = 150_000,
+        PrometheusPort = 55001,
     });
     serviceCollection.AddSingleton<DemoServer>();
 

@@ -38,8 +38,8 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
         _messageRouter   = new MessageRouter<TClient>();
         _networkListener = new NetworkListener(settings.MaxConnectionCount);
 
-        // _prometheusService = new PrometheusService();
-        // _prometheusService.Start(_settings.PrometheusPort);
+        _prometheusService = new PrometheusService();
+        _prometheusService.Start(_settings.PrometheusPort);
 
         _networkListener.OnCommunicatorConnected    += OnCommunicatorConnected;
         _networkListener.OnCommunicatorDisconnected += OnCommunicatorDisconnected;
