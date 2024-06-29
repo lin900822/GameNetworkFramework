@@ -298,11 +298,11 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
                 CheckHeartBeat();
                 FixedUpdateClients();
 
-                //SyncPrometheus();
+                SyncPrometheus();
 
                 var deltaTime = (TimeUtils.TimeSinceAppStart - _lastFrameTimeMs) / 1000f;
                 SystemMetrics.FPS = 1f / deltaTime;
-                //_prometheusService.UpdateFPS(SystemMetrics.FPS);
+                _prometheusService.UpdateFPS(SystemMetrics.FPS);
                 _lastFrameTimeMs = TimeUtils.TimeSinceAppStart;
             }
 
