@@ -31,7 +31,7 @@ public struct ReceivedMessageInfo
         try
         { 
             outMessage = new T();
-            outMessage.MergeFrom(Message.RawData, 0, Message.Length);
+            outMessage.MergeFrom(Message.RawData, Message.ReadIndex, Message.Length);
             return true;
         }
         catch (Exception e)

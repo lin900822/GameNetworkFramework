@@ -219,7 +219,7 @@ public class ByteBuffer
         try
         { 
             outMessage = new T();
-            outMessage.MergeFrom(RawData, 0, Length);
+            outMessage.MergeFrom(RawData, ReadIndex, Length);
             return true;
         }
         catch (Exception e)
