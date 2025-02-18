@@ -36,7 +36,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
         ClientList = new Dictionary<NetworkCommunicator, TClient>();
 
         _messageRouter   = new MessageRouter<TClient>();
-        _networkListener = new NetworkListener(settings.MaxConnectionCount);
+        _networkListener = new NetworkListener(settings.MaxConnectionCount, settings.IsNeedCheckOverReceived);
 
         _prometheusService = new PrometheusService();
         _prometheusService.Start(_settings.PrometheusPort);
@@ -46,6 +46,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
         _networkListener.OnReceivedMessage          += OnReceivedMessage;
         RegisterMessageHandlers();
     }
+    
 
     ~ServerBase()
     {

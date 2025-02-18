@@ -10,5 +10,7 @@ public class ServerSettings
     public int HeartBeatInterval  = 120_000;
     public int TargetFPS          = 20;
 
+    public bool IsNeedCheckOverReceived = false;
+
     public int PrometheusPort = 55001;
 }

@@ -17,6 +17,7 @@ public class NetworkListener
     private Socket _listenFd;
 
     private readonly int _maxConnectionCount;
+    private readonly bool _isNeedCheckOverReceived;
 
     private readonly Queue<NetworkCommunicator> _communicatorsToAdd;
     private readonly Queue<NetworkCommunicator> _communicatorsToClose;
@@ -27,9 +28,10 @@ public class NetworkListener
 
     private readonly NetworkCommunicatorPool _communicatorPool;
 
-    public NetworkListener(int maxConnectionCount)
+    public NetworkListener(int maxConnectionCount, bool isNeedCheckOverReceived)
     {
         _maxConnectionCount = maxConnectionCount;
+        _isNeedCheckOverReceived = isNeedCheckOverReceived;;
 
         _communicatorsToAdd   = new Queue<NetworkCommunicator>();
         _communicatorsToClose = new Queue<NetworkCommunicator>();
@@ -158,7 +160,7 @@ public class NetworkListener
         }
         else
         {
-            communicator.Init(clientFd, true);
+            communicator.Init(clientFd, _isNeedCheckOverReceived);
             communicator.OnReceivedMessage += HandleReceivedMessage;
             communicator.OnClose           += OnCommunicatorClose;
 

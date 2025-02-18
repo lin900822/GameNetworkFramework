@@ -58,16 +58,8 @@ public partial class DemoServer
     [MessageRoute((ushort)MessageId.Move)]
     public void OnReceiveMove(DemoClient client, ByteBuffer request)
     {
-        if (!request.TryDecode<Move>(out var move)) return;
-        var sum = 0;
-        for (int i = 0; i < 10000; i++)
-        {
-            sum++;
-        }
-
-        move.X += sum;
-        move.Y += sum;
-        move.Z += sum;
+        if (!request.TryDecode<Move>(out var move)) 
+            return;
         var moveData   = ProtoUtils.Encode(move);
         client.SendMessage((ushort)MessageId.Move, moveData);
     }

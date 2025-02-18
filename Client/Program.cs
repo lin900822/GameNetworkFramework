@@ -48,7 +48,8 @@ networkAgent.RegisterMessageHandler((ushort)MessageId.Broadcast, (communicator, 
 });
 
 // Connect
-networkAgent.Connect("192.168.201.146", 50001);
+networkAgent.Connect("127.0.0.1", 50001);
+// networkAgent.Connect("192.168.201.146", 50001);
 
 Thread.Sleep(100);
 

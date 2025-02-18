@@ -120,7 +120,12 @@ public partial class CommandHandler
         await Task.Delay(1);
         Log.Info($"After  await Thread:{Environment.CurrentManagedThreadId}");
 
-        YieldToMainThread(async () => { });
+        YieldToMainThread(async () =>
+        {
+            Log.Info($"Before await Thread:{Environment.CurrentManagedThreadId}");
+            await Task.Delay(1);
+            Log.Info($"After  await Thread:{Environment.CurrentManagedThreadId}");
+        });
     }
 
     [Command("echo")]
