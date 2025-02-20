@@ -1,8 +1,8 @@
-using Core.Logger;
 using Dapper;
 using LittleOnlineGameServer.Repositories.Data;
 using Server.Database;
 using Server.Repositories;
+using Shared.Logger;
 
 namespace LittleOnlineGameServer.Repositories;
 

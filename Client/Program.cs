@@ -1,9 +1,10 @@
 ﻿using System.Collections.Concurrent;
 using Client;
-using Core.Common;
-using Core.Logger;
-using Core.Network;
+
 using Shared;
+using Shared.Common;
+using Shared.Logger;
+using Shared.Network;
 
 // 
 ConcurrentQueue<Action> _inputActions = new ConcurrentQueue<Action>();
@@ -20,29 +21,29 @@ networkAgent.RegisterMessageHandler(1, (communicator, messageInfo) =>
 {
     Log.Info($"Pong! {TimeUtils.GetTimeStamp() - TestData.PingTime}ms");
 });
-networkAgent.RegisterMessageHandler((ushort)MessageId.Hello, (communicator, messageInfo) =>
+networkAgent.RegisterMessageHandler((ushort)MessageId.Hello, (communicator, byteBuffer) =>
 {
-    if (messageInfo.TryDecode<Hello>(out var hello))
+    if (byteBuffer.TryDecode<Hello>(out var hello))
         Log.Info($"{hello.Content}");
 });
-networkAgent.RegisterMessageHandler((ushort)MessageId.Move, (communicator, messageInfo) =>
+networkAgent.RegisterMessageHandler((ushort)MessageId.Move, (communicator, byteBuffer) =>
 {
-    if (messageInfo.TryDecode<Move>(out var move))
+    if (byteBuffer.TryDecode<Move>(out var move))
         Log.Info($"({move.X}, {move.Y}, {move.Z})");
 });
-networkAgent.RegisterMessageHandler((ushort)MessageId.RawByte, (communicator, receivedMessageInfo) =>
+networkAgent.RegisterMessageHandler((ushort)MessageId.RawByte, (communicator, byteBuffer) =>
 {
-    var x = receivedMessageInfo.Message.ReadUInt32();
-    var y = receivedMessageInfo.Message.ReadUInt32();
-    var z = receivedMessageInfo.Message.ReadUInt32();
+    var x = byteBuffer.ReadUInt32();
+    var y = byteBuffer.ReadUInt32();
+    var z = byteBuffer.ReadUInt32();
                 
     Log.Info($"{x.ToString()} {y.ToString()} {z.ToString()}");
 });
-networkAgent.RegisterMessageHandler((ushort)MessageId.Broadcast, (communicator, receivedMessageInfo) =>
+networkAgent.RegisterMessageHandler((ushort)MessageId.Broadcast, (communicator, byteBuffer) =>
 {
-    var x = receivedMessageInfo.Message.ReadUInt32();
-    var y = receivedMessageInfo.Message.ReadUInt32();
-    var z = receivedMessageInfo.Message.ReadUInt32();
+    var x = byteBuffer.ReadUInt32();
+    var y = byteBuffer.ReadUInt32();
+    var z = byteBuffer.ReadUInt32();
                 
     Log.Info($"{x.ToString()} {y.ToString()} {z.ToString()}");
 });

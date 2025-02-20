@@ -1,10 +1,10 @@
-﻿using Core.Common;
-using Core.Logger;
-using Core.Network;
-using LittleOnlineGameServer.Repositories;
+﻿using LittleOnlineGameServer.Repositories;
 using LittleOnlineGameServer.Repositories.Data;
 using Server;
 using Shared;
+using Shared.Common;
+using Shared.Logger;
+using Shared.Network;
 
 namespace LittleOnlineGameServer;
 

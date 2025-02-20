@@ -1,7 +1,7 @@
-﻿using Core.Logger;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Server;
 using ServerDemo2;
+using Shared.Logger;
 
 try
 {

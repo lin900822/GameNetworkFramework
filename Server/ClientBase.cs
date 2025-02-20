@@ -1,4 +1,4 @@
-﻿using Core.Network;
+﻿using Shared.Network;
 
 namespace Server;
 

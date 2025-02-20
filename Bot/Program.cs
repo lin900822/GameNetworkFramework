@@ -1,9 +1,6 @@
 ﻿using System.Diagnostics;
-using System.Text;
-using Client;
-using Core.Logger;
-using Core.Network;
 using Shared;
+using Shared.Network;
 
 // Move
 var move = new Move();
@@ -55,19 +52,19 @@ for (int i = 0; i < threadCount; i++)
                 // if(receivedMessageInfo.TryDecode<Move>(out move))
                 // Log.Info($"{move.X}");
             });
-            bots[j].RegisterMessageHandler((ushort)MessageId.RawByte, (communicator, receivedMessageInfo) =>
+            bots[j].RegisterMessageHandler((ushort)MessageId.RawByte, (communicator, byteBuffer) =>
             {
-                var x = receivedMessageInfo.Message.ReadUInt32();
-                var y = receivedMessageInfo.Message.ReadUInt32();
-                var z = receivedMessageInfo.Message.ReadUInt32();
+                var x = byteBuffer.ReadUInt32();
+                var y = byteBuffer.ReadUInt32();
+                var z = byteBuffer.ReadUInt32();
                 
                 //Log.Info($"{x.ToString()} {y.ToString()} {z.ToString()}");
             });
-            bots[j].RegisterMessageHandler((ushort)MessageId.Broadcast, (communicator, receivedMessageInfo) =>
+            bots[j].RegisterMessageHandler((ushort)MessageId.Broadcast, (communicator, byteBuffer) =>
             {
-                var x = receivedMessageInfo.Message.ReadUInt32();
-                var y = receivedMessageInfo.Message.ReadUInt32();
-                var z = receivedMessageInfo.Message.ReadUInt32();
+                var x = byteBuffer.ReadUInt32();
+                var y = byteBuffer.ReadUInt32();
+                var z = byteBuffer.ReadUInt32();
                 
                 //Log.Info($"{x.ToString()} {y.ToString()} {z.ToString()}");
             });
@@ -97,7 +94,7 @@ for (int i = 0; i < threadCount; i++)
 
                 bot.Update();
             }
-            Thread.Sleep(1);
+            Thread.Sleep(5);
         }
     });
 }

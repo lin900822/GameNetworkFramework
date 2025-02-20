@@ -1,11 +1,10 @@
 ﻿using System.Diagnostics;
 using System.Reflection;
-using Core.Common;
-using Core.Logger;
-using Core.Metrics;
-using Core.Network;
 using Server.Prometheus;
-using Shared;
+using Shared.Common;
+using Shared.Logger;
+using Shared.Metrics;
+using Shared.Network;
 
 namespace Server;
 

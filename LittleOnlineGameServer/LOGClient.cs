@@ -1,5 +1,5 @@
-﻿using Core.Common;
-using Server;
+﻿using Server;
+using Shared.Common;
 
 namespace LittleOnlineGameServer;
 

@@ -1,13 +1,9 @@
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Data;
-using System.Linq;
 using System.Reflection;
-using System.Text;
-using Core.Logger;
 using Dapper;
 using Server.Database;
+using Shared.Logger;
 
 [AttributeUsage(AttributeTargets.Property)]
 public class VarcharLengthAttribute : Attribute
@@ -172,7 +168,7 @@ public class MigrateTool
         return string.Join(", ", columns);
     }
 
-    private string GetColumnType(System.Reflection.PropertyInfo property)
+    private string GetColumnType(PropertyInfo property)
     {
         // 檢查是否標記為 VarcharLength
         int varcharLength = property.GetCustomAttribute<VarcharLengthAttribute>()?.Length ?? 255;

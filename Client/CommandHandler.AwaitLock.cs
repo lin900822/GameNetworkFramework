@@ -1,5 +1,5 @@
-﻿using Core.Common;
-using Core.Logger;
+﻿using Shared.Common;
+using Shared.Logger;
 
 namespace Client;
 

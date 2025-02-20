@@ -1,10 +1,10 @@
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text;
-using Core.Common;
-using Core.Logger;
-using Core.Network;
 using Shared;
+using Shared.Common;
+using Shared.Logger;
+using Shared.Network;
 
 namespace Client;
 

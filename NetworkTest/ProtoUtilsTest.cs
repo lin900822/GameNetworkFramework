@@ -1,5 +1,5 @@
-﻿using Core.Network;
-using NUnit.Framework;
+﻿using NUnit.Framework;
+using Shared.Network;
 
 namespace NetworkTest;
 

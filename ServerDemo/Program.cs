@@ -1,13 +1,11 @@
-﻿using Core.Logger;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using MySql.Data.MySqlClient;
 using Server;
 using Server.Database;
 using ServerDemo;
 using ServerDemo.Repositories;
-using Microsoft.Extensions.Configuration;
-using MySql.Data.MySqlClient;
-using Server.Repositories;
-using ServerDemo.PO;
+using Shared.Logger;
 
 try
 {

@@ -1,10 +1,9 @@
-﻿using System.Text;
-using Core.Common;
-using Core.Logger;
-using Core.Network;
-using Server;
+﻿using Server;
 using ServerDemo.PO;
 using Shared;
+using Shared.Common;
+using Shared.Logger;
+using Shared.Network;
 
 namespace ServerDemo;
 
@@ -178,5 +177,17 @@ public partial class DemoServer
         response.WriteUInt32(z);
         BroadcastMessage((ushort)MessageId.Broadcast, response);
         ByteBufferPool.Shared.Return(response);
+    }
+    
+    [MessageRoute((ushort)MessageId.Match)]
+    public void OnReceiveMatch(DemoClient client, ByteBuffer request)
+    {
+        if (!request.TryDecode(out Match match))
+            return;
+
+        Log.Info($"Player {match.PlayerId} 加入配對Queue");
+        match.PlayerId = -1;
+        var data = ProtoUtils.Encode(match);
+        client.SendMessage((ushort)MessageId.Match, data);
     }
 }

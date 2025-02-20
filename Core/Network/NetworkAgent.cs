@@ -207,14 +207,10 @@ public class NetworkAgent
 
     #region - Public Methods -
 
-    public void RegisterMessageHandler(ushort messageId, Action<NetworkCommunicator, ReceivedMessageInfo> handler)
+    public void RegisterMessageHandler(ushort messageId, Action<NetworkCommunicator, ByteBuffer> handler)
     {
-        _messageRouter.RegisterMessageHandler(messageId, handler);
-    }
-
-    public void UnregisterMessageHandler(ushort messageId, Action<NetworkCommunicator, ReceivedMessageInfo> handler)
-    {
-        _messageRouter.UnregisterMessageHandler(messageId, handler);
+        _messageRouter.RegisterMessageHandler(messageId,
+            (communicator, receivedMessageInfo) => { handler(communicator, receivedMessageInfo.Message); });
     }
 
     public void SendMessage(ushort messageId, byte[] message)

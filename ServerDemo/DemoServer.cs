@@ -1,11 +1,6 @@
-﻿using System.Diagnostics;
-using Core.Common;
-using Core.Logger;
-using Core.Metrics;
-using Core.Network;
-using Server;
+﻿using Server;
 using ServerDemo.Repositories;
-using Debugger = Core.Metrics.Debugger;
+using Shared.Common;
 
 namespace ServerDemo;
 

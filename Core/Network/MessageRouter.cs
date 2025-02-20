@@ -26,14 +26,6 @@ public class MessageRouter<T>
         }
     }
 
-    public void UnregisterMessageHandler(ushort messageId, Action<T, ReceivedMessageInfo> handler)
-    {
-        if (_routeTable.TryGetValue(messageId, out var handlers))
-        {
-            handlers -= handler;
-        }
-    }
-
     public void ReceiveMessage(T obj, ReceivedMessageInfo receivedMessageInfo)
     {
         if (_routeTable.TryGetValue(receivedMessageInfo.MessageId, out var handler))

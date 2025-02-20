@@ -1,6 +1,6 @@
 ﻿using System.Text;
-using Core.Network;
 using NUnit.Framework;
+using Shared.Network;
 
 namespace NetworkTest;
 
