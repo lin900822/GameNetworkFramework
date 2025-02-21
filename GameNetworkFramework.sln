@@ -20,6 +20,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LittleOnlineGameServer", "L
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SnakeMainServer", "SnakeMainServer\SnakeMainServer.csproj", "{4E75C302-42E6-439E-B6BF-BE2D0EFC6247}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SnakeBattleServer", "SnakeBattleServer\SnakeBattleServer.csproj", "{0FE4F937-3973-428A-BC57-898911051A8A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -66,5 +68,9 @@ Global
 		{4E75C302-42E6-439E-B6BF-BE2D0EFC6247}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4E75C302-42E6-439E-B6BF-BE2D0EFC6247}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4E75C302-42E6-439E-B6BF-BE2D0EFC6247}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0FE4F937-3973-428A-BC57-898911051A8A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0FE4F937-3973-428A-BC57-898911051A8A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0FE4F937-3973-428A-BC57-898911051A8A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0FE4F937-3973-428A-BC57-898911051A8A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
