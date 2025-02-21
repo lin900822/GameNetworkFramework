@@ -6,6 +6,7 @@ public abstract class ClientBase<T> where T : ClientBase<T>, new()
 {
     public ServerBase<T> Server { get; private set; }
 
+    public NetworkCommunicator Communicator => _communicator;
     private NetworkCommunicator _communicator;
 
     public long LastPingTime { get; set; }

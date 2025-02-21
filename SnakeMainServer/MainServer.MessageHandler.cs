@@ -22,10 +22,12 @@ public partial class MainServer
             client.SendStateCode(StateCode.LoginOrRegister_Failed_InfoEmpty);
             return;
         }
+        
+        PlayerPO playerPo;
 
         if (playerData.IsLogin)
         {
-            var playerPo = await _playerRepository.GetPlayerAsync(playerData.Username);
+            playerPo = await _playerRepository.GetPlayerAsync(playerData.Username);
             if (playerPo == null)
             {
                 client.SendStateCode(StateCode.Login_Failed_InfoWrong);
@@ -37,18 +39,21 @@ public partial class MainServer
                 client.SendStateCode(StateCode.Login_Failed_InfoWrong);
                 return;
             }
-            
+
             playerPo.LastLoggedIn = DateTime.UtcNow;
             await _playerRepository.Update(playerPo);
 
             if (_playerIdToMainClient.TryGetValue(playerPo.PlayerId, out MainClient alreadyLoggedInClient))
             {
+                alreadyLoggedInClient.SetNotLoggedIn();
                 alreadyLoggedInClient.SendStateCode(StateCode.Another_User_LoggedIn);
-                _playerIdToMainClient.Remove(playerPo.PlayerId);
+                _playerIdToMainClient[playerPo.PlayerId] = client;
             }
-            
-            _playerIdToMainClient.Add(playerPo.PlayerId, client);
-            
+            else
+            {
+                _playerIdToMainClient.Add(playerPo.PlayerId, client);
+            }
+
             client.SetDataAfterLoginSuccess(playerPo);
 
             client.SendStateCode(StateCode.Login_Success);
@@ -64,7 +69,7 @@ public partial class MainServer
                     return;
                 }
 
-                var playerPo = new PlayerPO()
+                playerPo = new PlayerPO()
                 {
                     PlayerId = _nextPlayerId,
                     Username = playerData.Username,
@@ -74,15 +79,48 @@ public partial class MainServer
                     Coins = 1000,
                 };
                 await _playerRepository.Insert(playerPo);
-                
+
                 _playerIdToMainClient.Add(playerPo.PlayerId, client);
-                
+
                 client.SetDataAfterLoginSuccess(playerPo);
 
                 _nextPlayerId++;
             }
 
             client.SendStateCode(StateCode.Register_Success);
+        }
+        
+        var m2cLoginSync = new M2C_LoginSync()
+        {
+            PlayerId = playerPo.PlayerId,
+            Username = playerPo.Username,
+            Coins = playerPo.Coins,
+        };
+        client.SendMessage((ushort)MessageId.M2C_LoginSync, ProtoUtils.Encode(m2cLoginSync));
+    }
+
+    [MessageRoute((ushort)MessageId.Debug)]
+    public async Task C2M_Debug(MainClient client, ByteBuffer request)
+    {
+        if (!request.TryDecode(out C2M_Debug debug))
+            return;
+        
+        Log.Error("Socket To Communicator");
+        foreach (var paires in _networkListener.SocketToCommunicators)
+        {
+            Log.Warn($"{paires.Key.GetHashCode()} -> {paires.Value.GetHashCode()}");
+        }
+
+        Log.Error("Communicator To TClient");
+        foreach (var paires in CommunicatorToTClient)
+        {
+            Log.Warn($"{paires.Key.GetHashCode()} -> {paires.Value.GetHashCode()}");
+        }
+        
+        Log.Error("_playerId To MainClient");
+        foreach (var paires in _playerIdToMainClient)
+        {
+            Log.Warn($"{paires.Key.GetHashCode()} -> {paires.Value.GetHashCode()} {paires.Value.Communicator.GetHashCode()}");
         }
     }
 }

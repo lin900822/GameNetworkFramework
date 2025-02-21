@@ -10,10 +10,10 @@ namespace Server;
 
 public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, new()
 {
-    public readonly Dictionary<NetworkCommunicator, TClient> ClientList;
+    public readonly Dictionary<NetworkCommunicator, TClient> CommunicatorToTClient;
 
     private MessageRouter<TClient> _messageRouter;
-    private NetworkListener _networkListener;
+    protected NetworkListener _networkListener;
 
     private PrometheusService _prometheusService;
     private long _lastSyncPrometheusTimeMs;
@@ -32,7 +32,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
     {
         _settings = settings;
 
-        ClientList = new Dictionary<NetworkCommunicator, TClient>();
+        CommunicatorToTClient = new Dictionary<NetworkCommunicator, TClient>();
 
         _messageRouter = new MessageRouter<TClient>();
         _networkListener = new NetworkListener(settings.MaxConnectionCount, settings.IsNeedCheckOverReceived);
@@ -65,23 +65,23 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
 
         client.LastPingTime = TimeUtils.GetTimeStamp();
 
-        ClientList.TryAdd(communicator, client);
+        CommunicatorToTClient.TryAdd(communicator, client);
         OnClientConnected(client);
     }
 
     private void OnCommunicatorDisconnected(NetworkCommunicator communicator)
     {
-        if (!ClientList.TryGetValue(communicator, out var client))
+        if (!CommunicatorToTClient.TryGetValue(communicator, out var client))
             return;
 
         OnClientDisconnected(client);
         client.Deinit();
-        ClientList.Remove(communicator);
+        CommunicatorToTClient.Remove(communicator);
     }
 
     private void OnReceivedMessage(NetworkCommunicator communicator, ReceivedMessageInfo receivedMessageInfo)
     {
-        if (ClientList.TryGetValue(communicator, out var client))
+        if (CommunicatorToTClient.TryGetValue(communicator, out var client))
         {
             client.LastPingTime = TimeUtils.GetTimeStamp();
         }
@@ -350,9 +350,9 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
 
     private void FixedUpdateClients()
     {
-        foreach (var communicator in ClientList.Keys)
+        foreach (var communicator in CommunicatorToTClient.Keys)
         {
-            var client = ClientList[communicator];
+            var client = CommunicatorToTClient[communicator];
             client.FixedUpdate();
         }
     }
@@ -369,9 +369,9 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
     private void CheckHeartBeat()
     {
         var currentTime = TimeUtils.GetTimeStamp();
-        foreach (var communicator in ClientList.Keys)
+        foreach (var communicator in CommunicatorToTClient.Keys)
         {
-            var client = ClientList[communicator];
+            var client = CommunicatorToTClient[communicator];
 
             if (currentTime - client.LastPingTime >= _settings.HeartBeatInterval)
             {
@@ -392,7 +392,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
 
     public void BroadcastMessage(ushort messageId, byte[] message)
     {
-        foreach (var communicator in ClientList.Keys)
+        foreach (var communicator in CommunicatorToTClient.Keys)
         {
             communicator.Send(messageId, message);
         }
@@ -400,7 +400,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
 
     public void BroadcastMessage(ushort messageId, ByteBuffer message)
     {
-        foreach (var communicator in ClientList.Keys)
+        foreach (var communicator in CommunicatorToTClient.Keys)
         {
             communicator.Send(messageId, message);
         }

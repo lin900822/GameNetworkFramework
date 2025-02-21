@@ -53,11 +53,14 @@ public partial class MainServer : ServerBase<MainClient>
 
     protected override void OnClientConnected(MainClient client)
     {
-        Log.Info($"OnClientConnected");
+        
     }
 
     protected override void OnClientDisconnected(MainClient client)
     {
-        Log.Info($"OnClientDisconnected");
+        if (client.IsLoggedIn())
+        {
+            _playerIdToMainClient.Remove(client.PlayerId);
+        }
     }
 }

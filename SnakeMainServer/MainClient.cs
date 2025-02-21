@@ -15,7 +15,7 @@ public class MainClient : ClientBase<MainClient>
 
     public void SetDataAfterLoginSuccess(PlayerPO playerPo)
     {
-        if (PlayerId != 0)
+        if (IsLoggedIn())
         {
             Log.Error($"Player {PlayerId} 重複設置登入資料");
             return;
@@ -25,6 +25,16 @@ public class MainClient : ClientBase<MainClient>
         Username = playerPo.Username;
         Coins = playerPo.Coins;
         CreatedAt = playerPo.CreatedAt;
+    }
+
+    public void SetNotLoggedIn()
+    {
+        PlayerId = 0;
+    }
+
+    public bool IsLoggedIn()
+    {
+        return PlayerId > 0;
     }
     
     public void SendStateCode(StateCode stateCode)
