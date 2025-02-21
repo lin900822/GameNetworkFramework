@@ -29,9 +29,19 @@ public class PlayerRepository : BaseRepository<PlayerPO>
             await ExecuteAsync("ALTER TABLE PlayerPO ADD Password VARCHAR(50);");
         }
         
+        if (!await IsColumnExistsAsync("PlayerPO", "CreatedAt"))
+        {
+            await ExecuteAsync("ALTER TABLE PlayerPO ADD CreatedAt DATETIME");
+        }
+        
+        if (!await IsColumnExistsAsync("PlayerPO", "LastLoggedIn"))
+        {
+            await ExecuteAsync("ALTER TABLE PlayerPO ADD LastLoggedIn DATETIME");
+        }
+        
         if (!await IsColumnExistsAsync("PlayerPO", "Coins"))
         {
-            await ExecuteAsync("ALTER TABLE PlayerPO ADD Coins INT;");
+            await ExecuteAsync("ALTER TABLE PlayerPO ADD Coins INT UNSIGNED;");
         }
     }
     
@@ -39,26 +49,28 @@ public class PlayerRepository : BaseRepository<PlayerPO>
     {
         var sql =
             @"
-        INSERT INTO PlayerPO(PlayerId,Username,Password,COINS) 
-        VALUES(@PlayerId,@Username,@Password,@Coins);
+        INSERT INTO PlayerPO(PlayerId,Username,Password,COINS, CreatedAt, LastLoggedIn) 
+        VALUES(@PlayerId,@Username,@Password,@Coins,@CreatedAt, @LastLoggedIn);
         SELECT @@IDENTITY;
         ";
 
         return await Insert(userPo, sql);
     }
 
-    public async Task<int> Update(PlayerPO userPo)
+    public async Task<int> Update(PlayerPO playerPo)
     {
         var sql =
             @"
         UPDATE PlayerPO SET
         Username=@Username,
         Password=@Password,
-        Coins=@Coins,
+        CreatedAt=@CreatedAt,
+        LastLoggedIn=@LastLoggedIn,
+        Coins=@Coins
         WHERE PlayerId=@PlayerId;
         ";
 
-        return await Update(userPo, sql);
+        return await Update(playerPo, sql);
     }
 
     public async Task<int> Delete(int playerId)

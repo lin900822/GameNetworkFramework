@@ -13,16 +13,16 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
     public readonly Dictionary<NetworkCommunicator, TClient> ClientList;
 
     private MessageRouter<TClient> _messageRouter;
-    private NetworkListener        _networkListener;
+    private NetworkListener _networkListener;
 
-    private       PrometheusService _prometheusService;
-    private       long              _lastSyncPrometheusTimeMs;
-    private const int               SyncPrometheusInterval = 1000;
+    private PrometheusService _prometheusService;
+    private long _lastSyncPrometheusTimeMs;
+    private const int SyncPrometheusInterval = 1000;
 
     private long _startTimeMs;
     private long _lastFrameTimeMs;
 
-    protected int  _millisecondsPerFrame;
+    protected int _millisecondsPerFrame;
     protected long _millisecondsPassed;
     protected long _frameCount = 0;
 
@@ -34,24 +34,24 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
 
         ClientList = new Dictionary<NetworkCommunicator, TClient>();
 
-        _messageRouter   = new MessageRouter<TClient>();
+        _messageRouter = new MessageRouter<TClient>();
         _networkListener = new NetworkListener(settings.MaxConnectionCount, settings.IsNeedCheckOverReceived);
 
         _prometheusService = new PrometheusService();
         _prometheusService.Start(_settings.PrometheusPort);
 
-        _networkListener.OnCommunicatorConnected    += OnCommunicatorConnected;
+        _networkListener.OnCommunicatorConnected += OnCommunicatorConnected;
         _networkListener.OnCommunicatorDisconnected += OnCommunicatorDisconnected;
-        _networkListener.OnReceivedMessage          += OnReceivedMessage;
+        _networkListener.OnReceivedMessage += OnReceivedMessage;
         RegisterMessageHandlers();
     }
-    
+
 
     ~ServerBase()
     {
-        _networkListener.OnCommunicatorConnected    -= OnCommunicatorConnected;
+        _networkListener.OnCommunicatorConnected -= OnCommunicatorConnected;
         _networkListener.OnCommunicatorDisconnected -= OnCommunicatorDisconnected;
-        _networkListener.OnReceivedMessage          -= OnReceivedMessage;
+        _networkListener.OnReceivedMessage -= OnReceivedMessage;
 
         _prometheusService.Stop();
     }
@@ -100,8 +100,8 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
         {
             if (!methodInfo.IsDefined(typeof(MessageRouteAttribute), true)) continue;
 
-            var parameters      = methodInfo.GetParameters();
-            var returnType      = methodInfo.ReturnType;
+            var parameters = methodInfo.GetParameters();
+            var returnType = methodInfo.ReturnType;
             var routeAttributes = methodInfo.GetCustomAttributes<MessageRouteAttribute>();
 
             if (parameters.Length == 2
@@ -171,7 +171,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
                         _messageRouter.RegisterMessageHandler((ushort)routeAttribute.MessageId,
                             (client, receivedMessageInfo) =>
                             {
-                                var response            = ByteBufferPool.Shared.Rent();
+                                var response = ByteBufferPool.Shared.Rent();
                                 var isNeedToSendMessage = func(client, receivedMessageInfo.Message, response);
 
                                 if (isNeedToSendMessage)
@@ -297,6 +297,8 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
                 OnFixedUpdate();
                 CheckHeartBeat();
                 FixedUpdateClients();
+                
+                _networkListener.CloseCommunicators();
 
                 SyncPrometheus();
 
@@ -307,7 +309,6 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
             }
 
             SystemMetrics.RemainMessageCount = 0;
-            _networkListener.CloseCommunicators();
         }
         catch (Exception e)
         {
@@ -375,9 +376,14 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
             if (currentTime - client.LastPingTime >= _settings.HeartBeatInterval)
             {
                 Log.Info($"{communicator.Socket.RemoteEndPoint} Heart Beat Time Out!");
-                Close(communicator);
+                OnHeartBeatTimeOut(client);
+                communicator.CloseCommunicator();
             }
         }
+    }
+
+    protected virtual void OnHeartBeatTimeOut(TClient client)
+    {
     }
 
     #endregion
@@ -391,18 +397,13 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
             communicator.Send(messageId, message);
         }
     }
-    
+
     public void BroadcastMessage(ushort messageId, ByteBuffer message)
     {
         foreach (var communicator in ClientList.Keys)
         {
             communicator.Send(messageId, message);
         }
-    }
-
-    public void Close(NetworkCommunicator communicator)
-    {
-        _networkListener.Close(communicator);
     }
 
     #endregion
