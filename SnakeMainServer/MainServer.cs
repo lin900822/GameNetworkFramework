@@ -2,6 +2,8 @@ using Server;
 using Shared;
 using Shared.Common;
 using Shared.Logger;
+using Shared.Network;
+using Shared.Server;
 using SnakeMainServer.Repositories;
 
 namespace SnakeMainServer;
@@ -14,6 +16,8 @@ public partial class MainServer : ServerBase<MainClient>
 
     private PlayerRepository _playerRepository;
 
+    private NetworkAgent _battleAgent;
+
     public MainServer(ServerSettings settings, PlayerRepository playerRepository) : base(settings)
     {
         _playerRepository = playerRepository;
@@ -21,6 +25,8 @@ public partial class MainServer : ServerBase<MainClient>
 
     protected override void OnInit()
     {
+        ConnectToBattleServer();
+
         _playerIdToMainClient = new Dictionary<uint, MainClient>();
 
         _playerRepository.Init().SafeWait();
@@ -53,7 +59,6 @@ public partial class MainServer : ServerBase<MainClient>
 
     protected override void OnClientConnected(MainClient client)
     {
-        
     }
 
     protected override void OnClientDisconnected(MainClient client)
@@ -62,5 +67,27 @@ public partial class MainServer : ServerBase<MainClient>
         {
             _playerIdToMainClient.Remove(client.PlayerId);
         }
+    }
+
+    private void ConnectToBattleServer()
+    {
+        _battleAgent = new NetworkAgent();
+
+        do
+        {
+            _battleAgent.Connect("127.0.0.1", 50011).SafeWait();
+            if (_battleAgent.ConnectState != ConnectState.Connected)
+            {
+                Log.Warn($"嘗試連接至BattleServer...");
+                Thread.Sleep(1000);
+            }
+        } while (_battleAgent.ConnectState != ConnectState.Connected);
+
+        _battleAgent.SendMessage((ushort)BattleMessageId.M2B_HandShake, ProtoUtils.Encode(new M2B_HandShake()
+        {
+            ServerId = _settings.ServerId,
+            ServerType = "Main",
+            Password = "SnakeMainServerPassword2024",
+        }));
     }
 }

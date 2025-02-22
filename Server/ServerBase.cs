@@ -250,38 +250,20 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
 
     #region - Life Cycle -
 
-    public void Start()
-    {
-        Log.Info($"{_settings.ServerName} (Id:{_settings.ServerId}) Init!");
-        _networkListener.Listen("0.0.0.0", _settings.Port);
-
-        AppDomain.CurrentDomain.ProcessExit += (_, _) => { Deinit(); };
-
-        _startTimeMs = TimeUtils.TimeSinceAppStart;
-
-        var synchronizationContext = new GameSynchronizationContext();
-        SynchronizationContext.SetSynchronizationContext(synchronizationContext);
-
-        // Start Life Cycle
-        Init();
-        Log.Info($"{_settings.ServerName} (Id:{_settings.ServerId.ToString()}) Is Ready!");
-
-        while (true)
-        {
-            Update();
-            synchronizationContext.ProcessQueue();
-            Thread.Sleep(1);
-        }
-    }
-
-    private void Init()
+    public void Init()
     {
         _millisecondsPerFrame = 1000 / _settings.TargetFPS;
+        _startTimeMs = TimeUtils.TimeSinceAppStart;
 
+        Log.Info($"{_settings.ServerName} (Id:{_settings.ServerId}) Init!");
+        _networkListener.Listen("0.0.0.0", _settings.Port);
+        
+        Log.Info($"{_settings.ServerName} (Id:{_settings.ServerId.ToString()}) Is Ready!");
+        
         OnInit();
     }
 
-    private void Update()
+    public void Update()
     {
         try
         {
@@ -316,7 +298,7 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
         }
     }
 
-    private void Deinit()
+    public void Deinit()
     {
         OnDeinit();
         Log.Info($"Server Deinit!");

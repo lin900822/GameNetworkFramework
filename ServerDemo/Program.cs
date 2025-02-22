@@ -33,6 +33,8 @@ try
     }
 
     var serviceCollection = new ServiceCollection();
+    
+    serviceCollection.AddSingleton<DemoApp>();
 
     serviceCollection.AddSingleton(new ServerSettings()
     {
@@ -56,8 +58,8 @@ try
     // migrateTool.Migrate(typeof(TestPO));
     // migrateTool.Migrate(typeof(UserPO));
 
-    var server = serviceProvider.GetRequiredService<DemoServer>();
-    server.Start();
+    var app = serviceProvider.GetRequiredService<DemoApp>();
+    app.Start();
 }
 catch (Exception ex)
 {

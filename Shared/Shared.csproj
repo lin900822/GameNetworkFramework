@@ -10,5 +10,9 @@
       <PackageReference Include="Google.Protobuf" Version="3.25.0-rc1" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Server\Protocols\Generated\" />
+    </ItemGroup>
+
 
 </Project>

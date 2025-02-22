@@ -6,6 +6,8 @@ using Shared.Logger;
 try
 {
     var serviceCollection = new ServiceCollection();
+    
+    serviceCollection.AddSingleton<DemoApp>();
 
     serviceCollection.AddSingleton(new ServerSettings()
     {
@@ -19,9 +21,8 @@ try
 
     var serviceProvider = serviceCollection.BuildServiceProvider();
 
-    var server = serviceProvider.GetRequiredService<DemoServer>();
-
-    server.Start();
+    var app = serviceProvider.GetRequiredService<DemoApp>();
+    app.Start();
 }
 catch (Exception ex)
 {
