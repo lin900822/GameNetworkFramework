@@ -1,0 +1,7 @@
+syntax = "proto3";
+
+message M2B_CreateRoom
+{
+  uint32 player1_id = 1;
+  uint32 player2_id = 2;
+}

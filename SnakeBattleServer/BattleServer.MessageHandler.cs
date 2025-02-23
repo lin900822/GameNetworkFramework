@@ -9,7 +9,7 @@ namespace SnakeBattleServer;
 public partial class BattleServer
 {
     [MessageRoute((ushort)BattleMessageId.M2B_HandShake)]
-    public async Task M2B_HandShake(BattleClient client, ByteBuffer request)
+    public void M2B_HandShake(BattleClient client, ByteBuffer request)
     {
         if (!request.TryDecode(out M2B_HandShake m2BHandShake))
             return;
@@ -24,5 +24,24 @@ public partial class BattleServer
             Log.Error($"BattleServer收到不明連線");
             client.Communicator.CloseCommunicator();
         }
+    }
+
+    [MessageRoute((ushort)BattleMessageId.M2B_CreateRoom)]
+    public bool M2B_CreateRoom(BattleClient client, ByteBuffer request, ByteBuffer response)
+    {
+        if (!request.TryDecode(out M2B_CreateRoom m2BCreateRoom))
+            return false;
+
+        string keyToEnterRoom = $"BattleServerKey{m2BCreateRoom.Player1Id}{m2BCreateRoom.Player2Id}";
+
+        var b2MRoomCreated = new B2M_RoomCreated()
+        {
+            KeyToEnterRoom = keyToEnterRoom,
+        };
+
+        var data = ProtoUtils.Encode(b2MRoomCreated);
+        response.Write(data, 0, data.Length);
+        
+        return true;
     }
 }

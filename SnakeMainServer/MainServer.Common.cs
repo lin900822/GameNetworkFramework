@@ -100,7 +100,7 @@ public partial class MainServer
     }
 
     [MessageRoute((ushort)MessageId.Debug)]
-    public async Task C2M_Debug(MainClient client, ByteBuffer request)
+    public void C2M_Debug(MainClient client, ByteBuffer request)
     {
         if (!request.TryDecode(out C2M_Debug debug))
             return;

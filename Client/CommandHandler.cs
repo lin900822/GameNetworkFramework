@@ -155,7 +155,7 @@ public partial class CommandHandler
             Log.Info($"Data Length: {echoData.Length}");
 
             Log.Info($"Before await Thread:{Environment.CurrentManagedThreadId}");
-            ReceivedMessageInfo messageInfo;
+            ByteBuffer messageInfo;
             if (isAsync)
             {
                 messageInfo = await _networkAgent.SendRequest((ushort)MessageId.EchoAsync, echoData);
@@ -236,7 +236,7 @@ public partial class CommandHandler
             var messageInfo = await _networkAgent.SendRequest((ushort)MessageId.Register, userData,
                 () => { Log.Warn($"Time Out"); });
 
-            var response = messageInfo.Message.ReadUInt16();
+            var response = messageInfo.ReadUInt16();
 
             if (response == 1)
             {
@@ -267,7 +267,7 @@ public partial class CommandHandler
                 _networkAgent.SendRequest((ushort)MessageId.Register, userData,
                     () => { Log.Warn($"Time Out"); }).Await((response) =>
                 {
-                    var result = response.Message.ReadUInt16();
+                    var result = response.ReadUInt16();
 
                     if (result == 1)
                     {
@@ -299,7 +299,7 @@ public partial class CommandHandler
             var messageInfo = await _networkAgent.SendRequest((ushort)MessageId.Login, userData,
                 () => { Log.Warn($"Time Out"); });
 
-            var response = messageInfo.Message.ReadUInt16();
+            var response = messageInfo.ReadUInt16();
 
             if (response == 1)
             {

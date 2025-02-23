@@ -38,10 +38,12 @@ public partial class MainServer : ServerBase<MainClient>
     protected override void OnUpdate()
     {
         RoutineScheduler.Instance.Update();
+        _battleAgent.Update();
     }
 
     protected override void OnFixedUpdate()
     {
+        MatchPlayerToBattleServer().Await();
     }
 
     protected override void OnDeinit()
@@ -87,7 +89,7 @@ public partial class MainServer : ServerBase<MainClient>
         {
             ServerId = _settings.ServerId,
             ServerType = "Main",
-            Password = "SnakeMainServerPassword2024",
+            Password = "SnakeMainServerPassword2025",
         }));
     }
 }
