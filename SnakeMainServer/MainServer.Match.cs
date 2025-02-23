@@ -2,7 +2,6 @@ using Server;
 using Shared;
 using Shared.Logger;
 using Shared.Network;
-using Shared.Server;
 
 namespace SnakeMainServer;
 
@@ -50,10 +49,22 @@ public partial class MainServer
             Player1Id = player1.Key,
             Player2Id = player1.Key,
         };
-        var response = await _battleAgent.SendRequest((ushort)BattleMessageId.M2B_CreateRoom, ProtoUtils.Encode(m2BCreateRoom));
+        var response = await _battleAgent.SendRequest((ushort)MessageId.M2B_CreateRoom, ProtoUtils.Encode(m2BCreateRoom));
         if (!response.TryDecode(out B2M_RoomCreated b2MRoomCreated))
             return;
-        
-        Log.Info($"{b2MRoomCreated.KeyToEnterRoom}");
+
+        var m2CRoomMatched = new M2C_RoomMatched()
+        {
+            KeyToEnterRoom = b2MRoomCreated.KeyToEnterRoom,
+            Ip = "127.0.0.1",
+            Port = 50011,
+        };
+
+        var data = ProtoUtils.Encode(m2CRoomMatched);
+
+        var player1Client = player1.Value;
+        player1Client.SendMessage((ushort)MessageId.M2C_RoomMatched, data);
+        // var player2Client = player2.Value;
+        // player2Client.SendMessage((ushort)MessageId.M2C_RoomMatched, data);
     }
 }

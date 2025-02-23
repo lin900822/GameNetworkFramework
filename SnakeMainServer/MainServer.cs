@@ -3,7 +3,6 @@ using Shared;
 using Shared.Common;
 using Shared.Logger;
 using Shared.Network;
-using Shared.Server;
 using SnakeMainServer.Repositories;
 
 namespace SnakeMainServer;
@@ -85,7 +84,7 @@ public partial class MainServer : ServerBase<MainClient>
             }
         } while (_battleAgent.ConnectState != ConnectState.Connected);
 
-        _battleAgent.SendMessage((ushort)BattleMessageId.M2B_HandShake, ProtoUtils.Encode(new M2B_HandShake()
+        _battleAgent.SendMessage((ushort)MessageId.M2B_HandShake, ProtoUtils.Encode(new M2B_HandShake()
         {
             ServerId = _settings.ServerId,
             ServerType = "Main",
