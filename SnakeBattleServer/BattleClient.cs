@@ -13,7 +13,7 @@ public class BattleClient : ClientBase<BattleClient>
         return ServerId > 0;
     }
 
-    public bool IsClient()
+    public bool IsPlayer()
     {
         return PlayerId > 0;
     }

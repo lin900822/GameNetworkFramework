@@ -21,6 +21,7 @@ public partial class BattleServer
         
         Log.Info($"Player {c2BJoinRoom.PlayerId} 加入 Room {c2BJoinRoom.KeyToEnterRoom}");
         client.KeyToEnterRoom = c2BJoinRoom.KeyToEnterRoom;
+        client.PlayerId = c2BJoinRoom.PlayerId;
         room.SetPlayerClient(client);
     }
     
