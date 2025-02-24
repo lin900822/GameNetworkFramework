@@ -20,5 +20,23 @@ public partial class BattleServer
         }
         
         Log.Info($"Player {c2BJoinRoom.PlayerId} 加入 Room {c2BJoinRoom.KeyToEnterRoom}");
+        client.KeyToEnterRoom = c2BJoinRoom.KeyToEnterRoom;
+        room.SetPlayerClient(client);
+    }
+    
+    [MessageRoute((ushort)MessageId.C2B_Input)]
+    public void C2B_Input(BattleClient client, ByteBuffer request)
+    {
+        if (string.IsNullOrWhiteSpace(client.KeyToEnterRoom))
+            return;
+
+        if (!_keyToRooms.TryGetValue(client.KeyToEnterRoom, out var room))
+        {
+            Log.Warn($"找不到Room {client.KeyToEnterRoom} PlayerId {client.PlayerId}");
+            return;
+        }
+
+        int input = request.ReadInt32();
+        room.SetPlayerInput(client, input);
     }
 }

@@ -7,8 +7,6 @@ namespace SnakeBattleServer;
 
 public partial class BattleServer
 {
-    private Dictionary<string, Room> _keyToRooms = new Dictionary<string, Room>();
-    
     [MessageRoute((ushort)MessageId.M2B_HandShake)]
     public void M2B_HandShake(BattleClient client, ByteBuffer request)
     {
