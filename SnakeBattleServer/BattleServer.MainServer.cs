@@ -39,7 +39,7 @@ public partial class BattleServer
             return false;
         }
         
-        var room = new Room(keyToEnterRoom, m2BCreateRoom.Player1Id, m2BCreateRoom.Player2Id);
+        var room = new Room(keyToEnterRoom);
         _keyToRooms.Add(keyToEnterRoom, room);
 
         var b2MRoomCreated = new B2M_RoomCreated()
