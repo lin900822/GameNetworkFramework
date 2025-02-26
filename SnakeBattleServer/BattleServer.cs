@@ -29,12 +29,11 @@ public partial class BattleServer : ServerBase<BattleClient>
             
             room.ClientDisconnected(client);
             room.EndBattle(BattleEndResult.OtherDisconnected, 0);
-            
-            var isRemoved = _keyToRooms.Remove(client.KeyToEnterRoom);
-            if (isRemoved)
-            {
-                Log.Warn($"玩家 {client.PlayerId} 斷線 強制結束Room {client.KeyToEnterRoom}");
-            }
         }
+    }
+
+    public bool RemoveRoom(string keyToEnterRoom)
+    {
+        return _keyToRooms.Remove(keyToEnterRoom);
     }
 }

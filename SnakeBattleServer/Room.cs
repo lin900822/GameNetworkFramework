@@ -10,6 +10,7 @@ public class Room
     public string KeyToEnterRoom { get; private set; }
 
     public bool IsBattling { get; private set; }
+    private bool _hasStarted;
 
     private BattleClient _player1Client { get; set; }
     private BattleClient _player2Client { get; set; }
@@ -22,8 +23,11 @@ public class Room
     private int _minY = -4800, _maxY = 4800;
     private int _foodX, _foodY;
 
-    public Room(string keyToEnterRoom)
+    private BattleServer _battleServer;
+
+    public Room(string keyToEnterRoom, BattleServer battleServer)
     {
+        _battleServer = battleServer;
         KeyToEnterRoom = keyToEnterRoom;
         _random = new Random();
     }
@@ -49,9 +53,10 @@ public class Room
         if (!IsTwoPlayerInRoom())
             return;
 
-        if (!IsBattling)
+        if (!IsBattling && !_hasStarted)
         {
             StartBattle();
+            _hasStarted = true;
             return;
         }
 
@@ -101,10 +106,14 @@ public class Room
 
     private void UpdateBattle()
     {
+        if (!IsBattling)
+            return;
+        
         _player1Snake.FixedUpdate();
         _player2Snake.FixedUpdate();
 
         CheckEatFood();
+        CheckCollision();
 
         var currentState = ByteBufferPool.Shared.Rent(32);
 
@@ -120,6 +129,39 @@ public class Room
         _player1Client.SendMessage((ushort)MessageId.B2C_SyncState, currentState);
         _player2Client.SendMessage((ushort)MessageId.B2C_SyncState, currentState);
         ByteBufferPool.Shared.Return(currentState);
+    }
+
+    private void CheckCollision()
+    {
+        for (var i = 0; i < _player2Snake.Body.Count; i++)
+        {
+            var dx = _player1Snake.Position.X - _player2Snake.Body[i].X;
+            if(dx > 500)
+                continue;
+            var dy = _player1Snake.Position.Y - _player2Snake.Body[i].Y;
+            if(dy > 500)
+                continue;
+
+            if (dx * dx + dy * dy <= 500 * 500)
+            {
+                EndBattle(BattleEndResult.Success, _player2Client.PlayerId);
+            }
+        }
+        
+        for (var i = 0; i < _player1Snake.Body.Count; i++)
+        {
+            var dx = _player2Snake.Position.X - _player1Snake.Body[i].X;
+            if(dx > 500)
+                continue;
+            var dy = _player2Snake.Position.Y - _player1Snake.Body[i].Y;
+            if(dy > 500)
+                continue;
+
+            if (dx * dx + dy * dy <= 500 * 500)
+            {
+                EndBattle(BattleEndResult.Success, _player1Client.PlayerId);
+            }
+        }
     }
 
     private void CheckEatFood()
@@ -173,5 +215,7 @@ public class Room
         _player1Client?.SendMessage((ushort)MessageId.B2C_BattleEnd, endData);
         _player2Client?.SendMessage((ushort)MessageId.B2C_BattleEnd, endData);
         ByteBufferPool.Shared.Return(endData);
+
+        _battleServer.RemoveRoom(KeyToEnterRoom);
     }
 }

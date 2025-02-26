@@ -15,7 +15,7 @@ try
         ServerName = "SnakeBattleServer",
         Port = 50011,
         MaxConnectionCount = 2001,
-        HeartBeatInterval = 150_000,
+        HeartBeatInterval = 0,
         IsNeedCheckOverReceived = false,
         PrometheusPort = 55011,
     });

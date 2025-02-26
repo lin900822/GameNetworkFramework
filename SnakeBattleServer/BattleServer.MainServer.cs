@@ -35,11 +35,11 @@ public partial class BattleServer
 
         if (_keyToRooms.ContainsKey(keyToEnterRoom))
         {
-            Log.Warn($"{keyToEnterRoom} 已存在");
+            Log.Error($"房間 {keyToEnterRoom} 已存在");
             return false;
         }
         
-        var room = new Room(keyToEnterRoom);
+        var room = new Room(keyToEnterRoom, this);
         _keyToRooms.Add(keyToEnterRoom, room);
 
         var b2MRoomCreated = new B2M_RoomCreated()

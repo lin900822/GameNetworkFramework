@@ -72,7 +72,10 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
     private void OnCommunicatorDisconnected(NetworkCommunicator communicator)
     {
         if (!CommunicatorToTClient.TryGetValue(communicator, out var client))
+        {
+            Log.Error($"ServerBase OnCommunicatorDisconnected 正常來說應該要存在");
             return;
+        }
 
         OnClientDisconnected(client);
         client.Deinit();
@@ -350,6 +353,9 @@ public abstract class ServerBase<TClient> where TClient : ClientBase<TClient>, n
 
     private void CheckHeartBeat()
     {
+        if (_settings.HeartBeatInterval <= 0)
+            return;
+        
         var currentTime = TimeUtils.GetTimeStamp();
         foreach (var communicator in CommunicatorToTClient.Keys)
         {

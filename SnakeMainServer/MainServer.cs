@@ -13,6 +13,8 @@ public partial class MainServer : ServerBase<MainClient>
 
     private uint _nextPlayerId = 0;
 
+    private float _lastPingBattleServerTimeMs;
+
     private PlayerRepository _playerRepository;
 
     private NetworkAgent _battleAgent;
@@ -38,6 +40,12 @@ public partial class MainServer : ServerBase<MainClient>
     {
         RoutineScheduler.Instance.Update();
         _battleAgent.Update();
+
+        if (TimeUtils.TimeSinceAppStart - _lastPingBattleServerTimeMs >= 100_000)
+        {
+            _lastPingBattleServerTimeMs = TimeUtils.TimeSinceAppStart;
+            _battleAgent.SendMessage(0, Array.Empty<byte>());
+        }
     }
 
     protected override void OnFixedUpdate()
